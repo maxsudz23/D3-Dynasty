@@ -1,0 +1,132 @@
+/* Data APIs with graceful fallbacks.
+   - randomuser.me: recruit names, hometowns and portraits.
+   - Open-Meteo: live conditions at the meet host's campus.
+   Every call has a timeout and returns usable data even when offline. */
+(function (XC) {
+  'use strict';
+
+  const U = XC.util;
+  const API = {};
+
+  async function fetchJson(url, timeoutMs = 7000) {
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), timeoutMs);
+    try {
+      const res = await fetch(url, { signal: controller.signal });
+      if (!res.ok) throw new Error(`Request failed with status ${res.status}`);
+      return await res.json();
+    } finally {
+      clearTimeout(timer);
+    }
+  }
+
+  /* ---------- People (randomuser.me) ---------- */
+
+  API.localPerson = function (squad, rng = Math.random) {
+    const pool = squad === 'W' ? XC.names.female : XC.names.male;
+    return {
+      first: U.pick(pool, rng),
+      last: U.pick(XC.names.last, rng),
+      hometown: U.pick(XC.names.hometowns, rng),
+      photo: null
+    };
+  };
+
+  function cleanName(str) {
+    const s = String(str || '').trim();
+    return s ? s[0].toUpperCase() + s.slice(1) : '';
+  }
+
+  API.fetchPeople = async function (count, squad) {
+    const gender = squad === 'W' ? 'female' : 'male';
+    const url = `https://randomuser.me/api/?results=${count}&nat=us&gender=${gender}&inc=name,location,picture&noinfo`;
+    try {
+      const data = await fetchJson(url);
+      if (!data || !Array.isArray(data.results) || data.results.length === 0) throw new Error('No people returned');
+      const people = data.results.map((r) => {
+        const state = XC.names.stateAbbr[r.location && r.location.state] || (r.location && r.location.state) || '';
+        const city = r.location && r.location.city ? r.location.city : U.pick(XC.names.hometowns).split(',')[0];
+        return {
+          first: cleanName(r.name && r.name.first) || API.localPerson(squad).first,
+          last: cleanName(r.name && r.name.last) || U.pick(XC.names.last),
+          hometown: state ? `${city}, ${state}` : city,
+          photo: r.picture && r.picture.large ? r.picture.large : null
+        };
+      });
+      while (people.length < count) people.push(API.localPerson(squad));
+      return { people, live: true };
+    } catch (err) {
+      const people = Array.from({ length: count }, () => API.localPerson(squad));
+      return { people, live: false };
+    }
+  };
+
+  /* ---------- Weather (Open-Meteo) ---------- */
+
+  const WMO = [
+    [[0], 'Clear skies'],
+    [[1, 2], 'Partly cloudy'],
+    [[3], 'Overcast'],
+    [[45, 48], 'Fog'],
+    [[51, 53, 55, 56, 57], 'Drizzle'],
+    [[61, 63, 65, 66, 67], 'Rain'],
+    [[71, 73, 75, 77], 'Snow'],
+    [[80, 81, 82], 'Rain showers'],
+    [[85, 86], 'Snow showers'],
+    [[95, 96, 99], 'Thunderstorms']
+  ];
+  const WET_CODES = [51, 53, 55, 56, 57, 61, 63, 65, 66, 67, 80, 81, 82, 95, 96, 99];
+
+  API.weatherLabel = function (code) {
+    const hit = WMO.find(([codes]) => codes.includes(code));
+    return hit ? hit[1] : 'Mixed conditions';
+  };
+
+  function finishWeather(w) {
+    w.label = API.weatherLabel(w.code);
+    w.soft = w.precipMm >= 0.4 || WET_CODES.includes(w.code);
+    w.ground = w.precipMm >= 2 ? 'Muddy' : w.soft ? 'Soft' : 'Firm';
+    return w;
+  }
+
+  // Plausible autumn race-day weather for when the live call fails.
+  API.simulatedWeather = function (monthIndex, seedKey) {
+    const rng = U.mulberry32(U.hash(String(seedKey)));
+    const ranges = { 8: [12, 26], 9: [5, 18], 10: [-2, 11] };
+    const [lo, hi] = ranges[monthIndex] || [6, 16];
+    const wet = rng() < 0.3;
+    const code = wet ? U.pick([51, 61, 63, 80], rng) : U.pick([0, 1, 2, 3, 3], rng);
+    return finishWeather({
+      tempC: U.round(U.randFloat(lo, hi, rng), 1),
+      precipMm: wet ? U.round(U.randFloat(0.4, 4, rng), 1) : 0,
+      windKph: U.round(U.randFloat(4, 26, rng), 1),
+      code,
+      live: false
+    });
+  };
+
+  API.fetchWeather = async function (lat, lon, fallbackMonth, seedKey) {
+    const url = 'https://api.open-meteo.com/v1/forecast' +
+      `?latitude=${lat.toFixed(3)}&longitude=${lon.toFixed(3)}` +
+      '&current=temperature_2m,precipitation,wind_speed_10m,weather_code&timezone=auto';
+    try {
+      const data = await fetchJson(url);
+      const c = data && data.current;
+      if (!c || typeof c.temperature_2m !== 'number') throw new Error('Weather data missing');
+      return finishWeather({
+        tempC: c.temperature_2m,
+        precipMm: c.precipitation || 0,
+        windKph: c.wind_speed_10m || 0,
+        code: c.weather_code || 0,
+        live: true
+      });
+    } catch (err) {
+      return API.simulatedWeather(fallbackMonth, seedKey);
+    }
+  };
+
+  API.toF = (c) => Math.round((c * 9) / 5 + 32);
+  API.toMph = (kph) => Math.round(kph * 0.621371);
+
+  XC.api = API;
+})(window.XC = window.XC || {});

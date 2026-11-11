@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>D3 Dynasty | Division III Cross Country Coaching</title>
+  <meta name="description" content="Coach any NCAA Division III cross country program: recruit, set your top seven, race a six-meet season and build a dynasty.">
+  <meta name="theme-color" content="#1A2431">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Kaushan+Script&amp;family=Saira+Condensed:wght@400;500;600;700;800&amp;display=swap">
+  <link rel="stylesheet" href="css/styles.css">
+  <script defer src="js/util.js"></script>
+  <script defer src="js/storage.js"></script>
+  <script defer src="js/audio.js"></script>
+  <script defer src="js/data/schools.js"></script>
+  <script defer src="js/data/names.js"></script>
+  <script defer src="js/athletes.js"></script>
+  <script defer src="js/race.js"></script>
+  <script defer src="js/api.js"></script>
+  <script defer src="js/season.js"></script>
+  <script defer src="js/ui/common.js"></script>
+  <script defer src="js/ui/title.js"></script>
+  <script defer src="js/ui/hub.js"></script>
+  <script defer src="js/ui/roster.js"></script>
+  <script defer src="js/ui/wheel.js"></script>
+  <script defer src="js/ui/meet.js"></script>
+  <script defer src="js/ui/race-view.js"></script>
+  <script defer src="js/ui/offseason.js"></script>
+  <script defer src="js/main.js"></script>
+</head>
+<body class="is-title">
+  <a class="skip-link" href="#screen">Skip to content</a>
+
+  <header class="masthead" id="masthead">
+    <div class="masthead__row">
+      <h1 class="screen-title" id="screen-title">D3 Dynasty</h1>
+      <div class="masthead__status">
+        <div class="rep" id="rep-display"></div>
+        <p class="season-tag" id="season-tag"></p>
+        <button type="button" class="toggle" id="toggle-sound" aria-pressed="true">Sound</button>
+        <button type="button" class="toggle" id="toggle-announcer" aria-pressed="false">Announcer</button>
+      </div>
+    </div>
+    <div class="context-bar" id="context-bar">
+      <button type="button" class="keycap keycap--bumper" id="squad-prev" aria-label="Previous squad (Q)">Q</button>
+      <div class="context-bar__team" id="context-team"></div>
+      <div class="context-bar__squad" id="context-squad"></div>
+      <button type="button" class="keycap keycap--bumper" id="squad-next" aria-label="Next squad (E)">E</button>
+    </div>
+  </header>
+
+  <main id="screen" class="screen" tabindex="-1"></main>
+
+  <footer class="legend-bar">
+    <nav class="legend" id="legend" aria-label="Controls"></nav>
+    <section class="ticker" aria-label="League news">
+      <p class="ticker__tag">XC Wire</p>
+      <div class="ticker__window">
+        <p class="ticker__track" id="ticker-track"></p>
+      </div>
+    </section>
+  </footer>
+
+  <div class="toasts" id="toasts" role="status" aria-live="polite"></div>
+
+  <dialog class="confirm" id="confirm-dialog" aria-labelledby="confirm-message">
+    <form method="dialog" class="confirm__form">
+      <p class="confirm__message" id="confirm-message"></p>
+      <div class="confirm__actions">
+        <button type="submit" class="btn btn--ghost" value="cancel" id="confirm-cancel">Cancel</button>
+        <button type="submit" class="btn btn--danger" value="ok" id="confirm-ok">Confirm</button>
+      </div>
+    </form>
+  </dialog>
+
+  <noscript>
+    <p class="noscript">D3 Dynasty needs JavaScript to run. Turn it on and reload the page.</p>
+  </noscript>
+</body>
+</html>
