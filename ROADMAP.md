@@ -45,3 +45,37 @@ A phone-style inbox screen (`XC.screens.texts`) where runners message the coach 
   - Interval (VO2) workouts gain `state.facilities.track × 5%` more benefit.
   - `state.homeCourse = { name, type, seed }` is the user's course, used for every home meet.
 - **Home course editor:** Rename it, pick terrain, and reroll the layout (new seed). Also choose loop vs point-to-point by rerolling until `XC.course.generate(seed).kind` matches. Upgrades could add spectator areas (a home-meet rep bonus) or a "championship grade" course that makes hosting the conference meet more likely.
+
+## Real home courses
+
+Replace the invented venue names with the real courses each school races on, so a meet at a school's home course carries that course's real name, terrain and character.
+
+- **Research first (most of the work):** For each of the 143 programs, find the course it actually hosts on. Do the most thorough search possible when this starts, and record a source for every entry.
+  - Where to look: each school's athletics site (cross country page, home meet and invitational pages, facilities pages), meet listings and results on TFRRS and DirectAthletics (which name the venue), conference and NCAA championship host announcements, and local news.
+  - What to record per course: official name, location (park, golf course, campus farm, etc.), approximate terrain (flat, rolling, hilly, mud-prone), loop vs point-to-point if known, notable features ("the big hill at 6K"), and the source URLs.
+  - Several schools may share one venue (a public park or a conference's usual course), so key the data by course, not by school.
+  - Mark confidence. A course that can't be verified isn't entered, and that school keeps a generated venue. Never invent a "real" course.
+- **Read the course maps (for an accurate layout):** Most hosts publish a course map, as an image or PDF on the meet page, in the meet information packet, or on the athletics facilities page. Find the map for each course, and for each race distance if they differ (men's 8K, women's 6K). View it and trace the layout.
+  - Trace the route as an ordered list of points in our own coordinates, normalized to the course frame, following the map's shape: turns, straights, loops and out-and-backs.
+  - Record where each race starts and finishes, how many laps it runs and which parts each race repeats, and where shared sections or the two races' routes differ.
+  - Record the km or mile markers shown on the map, so the split markers land where the real ones are.
+  - Record hills and elevation from the map's elevation profile, contour shading or notes ("the big hill at 6K"). Where the map has none, use satellite terrain or the course description, and note which source was used.
+  - Check the trace against the official distance: the scaled route length should match 8K and 6K (or the listed distances).
+  - Keep the map's URL as a source. Ship only our traced points, never the map image itself.
+  - If no usable map exists, record that and fall back to a layout generated from the course's described terrain and kind.
+- **Data:** a new `js/data/courses.js`.
+  - `courses: { [courseId]: { name, city, type, kind?, climbPerKm?, route?, races?, hills?, notes, sources, mapSource? } }`
+  - `route`: the traced points. `races`: start, finish, laps and km marks per squad. `hills`: positions and sizes along the route.
+  - `homeOf: { [schoolId]: courseId }`
+  - Store names, facts and our own traced routes only. Don't ship map images.
+- **Game wiring:**
+  - `S.venueFor` checks `homeOf` first and falls back to today's generated venue.
+  - Courses with a traced `route` get a hand-authored layout. `course.js` needs a path that takes the traced points instead of `C.generate`. Then it runs the same smoothing, fit to the 16:9 frame and `C.isClear` crossing check (a real route that crosses itself, such as a figure-eight, needs a way to allow that crossing), builds elevation from `hills`, and maps each race's start, finish and laps from `races`.
+  - Courses without a traced route stay generated, seeded by the course id, with `type`, `kind` (loop or point-to-point) and the climb range steered by the research.
+  - When the player picks a real school, `S.newGame` starts `state.homeCourse` from that school's real course instead of a random one. The planned home course editor (see Facilities) can still rename or reroll it.
+  - Championships: conference meets would use real host courses (the host's home course), and regionals and nationals could use real championship venues where the research finds them, replacing `XC.names.nationalVenues`.
+- **Saves:** meets already scheduled keep the course stored in `state.schedule`, so changes apply from the next season's schedule. Decide then whether `S.migrate` should swap an existing save's random `homeCourse` for the school's real one (probably only if the player never customized it).
+- **Testing:**
+  - Check that every `homeOf` entry points to an existing course and every course has at least one source.
+  - For traced courses, render each one beside its source map for a side-by-side check of shape, start and finish, and laps, and check that the route length matches the race distance.
+  - Check that the course stress test still passes for the generated ones.

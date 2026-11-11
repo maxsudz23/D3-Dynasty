@@ -111,7 +111,7 @@ D3 Dynasty is a Division III cross country coaching game in plain HTML, CSS and 
   - It then fits the volume so the middle runner hits the target without pushing anyone into overreach.
 - **Auto plan:** `T.autoPlan` rests anyone at 65+ workout-day fatigue and splits the rest into up to three groups by readiness.
 - **Plan state:** `state.training = { meetIndex, done, plans: { [sq]: { groups, assign } }, report }`. `assign[id]` is `{ mode: 'group', group }`, `{ mode: 'custom', workout }` or `{ mode: 'rest' }`.
-- **Future hooks:** `T.advisorQuality(state)` reads `state.staff.trainingQuality` (assistant coaches), and staff suggestions carry `source: 'staff'`. `state.facilities.trainingRoom` and `state.facilities.track` add bonuses. `ROADMAP.md` covers the planned texts, assistant coaches and facilities.
+- **Future hooks:** `T.advisorQuality(state)` reads `state.staff.trainingQuality` (assistant coaches), and staff suggestions carry `source: 'staff'`. `state.facilities.trainingRoom` and `state.facilities.track` add bonuses. `ROADMAP.md` covers the planned texts, assistant coaches, facilities and real home courses.
 
 ## Mobile
 - At 600px wide or less, and on touch screens, the legend bar becomes a row of real buttons. It holds the only Back control on several screens, so it must never be hidden.
