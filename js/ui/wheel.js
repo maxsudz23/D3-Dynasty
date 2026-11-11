@@ -17,6 +17,8 @@
 
   let angle = 0;
   let spinning = false;
+  // True for the whole Spin all run, including the moments between spins.
+  let spinningAll = false;
   let raf = null;
 
   function segColors() {
@@ -93,8 +95,9 @@
       const rec = this.rec();
       const left = S.SPINS - rec.spins;
       const ready = Boolean(rec.people);
-      this.spinBtn.disabled = spinning || left <= 0 || !ready;
-      this.allBtn.disabled = spinning || left <= 0 || !ready;
+      const busy = spinning || spinningAll;
+      this.spinBtn.disabled = busy || left <= 0 || !ready;
+      this.allBtn.disabled = busy || left <= 0 || !ready;
       this.countEl.textContent = !ready
         ? 'Scouting prospects…'
         : left > 0
@@ -186,9 +189,12 @@
       return Math.floor(rel / ARC) % SEG;
     },
 
-    spin(quick = false) {
+    // Resolves true once a spin lands, false if it couldn't start. Keyboard
+    // shortcuts and the legend reach this directly, so it guards itself
+    // rather than relying on the disabled buttons.
+    spin(quick = false, fromAll = false) {
       const rec = this.rec();
-      if (spinning || rec.spins >= S.SPINS || !rec.people) return Promise.resolve();
+      if (spinning || (spinningAll && !fromAll) || rec.spins >= S.SPINS || !rec.people) return Promise.resolve(false);
       spinning = true;
       this.updateControls();
       const target = U.randInt(0, SEG - 1);
@@ -228,16 +234,25 @@
           XC.audio.reveal();
           this.drawBoard(prospect.id);
           this.updateControls();
-          resolve();
+          resolve(true);
         };
         raf = requestAnimationFrame(step);
       });
     },
 
     async spinAll() {
+      if (spinning || spinningAll) return;
       const sq = XC.activeSquad;
-      while (this.rec().spins < S.SPINS && XC.currentScreen() === 'wheel' && XC.activeSquad === sq) {
-        await this.spin(true);
+      spinningAll = true;
+      this.updateControls();
+      try {
+        while (this.rec().spins < S.SPINS && XC.currentScreen() === 'wheel' && XC.activeSquad === sq) {
+          // Stop if a spin couldn't start, instead of retrying in a tight loop.
+          if (!(await this.spin(true, true))) break;
+        }
+      } finally {
+        spinningAll = false;
+        if (XC.currentScreen() === 'wheel') this.updateControls();
       }
     },
 
@@ -331,8 +346,12 @@
       XC.go('hub');
     },
 
+    canChangeSquad() {
+      return !spinning && !spinningAll;
+    },
+
     onSquadChange() {
-      if (spinning) return;
+      if (spinning || spinningAll) return;
       this.draw();
     },
 
@@ -348,7 +367,7 @@
 
     onKey(e) {
       const onButton = e.target instanceof HTMLButtonElement;
-      if (spinning && (e.key === 'q' || e.key === 'e' || e.key === 'Escape')) return true;
+      if ((spinning || spinningAll) && (e.key === 'q' || e.key === 'e' || e.key === 'Escape')) return true;
       if (e.key === ' ' && !onButton) {
         this.spin();
         return true;
@@ -368,6 +387,7 @@
       if (raf) cancelAnimationFrame(raf);
       raf = null;
       spinning = false;
+      spinningAll = false;
     }
   };
 })(window.XC = window.XC || {});

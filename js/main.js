@@ -51,6 +51,8 @@
 
   XC.setSquad = function (sq) {
     if (!XC.state || !XC.state.programs.includes(sq) || XC.activeSquad === sq) return;
+    // A screen can hold the squad in place, e.g. while the wheel is spinning.
+    if (current && typeof current.canChangeSquad === 'function' && !current.canChangeSquad()) return;
     XC.activeSquad = sq;
     XC.audio.nav();
     if (current && typeof current.onSquadChange === 'function') {
