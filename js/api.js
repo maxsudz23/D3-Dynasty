@@ -37,20 +37,58 @@
     return s ? s[0].toUpperCase() + s.slice(1) : '';
   }
 
+  /* randomuser.me can't filter by age, and its photos are picked separately
+     from the birth date it returns. Its portraits come from a fixed pool of
+     100 per gender, so these are the ones that pass for college runners.
+     Duplicate shots of the same person are left out. */
+  const YOUNG_PORTRAITS = {
+    men: [1, 4, 6, 9, 10, 12, 14, 16, 18, 27, 28, 35, 38, 39, 42, 43, 44, 45, 46, 47,
+      51, 56, 57, 60, 62, 64, 65, 73, 77, 81, 84, 85, 86, 89, 90, 92, 95, 96, 97],
+    women: [1, 2, 5, 6, 10, 11, 12, 13, 15, 16, 17, 18, 19, 20, 21, 22, 25, 26, 27, 28,
+      29, 30, 31, 32, 33, 34, 35, 36, 38, 40, 42, 43, 44, 45, 46, 48, 49, 50, 51, 52,
+      54, 55, 56, 57, 59, 60, 62, 63, 64, 66, 67, 68, 70, 71, 72, 73, 74, 75, 76, 77,
+      78, 79, 80, 81, 82, 84, 85, 86, 87, 88, 90, 91, 92, 93, 94, 95, 96, 97, 98]
+  };
+  const PORTRAIT_RE = /^(https:\/\/randomuser\.me\/api\/portraits\/)(men|women)\/(\d+)\.jpg$/;
+
+  // Keeps the API's photo when it's on the list, otherwise swaps in an unused
+  // one from the list, so a batch never shows the same face twice.
+  function youngPortraits(urls) {
+    const used = new Set();
+    const parsed = urls.map((url) => {
+      const m = PORTRAIT_RE.exec(url || '');
+      if (!m) return null;
+      const n = Number(m[3]);
+      const keep = YOUNG_PORTRAITS[m[2]].includes(n) && !used.has(`${m[2]}/${n}`);
+      if (keep) used.add(`${m[2]}/${n}`);
+      return { base: m[1], group: m[2], n, keep };
+    });
+    return parsed.map((p, i) => {
+      if (!p) return urls[i] || null;
+      if (!p.keep) {
+        const open = YOUNG_PORTRAITS[p.group].filter((n) => !used.has(`${p.group}/${n}`));
+        p.n = open.length ? U.pick(open) : U.pick(YOUNG_PORTRAITS[p.group]);
+        used.add(`${p.group}/${p.n}`);
+      }
+      return `${p.base}${p.group}/${p.n}.jpg`;
+    });
+  }
+
   API.fetchPeople = async function (count, squad) {
     const gender = squad === 'W' ? 'female' : 'male';
     const url = `https://randomuser.me/api/?results=${count}&nat=us&gender=${gender}&inc=name,location,picture&noinfo`;
     try {
       const data = await fetchJson(url);
       if (!data || !Array.isArray(data.results) || data.results.length === 0) throw new Error('No people returned');
-      const people = data.results.map((r) => {
+      const photos = youngPortraits(data.results.map((r) => r.picture && r.picture.large));
+      const people = data.results.map((r, i) => {
         const state = XC.names.stateAbbr[r.location && r.location.state] || (r.location && r.location.state) || '';
         const city = r.location && r.location.city ? r.location.city : U.pick(XC.names.hometowns).split(',')[0];
         return {
           first: cleanName(r.name && r.name.first) || API.localPerson(squad).first,
           last: cleanName(r.name && r.name.last) || U.pick(XC.names.last),
           hometown: state ? `${city}, ${state}` : city,
-          photo: r.picture && r.picture.large ? r.picture.large : null
+          photo: photos[i]
         };
       });
       while (people.length < count) people.push(API.localPerson(squad));
