@@ -8,7 +8,7 @@ D3 Dynasty is a D3 cross country coaching game. You pick a real Division III pro
 
 | API | What it does in the game | Where to look | How it fails gracefully |
 |---|---|---|---|
-| **randomuser.me** | Names, hometowns and portrait photos for the starting roster and every recruit | `js/api.js:77` (`fetchPeople`), called from `js/ui/title.js:378` and `js/ui/wheel.js:82` | Falls back to local name lists and drawn silhouettes, then shows a toast saying photos are unavailable (`js/api.js:96`, `js/ui/wheel.js:88`). A broken photo URL also swaps to a silhouette (`js/ui/common.js:86`). |
+| **randomuser.me** | Names, hometowns and portrait photos for the starting roster and every recruit | `js/api.js:77` (`fetchPeople`), called from `js/ui/title.js:378` and `js/ui/wheel.js:84` | Falls back to local name lists and drawn silhouettes, then shows a toast saying photos are unavailable (`js/api.js:96`, `js/ui/wheel.js:90`). A broken photo URL also swaps to a silhouette (`js/ui/common.js:86`). |
 | **Open-Meteo** | Live weather at the meet host's campus. Heat, rain and wind slow race times (`js/race.js`, `weatherSeconds`). | `js/api.js:146` (`fetchWeather`), called from `js/ui/meet.js:40` | Uses simulated autumn weather (`js/api.js:131`). The meet preview then says the conditions are simulated (`js/ui/meet.js:100`). |
 
 Both API calls time out after 7 seconds through an `AbortController` (`js/api.js:11`).
