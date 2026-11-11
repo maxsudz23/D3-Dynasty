@@ -1,0 +1,9 @@
+# Files in the repo that Cloudflare should not serve.
+.git/
+.gitignore
+.assetsignore
+.DS_Store
+.wrangler
+node_modules
+wrangler.jsonc
+*.md

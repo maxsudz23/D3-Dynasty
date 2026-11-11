@@ -1,0 +1,11 @@
+// Cloudflare deploy config. The game is static files with no build step, so
+// the Worker only serves the repo root as assets (see .assetsignore).
+{
+  "$schema": "./node_modules/wrangler/config-schema.json",
+  // Must match the Worker's name in the Cloudflare dashboard.
+  "name": "d3-dynasty",
+  "compatibility_date": "2026-11-01",
+  "assets": {
+    "directory": "."
+  }
+}

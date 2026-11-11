@@ -32,3 +32,7 @@ Re-create similar scripts in the scratchpad rather than adding dependencies to t
 ## Known judgment calls
 - 141 real D3 programs plus a custom-school builder. Colors are approximate, and crests are generated monograms (no real logos).
 - Long dynasties can snowball toward 95+ team OVR. The stronger rep decay above 80 is the only brake.
+
+## Deployment
+- `grading` is a frozen snapshot for the grader, served by GitHub Pages. Don't commit to it.
+- `main` deploys to Cloudflare through `wrangler.jsonc`, which serves the repo root as static assets with no build step. `.assetsignore` keeps `.git`, the `.md` notes and the config files from being served. The `name` in `wrangler.jsonc` must match the Worker's name in the Cloudflare dashboard.
