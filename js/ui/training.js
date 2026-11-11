@@ -251,6 +251,10 @@
         el.appendChild(h('p', null, zoneBadge(p.zone), ` Dose ${pct(p.x)}`));
         el.appendChild(h('p', { class: 'plan-row__meta' },
           `Fatigue after ${Math.round(p.after)}, race day ${Math.round(p.race)}. Injury risk ${riskText(p.risk)}`));
+        if (p.strain > 1) {
+          el.appendChild(h('p', { class: 'workout-group__warn' },
+            `${Math.round(p.strain * 100)}% of the time they can hold this pace, even counting rest. More rest or fewer reps.`));
+        }
       });
       this.groupNotes.forEach(({ note, group }) => {
         const members = this.membersOf(group);

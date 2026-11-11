@@ -46,9 +46,9 @@
         }
       },
       intensities: {
-        steady: { label: 'Steady state', i: 0.62 },
-        threshold: { label: 'Threshold pace', i: 0.74 },
-        hard: { label: 'Hard threshold (10K effort)', i: 0.85 }
+        steady: { label: 'Steady state', i: 0.58, tte: 120 },
+        threshold: { label: 'Threshold pace', i: 0.74, tte: 55 },
+        hard: { label: 'Hard threshold (10K effort)', i: 0.85, tte: 32 }
       }
     },
     vo2: {
@@ -72,9 +72,9 @@
         }
       },
       intensities: {
-        k5: { label: '5K pace', i: 1, pace: 1.02 },
-        k3: { label: '3K pace', i: 1.12, pace: 1.06 },
-        mile: { label: 'Mile pace', i: 1.24, pace: 1.12 }
+        k5: { label: '5K pace', i: 1, pace: 1.02, tte: 16 },
+        k3: { label: '3K pace', i: 1.12, pace: 1.06, tte: 9 },
+        mile: { label: 'Mile pace', i: 1.24, pace: 1.12, tte: 4.5 }
       }
     },
     hills: {
@@ -103,9 +103,9 @@
         }
       },
       intensities: {
-        controlled: { label: 'Controlled', i: 0.85 },
-        strong: { label: 'Strong', i: 1 },
-        allout: { label: 'All-out', i: 1.18 }
+        controlled: { label: 'Controlled', i: 0.85, tte: 30 },
+        strong: { label: 'Strong', i: 1, tte: 12 },
+        allout: { label: 'All-out', i: 1.18, tte: 5 }
       }
     },
     fartlek: {
@@ -134,9 +134,9 @@
         }
       },
       intensities: {
-        relaxed: { label: 'Relaxed', i: 0.7 },
-        moderate: { label: 'Moderate', i: 0.82 },
-        aggressive: { label: 'Aggressive', i: 0.95 }
+        relaxed: { label: 'Relaxed', i: 0.7, tte: 70 },
+        moderate: { label: 'Moderate', i: 0.82, tte: 40 },
+        aggressive: { label: 'Aggressive', i: 0.95, tte: 20 }
       }
     }
   };
@@ -215,6 +215,27 @@
     return per * w.reps;
   };
 
+  // How much of a runner's limit at this pace the session uses. Each pace
+  // has a time to exhaustion (how long it could be held in one go); rest
+  // between reps buys some of it back, floats less than full rest. Above
+  // about 0.8 of the limit the session's cost climbs steeply, so 8 x 1K at
+  // 3K pace on 45 seconds rest or 40 minutes at 10K effort cooks anyone.
+  T.strain = function (w, a, sq) {
+    const spec = T.TYPES[w.type];
+    const fmt = spec.formats[w.format];
+    const work = T.workMinutes(w, a, sq);
+    const repMin = work / (w.reps || 1);
+    let tte = spec.intensities[w.intensity].tte * (0.8 + a.stats.end / 250);
+    if (fmt.progressive) tte *= 0.85;
+    let density = 1;
+    if (fmt.rest) {
+      const ratio = w.rest / 60 / (repMin || 1);
+      density = fmt.continuous ? 0.55 + 0.45 / (1 + 1.5 * ratio) : 0.4 + 0.6 / (1 + 2 * ratio);
+    }
+    const fraction = (work / tte) * density;
+    return { fraction, mult: 1 + 1.2 * Math.max(0, fraction - 0.8) ** 1.3 };
+  };
+
   T.load = function (w, a, sq) {
     const spec = T.TYPES[w.type];
     const fmt = spec.formats[w.format];
@@ -226,13 +247,13 @@
     if (fmt.rest && !fmt.continuous) density = 0.8 + 0.2 * (work / (work + restMin || 1));
     // Floats keep you running, so they add load instead of relieving it.
     else if (fmt.rest && fmt.continuous) density = 1 + 0.15 * (restMin / (work + restMin || 1));
-    return work * i * i * spec.load * (fmt.loadMult || 1) * density;
+    return work * i * i * spec.load * (fmt.loadMult || 1) * density * T.strain(w, a, sq).mult;
   };
 
   // Load a runner absorbs well in one key session.
   T.capacity = function (a) {
     const s = a.stats;
-    return U.clamp(13 + (s.end - 60) * 0.18 + (s.dur - 60) * 0.1 + (s.mnt - 60) * 0.04 + (a.year - 1) * 1.3, 8, 30);
+    return U.clamp(14.8 + (s.end - 60) * 0.1 + (s.dur - 60) * 0.06 + (s.mnt - 60) * 0.03 + (a.year - 1) * 0.8, 9, 26);
   };
 
   T.dose = (w, a, sq) => T.load(w, a, sq) / T.capacity(a);
@@ -321,6 +342,7 @@
     const after = Math.min(100, day + workoutFatigue(x));
     return {
       x,
+      strain: T.strain(res.workout, a, sq).fraction,
       zone: T.zone(x),
       day,
       after,
@@ -393,7 +415,8 @@
         return rng() < 0.5 ? T.make('threshold', 'continuous', 'threshold') : T.make('threshold', 'cruise', 'threshold', { work: 8, rest: 75 });
       case 'vo2':
         if (taper) return T.make('vo2', 'intervals', 'mile', { work: 400, rest: 90 });
-        return rng() < 0.6 ? T.make('vo2', 'intervals', 'k3', { work: 1000, rest: 120 }) : T.make('vo2', 'floats', 'k5');
+        if (rng() < 0.6) return rng() < 0.5 ? T.make('vo2', 'intervals', 'k5', { work: 1000, rest: 120 }) : T.make('vo2', 'intervals', 'k3', { work: 800, rest: 150 });
+        return T.make('vo2', 'floats', 'k5');
       case 'hills':
         if (taper) return T.make('hills', 'short', 'strong');
         if (climb >= 9) return T.make('hills', 'long', 'strong');

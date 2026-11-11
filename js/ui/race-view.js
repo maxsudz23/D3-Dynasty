@@ -536,6 +536,19 @@
     },
 
     updateSide() {
+      // Before the gun every runner is tied at 0%, and sorting would fall back
+      // to the simulated finishing order, leaking the final scores.
+      if (this.phase === 'marks') {
+        U.clear(this.teamList);
+        this.teamList.appendChild(h('li', null, h('span'), h('span', null, 'Scores post after the gun'), h('span')));
+        U.clear(this.userList);
+        // Lineup order, not the simulated finish order.
+        const mine = this.teams.user ? this.teams.user.runners : [];
+        if (!mine.length) this.userList.appendChild(h('li', null, h('span'), h('span', null, 'No runners in this race'), h('span')));
+        mine.forEach((a) => this.userList.appendChild(h('li', null,
+          h('span', { class: 'pos' }, '—'), h('span', null, A.shortName(a)), h('span'))));
+        return;
+      }
       const ord = this.order();
       const scores = this.liveScores(ord);
       U.clear(this.teamList);
