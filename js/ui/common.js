@@ -40,25 +40,45 @@
     if (meta) meta.setAttribute('content', primary);
   };
 
-  /* ---------- Crest (generated monogram shield) ---------- */
+  /* ---------- Crest (athletics logo or generated monogram shield) ---------- */
 
+  const SHIELD = 'M50 3 L96 15 V56 C96 84 75 101 50 109 C25 101 4 84 4 56 V15 Z';
+
+  // Real schools with a logo in img/logos get it on a white shield edged in
+  // the school color. Everyone else, and any logo that fails to load, gets
+  // the monogram.
   ui.crest = function (school, label) {
+    const src = XC.logos && XC.logos.pathFor(school);
+    if (!src) return monogram(school, label);
+    // The logo box is 78 x 68, centered at (50, 51) inside the shield.
+    const k = XC.logos.scaleFor(school);
+    const bw = 78 * k;
+    const bh = 68 * k;
+    const svg = U.svg('svg', {
+      class: 'crest crest--logo', viewBox: '0 0 100 112', role: 'img', 'aria-label': label || `${school.name} logo`
+    },
+    U.svg('path', { d: SHIELD, fill: '#FFFFFF', stroke: school.primary, 'stroke-width': '6' }),
+    U.svg('image', {
+      href: src, x: String(50 - bw / 2), y: String(51 - bh / 2), width: String(bw), height: String(bh), preserveAspectRatio: 'xMidYMid meet',
+      on: { error: () => { if (svg.parentNode) svg.parentNode.replaceChild(monogram(school, label), svg); } }
+    }));
+    return svg;
+  };
+
+  function monogram(school, label) {
     const initials = U.initials(school.short || school.name || 'XC');
     const size = [0, 54, 42, 32, 25][Math.min(initials.length, 4)];
     const text = U.readableOn(school.primary);
     return U.svg('svg', {
       class: 'crest', viewBox: '0 0 100 112', role: 'img', 'aria-label': label || `${school.name} crest`
     },
-    U.svg('path', {
-      d: 'M50 3 L96 15 V56 C96 84 75 101 50 109 C25 101 4 84 4 56 V15 Z',
-      fill: school.primary, stroke: school.accent, 'stroke-width': '5'
-    }),
+    U.svg('path', { d: SHIELD, fill: school.primary, stroke: school.accent, 'stroke-width': '5' }),
     U.svg('path', { d: 'M4 70 L96 46 V58 L6 82 Z', fill: school.accent, opacity: '0.85' }),
     U.svg('text', {
       class: 'crest__text', x: '50', y: '52', 'text-anchor': 'middle', 'dominant-baseline': 'middle',
       'font-size': String(size), fill: text
     }, initials));
-  };
+  }
 
   /* ---------- Portraits ---------- */
 

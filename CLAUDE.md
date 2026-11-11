@@ -21,8 +21,9 @@ D3 Dynasty is a Division III cross country coaching game in plain HTML, CSS and 
 - APIs need graceful failure handling, and browser APIs need handling for denied permissions.
 
 ## Architecture
-- **Engine** (pure, testable in node with `global.window = global`): `util.js`, `data/schools.js`, `data/names.js`, `athletes.js`, `race.js`, `course.js`, `training.js`, `api.js`, `season.js`.
+- **Engine** (pure, testable in node with `global.window = global`): `util.js`, `data/schools.js`, `data/logos.js`, `data/names.js`, `athletes.js`, `race.js`, `course.js`, `training.js`, `api.js`, `season.js`.
 - **UI:** `ui/common.js` holds the theme, crest, portraits, chrome, toasts and confirm dialog.
+  - `ui.crest(school)` draws the school's athletics logo on a white shield edged in its primary color when `XC.logos.pathFor(school)` has one, and the generated monogram otherwise. Custom schools (id `custom`) and any logo that fails to load get the monogram.
   - It also has `ui.courseMap(course, programs)` (an SVG map that places labels to avoid collisions), `ui.fatigueMeter(f)`, and `ui.meter(fraction, label, cls)`.
 - **Screen hooks:** each screen registers on `XC.screens[name]` with any of:
   - `title`, `render(root, params)`, `legend()`, `onKey(e)`, `back()`, `onSquadChange()`, `cleanup()`, `squadTabs`, `context`
@@ -144,7 +145,13 @@ No test files are in the repo. Re-create scripts like these in the scratchpad ra
 - macOS has no `timeout`. Use `perl -e 'alarm N; exec @ARGV' node script.js` to cap a run that might hang.
 
 ## Known judgment calls
-- 141 real D3 programs plus a custom-school builder. Colors are approximate, and crests are generated monograms (no real logos).
+- 143 real D3 programs plus a custom-school builder. Colors are approximate.
+- **Logos:** 71 programs use a real athletics logo from Wikimedia Commons in `img/logos/` (listed in `js/data/logos.js`, sources in `img/logos/SOURCES.md`). The other 72 keep generated monograms.
+  - Every file is public domain on Commons (a logo too simple for copyright) but is still the school's trademark. The user accepted that risk for `main`; keep logos off `grading`.
+  - Only athletics marks and bold athletic wordmarks were used. Thin university text logos, seals, and wordmarks wider than about 3:1 were skipped because they're unreadable in the 34px context-bar crest.
+  - Commons rate-limits hard (HTTP 429). Batch API calls 50 titles at a time, and use the `thumburl` renders, which download more reliably than originals.
+  - SVGs are the Commons originals. PNGs are about 256–320 px wide renders. `alma` is a PNG because its SVG is 1.2 MB.
+  - A logo whose artwork hits the shield's narrowing bottom can be shrunk with `[ext, scale]` in `LOGOS` (Middlebury uses 0.84).
 - Long dynasties can snowball toward 95+ team OVR. The stronger rep decay above 80 is the only brake, and in-season training adds about half an OVR point per season.
 - One workout day stands for each training block. Gap weeks only change recovery.
 - On a phone the workout screen is long (one card per runner). A collapsible runner list is a possible improvement.
