@@ -30,6 +30,16 @@
         };
       case 'season': {
         const meet = state.schedule[state.meetIndex];
+        if (XC.training.pending(state)) {
+          const gap = XC.training.gapWeeks(state.meetIndex);
+          return {
+            kicker: `Before the ${meet.name}`,
+            headline: 'Workout day',
+            facts: [`${gap} week${gap === 1 ? '' : 's'} to race day`, `${XC.race.COURSES[meet.course.type].label} course`, 'Plan groups or let the staff auto-plan'],
+            action: 'Plan workouts',
+            go: () => XC.go('training')
+          };
+        }
         const typeLabel = meet.type === 'invite' ? `Invitational ${meet.index + 1} of 3` : S.MEET_TYPES[meet.type];
         return {
           kicker: typeLabel,

@@ -2369,6 +2369,302 @@ body.is-title .ticker {
   color: var(--ink-3);
 }
 
+/* ---------- Course map ---------- */
+
+.course-map {
+  display: block;
+  width: 100%;
+  height: auto;
+  border-radius: var(--radius);
+  --cm-grass: #7DA35F;
+  --cm-trail: #DCCFA6;
+}
+
+.course-map--rolling { --cm-grass: #729A57; --cm-trail: #D6C89C; }
+.course-map--hilly { --cm-grass: #668D4E; --cm-trail: #CDBE92; }
+.course-map--mud { --cm-grass: #6E8A4E; --cm-trail: #9A7A55; }
+
+.course-map__grass {
+  fill: var(--cm-grass);
+}
+
+.course-map__hill {
+  fill: rgba(255, 255, 230, 0.06);
+  stroke: rgba(30, 40, 20, 0.28);
+  stroke-width: 0.35;
+}
+
+.course-map__edge,
+.course-map__trail {
+  fill: none;
+  stroke-linejoin: round;
+  stroke-linecap: round;
+}
+
+.course-map__edge {
+  stroke: rgba(255, 255, 255, 0.65);
+  stroke-width: 4.2;
+}
+
+.course-map__trail {
+  stroke: var(--cm-trail);
+  stroke-width: 3;
+}
+
+.course-map__arrow {
+  fill: rgba(26, 36, 49, 0.55);
+}
+
+.course-map__start {
+  fill: #FFFFFF;
+  stroke: var(--ink);
+  stroke-width: 1;
+}
+
+.course-map__finish {
+  fill: var(--ink);
+  stroke: #FFFFFF;
+  stroke-width: 0.8;
+}
+
+.course-map__label {
+  font-family: var(--font-ui);
+  font-size: 5px;
+  font-weight: 700;
+  fill: var(--ink);
+  paint-order: stroke;
+  stroke: rgba(255, 255, 255, 0.85);
+  stroke-width: 1.6px;
+}
+
+/* ---------- Fatigue and dose ---------- */
+
+.meter--fatigue {
+  height: 8px;
+  background: rgba(26, 36, 49, 0.15);
+}
+
+.meter--fatigue .meter__fill {
+  background: #3E8E5A;
+}
+
+.meter--ok .meter__fill { background: #8AA23A; }
+.meter--tired .meter__fill { background: #D9932B; }
+.meter--worn .meter__fill { background: var(--bad); }
+
+.zone {
+  color: #FFFFFF;
+}
+
+.zone--light { background: #6C7A89; }
+.zone--moderate { background: #3E7FA8; }
+.zone--target { background: var(--good); }
+.zone--over { background: #C27C0E; }
+.zone--danger { background: var(--bad); }
+
+.grid .cell-warn {
+  color: var(--bad);
+  font-weight: 800;
+}
+
+/* ---------- Workout day ---------- */
+
+.training {
+  display: grid;
+  gap: 18px;
+}
+
+.training-hero__advice {
+  max-width: 66%;
+  margin-top: 10px;
+  font-weight: 600;
+  color: var(--on-dark);
+}
+
+.training-toolbar {
+  gap: 10px 16px;
+}
+
+.workout-groups {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 380px), 1fr));
+  gap: 14px;
+}
+
+.workout-group {
+  display: grid;
+  gap: 12px;
+  padding: 14px 16px 16px;
+  background: var(--glass);
+  border: 1px solid rgba(255, 255, 255, 0.75);
+  border-top: 5px solid var(--team-hi);
+  box-shadow: 0 10px 30px rgba(26, 36, 49, 0.08);
+}
+
+.workout-group__head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 12px;
+}
+
+.workout-group__head .actions {
+  margin-left: auto;
+  gap: 8px;
+}
+
+.workout-group__name {
+  font-size: var(--step-2);
+  font-weight: 800;
+  color: var(--ink);
+}
+
+.workout-group__count {
+  font-weight: 600;
+  color: var(--ink-3);
+}
+
+.workout-group__members {
+  font-size: var(--step--1);
+  font-weight: 600;
+  color: var(--ink-3);
+}
+
+.workout-group__warn {
+  color: var(--bad);
+  font-weight: 700;
+}
+
+.workout-editor {
+  display: grid;
+  gap: 10px;
+}
+
+.workout-editor__fields {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+  gap: 10px 12px;
+}
+
+.workout-editor__summary {
+  padding: 8px 12px;
+  background: var(--ink);
+  color: var(--on-dark);
+  font-weight: 700;
+}
+
+.workout-editor__note {
+  font-size: var(--step--1);
+  color: var(--ink-3);
+}
+
+.field--compact {
+  gap: 3px;
+}
+
+.field--wide {
+  grid-column: 1 / -1;
+}
+
+.field--compact .field__label {
+  font-size: var(--step--1);
+}
+
+.field--compact .select,
+.field--compact .input {
+  width: 100%;
+  min-height: 40px;
+  padding: 4px 8px;
+  font-size: var(--step-0);
+}
+
+.input-unit {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.input-unit .input {
+  min-width: 0;
+}
+
+.input-unit__unit {
+  flex: none;
+  font-size: var(--step--1);
+  font-weight: 700;
+  color: var(--ink-3);
+}
+
+.plan-list {
+  display: grid;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.plan-row {
+  display: grid;
+  grid-template-columns: minmax(150px, 1.2fr) minmax(150px, 1fr) minmax(220px, 1.1fr) minmax(200px, 1.2fr);
+  align-items: center;
+  gap: 10px 18px;
+  padding: 12px 0;
+  border-bottom: 1px solid var(--line);
+}
+
+.plan-row:last-child {
+  border-bottom: 0;
+}
+
+.plan-row--injured {
+  opacity: 0.75;
+}
+
+.plan-row__name {
+  font-size: var(--step-1);
+  font-weight: 700;
+  color: var(--ink);
+}
+
+.plan-row__meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 2px 12px;
+  margin-top: 3px;
+  font-size: var(--step--1);
+  font-weight: 600;
+  color: var(--ink-3);
+}
+
+.plan-row__assign {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.plan-row__assign .select {
+  flex: 1;
+  min-width: 0;
+  min-height: 40px;
+  font-size: var(--step-0);
+}
+
+.plan-row__proj {
+  padding-left: 10px;
+  border-left: 4px solid transparent;
+  font-weight: 700;
+}
+
+.plan-row__proj--warn {
+  border-left-color: var(--bad);
+}
+
+.plan-row__custom {
+  grid-column: 1 / -1;
+  padding: 12px;
+  background: rgba(255, 255, 255, 0.55);
+  border-left: 5px solid var(--team-hi);
+}
+
 /* ---------- Responsive ---------- */
 
 @media (max-width: 1080px) {
@@ -2445,6 +2741,10 @@ body.is-title .ticker {
     gap: 6px;
   }
 
+  .plan-row {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  }
+
   .ticker {
     border-left: 0;
     padding-left: 0;
@@ -2503,12 +2803,27 @@ body.is-title .ticker {
   }
 
   .meet-hero__name,
-  .meet-hero__facts {
+  .meet-hero__facts,
+  .training-hero__advice {
     max-width: 100%;
   }
 
   .prospect__stats {
     grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+
+  .plan-row {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .plan-row__proj {
+    padding-left: 0;
+    border-left: 0;
+  }
+
+  .plan-row__proj--warn {
+    padding-left: 8px;
+    border-left: 4px solid var(--bad);
   }
 
   .masthead {

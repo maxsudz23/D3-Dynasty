@@ -57,13 +57,19 @@
     const ovr = runner.ovr;
     let eff = ovr;
 
+    // Hill rating counts in proportion to the course's actual climbing.
+    const hillWeight = typeof ctx.climbPerKm === 'number'
+      ? U.clamp(ctx.climbPerKm / 32, 0.03, 0.5)
+      : { hilly: 0.4, rolling: 0.1 }[ctx.course] || 0;
+    eff += (s.hil - ovr) * hillWeight;
     switch (ctx.course) {
-      case 'hilly': eff += (s.hil - ovr) * 0.4; break;
       case 'flat': eff += (s.spd - ovr) * 0.3; break;
-      case 'rolling': eff += (s.end - ovr) * 0.2 + (s.hil - ovr) * 0.1; break;
+      case 'rolling': eff += (s.end - ovr) * 0.2; break;
       case 'mud': eff += ((s.dur + s.mnt) / 2 - ovr) * 0.35; break;
       default: break;
     }
+    // Training: sharpness helps, accumulated fatigue hurts.
+    eff += (runner.form || 0) - Math.max(0, (runner.fatigue || 0) - 20) * 0.12;
     if (ctx.weather && ctx.weather.soft) eff += ((s.dur + s.mnt) / 2 - ovr) * 0.15;
 
     let sd = 1.4 + ((100 - s.mnt) / 100) * 4.2;
@@ -109,8 +115,8 @@
   }
 
   /* teams: [{ id, name, short, primary, accent, isUser, scored, strategy, runners: [athlete] }] */
-  R.simulate = function ({ squad, course, weather, teams, rng = Math.random }) {
-    const ctx = { squad, course, weather, meters: R.DIST[squad].meters };
+  R.simulate = function ({ squad, course, climbPerKm, weather, teams, rng = Math.random }) {
+    const ctx = { squad, course, climbPerKm, weather, meters: R.DIST[squad].meters };
     const entries = [];
     teams.forEach((team) => {
       team.runners.forEach((runner) => {

@@ -9,7 +9,7 @@
   const A = XC.athletes;
   XC.screens = XC.screens || {};
 
-  const HI_COLS = ['yr', 'ovr', 'spd', 'end', 'hil', 'kck', 'iq', 'dur', 'mnt', 'pot', 'pr'];
+  const HI_COLS = ['yr', 'ovr', 'spd', 'end', 'hil', 'kck', 'iq', 'dur', 'mnt', 'pot', 'pr', 'ftg'];
   const MIN_ROSTER = 5;
 
   const view = { sel: 0, col: 'ovr', grabbed: false, dragFrom: null };
@@ -23,6 +23,7 @@
     if (key === 'ovr') return 'OVR';
     if (key === 'pot') return 'POT';
     if (key === 'pr') return 'PR';
+    if (key === 'ftg') return 'FTG';
     return A.LABELS[key];
   }
 
@@ -83,6 +84,7 @@
           A.STATS.map((k) => cell(k, String(a.stats[k]))),
           cell('pot', a.pot),
           cell('pr', a.pr ? U.formatTime(a.pr) : '—'),
+          cell('ftg', String(Math.round(a.fatigue || 0))),
           h('td', null, a.injury > 0 ? h('span', { class: 'badge badge--warn' }, `Out ${a.injury}`) : racing ? 'Racing' : 'Reserve'));
         tr.addEventListener('click', () => this.select(i));
         tr.addEventListener('dragstart', (e) => {
@@ -155,7 +157,8 @@
         h('span', { class: 'badge badge--hi' }, racing ? `Racing, slot ${lineup.findIndex((x) => x.id === a.id) + 1}` : 'Reserve'),
         h('span', { class: 'badge badge--line' }, A.ARCHETYPE_LABEL[a.archetype] || 'All-rounder'),
         a.transfer ? h('span', { class: 'badge badge--line' }, 'Transfer') : null,
-        a.injury > 0 ? h('span', { class: 'badge badge--warn' }, `Injured, out ${a.injury} meet${a.injury > 1 ? 's' : ''}`) : null
+        a.injury > 0 ? h('span', { class: 'badge badge--warn' }, `Injured, out ${a.injury} meet${a.injury > 1 ? 's' : ''}`) : null,
+        (a.fatigue || 0) >= 40 ? h('span', { class: 'badge badge--warn' }, XC.training.fatigueLabel(a.fatigue)) : null
       ];
       return h('section', { class: 'player-card', 'aria-label': `Selected runner ${A.fullName(a)}` },
         h('div', { class: 'player-card__art' }, ui.crest(state.school), ui.portrait(a)),
@@ -167,7 +170,9 @@
             h('span', null, 'From ', h('b', null, a.hometown)),
             h('span', null, 'PR ', h('b', null, a.pr ? U.formatTime(a.pr) : 'None yet')),
             h('span', null, 'Potential ', h('b', null, a.pot)),
-            h('span', null, 'Races ', h('b', null, String(a.career.races)))),
+            h('span', null, 'Races ', h('b', null, String(a.career.races))),
+            h('span', null, 'Fatigue ', h('b', null, `${Math.round(a.fatigue || 0)} (${XC.training.fatigueLabel(a.fatigue || 0).toLowerCase()})`)),
+            h('span', null, 'Form ', h('b', null, U.signed(a.form || 0, 1)))),
           h('div', { class: 'player-card__badges' }, badges)),
         h('div', { class: 'player-card__ovr' },
           h('span', { class: 'player-card__ovr-num' }, String(a.ovr)),

@@ -11,20 +11,10 @@
   const R = XC.race;
   XC.screens = XC.screens || {};
 
-  const COURSE = [
-    [0.06, 0.8], [0.22, 0.88], [0.42, 0.84], [0.6, 0.9], [0.8, 0.84], [0.94, 0.66], [0.88, 0.44],
-    [0.7, 0.4], [0.62, 0.22], [0.76, 0.1], [0.52, 0.06], [0.34, 0.16], [0.4, 0.36], [0.24, 0.44],
-    [0.08, 0.3], [0.04, 0.52], [0.14, 0.66], [0.28, 0.7]
-  ];
+  const C = XC.course;
   const GRASS = { flat: '#7DA35F', rolling: '#729A57', hilly: '#668D4E', mud: '#6E8A4E' };
   const TRAIL = { flat: '#DCCFA6', rolling: '#D6C89C', hilly: '#CDBE92', mud: '#8A6A48' };
   const REAL_SECONDS = 16;
-
-  function catmull(p0, p1, p2, p3, t) {
-    const t2 = t * t;
-    const t3 = t2 * t;
-    return 0.5 * (2 * p1 + (-p0 + p2) * t + (2 * p0 - 5 * p1 + 4 * p2 - p3) * t2 + (-p0 + 3 * p1 - 3 * p2 + p3) * t3);
-  }
 
   XC.screens.race = {
     title: 'Race day',
@@ -49,6 +39,7 @@
       const race = this.race;
       const meet = this.meet;
       const sq = race.squad;
+      this.layout = C.layoutFor(meet.course);
       this.teams = {};
       race.teams.forEach((t) => { this.teams[t.id] = t; });
       this.entries = race.sim.all.map((e, i) => Object.assign(e, { lane: ((i * 7919) % 13) - 6 }));
@@ -80,7 +71,7 @@
         h('div', { class: 'race__head' },
           h('div', { class: 'race__heading' },
             h('h2', { class: 'race__title' }, `${S.squadLabel(sq)} ${R.DIST[sq].label}`),
-            h('p', { class: 'race__sub' }, `${meet.name}, ${meet.course.name}. ${R.COURSES[meet.course.type].label}${meet.weather ? `, ${XC.api.toF(meet.weather.tempC)}° and ${meet.weather.label.toLowerCase()}` : ''}`)),
+            h('p', { class: 'race__sub' }, `${meet.name}, ${meet.course.name}. ${R.COURSES[meet.course.type].label}, ${C.lapsText(this.layout, sq).toLowerCase()}${meet.weather ? `, ${XC.api.toF(meet.weather.tempC)}° and ${meet.weather.label.toLowerCase()}` : ''}`)),
           h('div', { class: 'actions race__controls' },
             h('div', { class: 'speed', role: 'group', 'aria-label': 'Playback speed' }, this.speedBtns),
             this.skipBtn,
@@ -154,21 +145,11 @@
       this.draw();
     },
 
+    // The generated route in canvas pixels. Loops repeat their first point
+    // so arc length covers the whole circuit.
     buildPath() {
-      const pad = 26 * this.k;
-      const pts = COURSE.map(([x, y]) => [pad + x * (this.W - 2 * pad), pad + y * (this.H - 2 * pad)]);
-      const samples = [];
-      for (let i = 0; i < pts.length - 1; i++) {
-        const p0 = pts[Math.max(0, i - 1)];
-        const p1 = pts[i];
-        const p2 = pts[i + 1];
-        const p3 = pts[Math.min(pts.length - 1, i + 2)];
-        for (let s = 0; s < 24; s++) {
-          const t = s / 24;
-          samples.push([catmull(p0[0], p1[0], p2[0], p3[0], t), catmull(p0[1], p1[1], p2[1], p3[1], t)]);
-        }
-      }
-      samples.push(pts[pts.length - 1]);
+      const samples = this.layout.pts.map(([x, y]) => [x * this.W, y * this.H]);
+      if (this.layout.closed) samples.push(samples[0]);
       const cum = [0];
       for (let i = 1; i < samples.length; i++) {
         cum.push(cum[i - 1] + Math.hypot(samples[i][0] - samples[i - 1][0], samples[i][1] - samples[i - 1][1]));
@@ -176,6 +157,11 @@
       this.path = samples;
       this.cum = cum;
       this.total = cum[cum.length - 1];
+    },
+
+    // Position for race progress p (0..1), following laps on loop courses.
+    runnerAt(p) {
+      return this.pointAt(C.routeAt(this.layout, this.race.squad, p));
     },
 
     pointAt(frac) {
@@ -224,20 +210,32 @@
       }
 
       const rng = U.mulberry32(U.hash(this.meet.id));
-      if (type === 'hilly' || type === 'rolling') {
-        ctx.strokeStyle = 'rgba(30,40,20,0.12)';
-        ctx.lineWidth = 1.5;
-        const hills = type === 'hilly' ? 3 : 2;
-        for (let i = 0; i < hills; i++) {
-          const cx = U.randFloat(0.2, 0.8, rng) * W;
-          const cy = U.randFloat(0.2, 0.8, rng) * H;
-          for (let r = 1; r <= 5; r++) {
-            ctx.beginPath();
-            ctx.ellipse(cx, cy, r * 26 * k, r * 16 * k, 0.4, 0, Math.PI * 2);
-            ctx.stroke();
-          }
+      // Hills from the course's elevation field: shading plus contour rings,
+      // more rings for taller hills.
+      const tallest = Math.max(1, ...this.layout.hills.map((hl) => hl.h));
+      this.layout.hills.forEach((hl) => {
+        const cx = hl.x * W;
+        const cy = hl.y * H;
+        const rx = hl.rx * W * 1.6;
+        const ry = hl.ry * H * 1.6;
+        const strength = hl.h / tallest;
+        const grad = ctx.createRadialGradient(cx, cy, 0, cx, cy, Math.max(rx, ry));
+        grad.addColorStop(0, `rgba(255,255,230,${0.12 * strength})`);
+        grad.addColorStop(1, 'rgba(255,255,230,0)');
+        ctx.fillStyle = grad;
+        ctx.beginPath();
+        ctx.ellipse(cx, cy, rx, ry, 0, 0, Math.PI * 2);
+        ctx.fill();
+        const rings = Math.max(1, Math.round(hl.h / 4));
+        ctx.strokeStyle = 'rgba(30,40,20,0.14)';
+        ctx.lineWidth = 1.2;
+        for (let r = 1; r <= Math.min(rings, 7); r++) {
+          const f = r / (Math.min(rings, 7) + 1);
+          ctx.beginPath();
+          ctx.ellipse(cx, cy, rx * f, ry * f, 0, 0, Math.PI * 2);
+          ctx.stroke();
         }
-      }
+      });
 
       // Trees, kept off the trail
       const nearPath = (x, y, d) => this.path.some((p) => Math.hypot(p[0] - x, p[1] - y) < d);
@@ -266,6 +264,7 @@
       const trace = () => {
         ctx.beginPath();
         this.path.forEach((p, i) => (i ? ctx.lineTo(p[0], p[1]) : ctx.moveTo(p[0], p[1])));
+        if (this.layout.closed) ctx.closePath();
       };
       trace();
       ctx.strokeStyle = 'rgba(255,255,255,0.6)';
@@ -285,7 +284,23 @@
         }
       }
 
+      // Arrows showing which way the course runs
+      ctx.fillStyle = 'rgba(26,36,49,0.35)';
+      for (let f = 0.04; f < 1; f += 0.07) {
+        const p = this.pointAt(f);
+        const tx = p.ny;
+        const ty = -p.nx;
+        const s = 4.5 * k;
+        ctx.beginPath();
+        ctx.moveTo(p.x + tx * s, p.y + ty * s);
+        ctx.lineTo(p.x - tx * s + p.nx * s, p.y - ty * s + p.ny * s);
+        ctx.lineTo(p.x - tx * s - p.nx * s, p.y - ty * s - p.ny * s);
+        ctx.closePath();
+        ctx.fill();
+      }
+
       // Start and finish lines
+      const sq = this.race.squad;
       const line = (frac, checkered) => {
         const p = this.pointAt(frac);
         const half = 14 * k;
@@ -301,8 +316,10 @@
           ctx.stroke();
         }
       };
-      line(0.002, false);
-      line(0.998, true);
+      const startAt = C.routeAt(this.layout, sq, 0);
+      const finishAt = C.routeAt(this.layout, sq, 1);
+      line(this.layout.closed ? startAt : Math.max(startAt, 0.002), false);
+      line(this.layout.closed ? finishAt : 0.998, true);
 
       // Labels
       const tag = (frac, text, dy) => {
@@ -317,14 +334,21 @@
         ctx.textBaseline = 'middle';
         ctx.fillText(text, x + 6 * k, y + 9 * k);
       };
-      tag(0, 'Start', 14);
-      tag(1, 'Finish', -34);
-      R.DIST[this.race.squad].checkpoints.forEach((label, i) => {
-        const frac = (i + 1) / 4;
-        const p = this.pointAt(frac);
+      tag(startAt, 'Start', 14);
+      tag(finishAt, 'Finish', -34);
+      // On lapped courses several splits can share a spot; label them together.
+      const marks = [];
+      R.DIST[sq].checkpoints.forEach((label, i) => {
+        const at = C.routeAt(this.layout, sq, (i + 1) / 4);
+        const p = this.pointAt(at);
+        const near = marks.find((m) => Math.hypot(m.p.x - p.x, m.p.y - p.y) < 40 * k);
+        if (near) near.labels.push(label);
+        else marks.push({ at, p, labels: [label] });
+      });
+      marks.forEach((m) => {
         ctx.fillStyle = '#F2F5F8';
-        ctx.fillRect(p.x - 1.5 * k, p.y - 22 * k, 3 * k, 22 * k);
-        tag(frac, label, -40);
+        ctx.fillRect(m.p.x - 1.5 * k, m.p.y - 22 * k, 3 * k, 22 * k);
+        tag(m.at, m.labels.join(' · '), -40);
       });
 
       this.staticLayer = off;
@@ -444,7 +468,7 @@
 
       this.entries.forEach((e) => {
         const p = this.phase === 'marks' ? 0 : R.progressAt(e, T);
-        const pos = this.pointAt(p);
+        const pos = this.runnerAt(p);
         const lane = e.lane * 1.1 * k;
         const x = pos.x + pos.nx * lane;
         const y = pos.y + pos.ny * lane;

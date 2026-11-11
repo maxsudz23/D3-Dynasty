@@ -19,7 +19,8 @@
     mnt: 'Mental toughness rating',
     pot: 'Potential grade',
     yr: 'Class year',
-    pr: 'Personal record'
+    pr: 'Personal record',
+    ftg: 'Fatigue'
   };
   A.HELP = {
     ovr: 'Weighted blend of every rating. Endurance counts most.',
@@ -32,7 +33,8 @@
     mnt: 'Race-to-race consistency. Low mental means more bad days.',
     pot: 'How much this runner grows each offseason. A is elite growth.',
     yr: 'Runners graduate after their senior year.',
-    pr: 'Best time this runner has posted for you.'
+    pr: 'Best time this runner has posted for you.',
+    ftg: 'Training and racing load, 0 to 100. Above 20 it slows a runner on race day, and high fatigue raises injury risk.'
   };
 
   A.YEAR_SHORT = ['FR', 'SO', 'JR', 'SR'];
@@ -113,6 +115,8 @@
       pot,
       ovr: 0,
       injury: 0,
+      fatigue: 0,
+      form: 0,
       pr: null,
       career: { races: 0, wins: 0, top10: 0, aa: 0, best: null }
     };

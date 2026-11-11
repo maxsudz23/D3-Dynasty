@@ -21,6 +21,12 @@
     return notes;
   }
 
+  function hillNote(course, layout) {
+    if (layout.climbPerKm >= 9) return `${course.note} Strong climbers gain real ground here.`;
+    if (layout.climbPerKm < 3) return `${course.note} Barely a hill on it.`;
+    return course.note;
+  }
+
   /* ======================= Preview ======================= */
 
   XC.screens.meet = {
@@ -62,10 +68,20 @@
           h('span', null, distances)));
 
       const course = R.COURSES[meet.course.type];
-      const coursePanel = ui.panel('Course', h('dl', { class: 'info-list' },
-        h('dt', null, 'Profile'), h('dd', null, course.label),
-        h('dt', null, 'What wins'), h('dd', null, course.note),
-        h('dt', null, 'Field'), h('dd', null, `${S.fieldSchools(state, meet, XC.activeSquad).length + 1} teams`)));
+      const layout = XC.course.layoutFor(meet.course);
+      const laps = layout.closed
+        ? state.programs.map((sq) => `${state.programs.length > 1 ? `${S.squadNoun(sq)}: ` : ''}${XC.course.lapsText(layout, sq).toLowerCase()}`).join(', ')
+        : state.programs.length > 1 ? 'shared finish, women start 2K in' : 'one trip across the grounds';
+      const climbs = state.programs.map((sq) => `${state.programs.length > 1 ? `${S.squadNoun(sq)} ` : ''}${Math.round(layout.climbPerKm * R.DIST[sq].meters / 1000)} m`).join(', ');
+      const coursePanel = ui.panel('Course', h('div', { class: 'stack' },
+        ui.courseMap(meet.course, state.programs),
+        h('dl', { class: 'info-list' },
+          h('dt', null, 'Profile'), h('dd', null, course.label),
+          h('dt', null, 'Layout'), h('dd', null, `${XC.course.loopLabel(layout)}, ${laps}`),
+          h('dt', null, 'Climbing'), h('dd', null, `${climbs} total (${U.round(layout.climbPerKm, 1)} m per km)`),
+          h('dt', null, 'What wins'), h('dd', null, hillNote(course, layout)),
+          h('dt', null, 'Field'), h('dd', null, `${S.fieldSchools(state, meet, XC.activeSquad).length + 1} teams`))),
+      { aside: meet.course.name });
 
       this.weatherBody = h('div');
       const weatherPanel = ui.panel('Race-day weather', this.weatherBody);
@@ -136,16 +152,24 @@
           h('p', { class: 'muted' }, 'You can still watch the championship race.'));
       } else {
         const runners = entry.runners;
-        const list = h('table', { class: 'grid' },
-          h('thead', null, h('tr', null, ['#', 'Runner', 'YR', 'OVR', 'PR'].map((c, i) => h('th', { scope: 'col', class: i === 1 ? 'cell-left' : '' }, c)))),
+        const list = h('div', { class: 'table-wrap' }, h('table', { class: 'grid' },
+          h('thead', null, h('tr', null, ['#', 'Runner', 'YR', 'OVR', 'Form', 'Fatigue', 'PR'].map((c, i) => h('th', { scope: 'col', class: i === 1 ? 'cell-left' : '' }, c)))),
           h('tbody', null, runners.map((a, i) => h('tr', null,
             h('td', null, String(i + 1)),
             h('td', { class: 'cell-left' }, A.fullName(a)),
             h('td', null, A.yearShort(a.year)),
             h('td', null, String(a.ovr)),
-            h('td', null, a.pr ? U.formatTime(a.pr) : '—')))));
+            h('td', null, ui.delta(a.form || 0)),
+            h('td', { class: (a.fatigue || 0) >= 40 ? 'cell-warn' : '' }, String(Math.round(a.fatigue || 0))),
+            h('td', null, a.pr ? U.formatTime(a.pr) : '—'))))));
         const injured = squad.roster.filter((a) => a.injury > 0);
+        const worn = runners.filter((a) => (a.fatigue || 0) >= 40);
+        const pending = XC.training.pending(state);
         lineupBody = h('div', { class: 'stack' },
+          pending ? h('div', { class: 'notice' },
+            h('p', null, 'Workout day hasn’t happened yet. Racing now means the team just rests through this block.'),
+            h('div', { class: 'actions' }, ui.button('Plan workouts', () => XC.go('training'), { variant: 'ghost', size: 'small' }))) : null,
+          worn.length ? h('p', { class: 'notice notice--warn' }, `${worn.map((a) => A.shortName(a)).join(', ')} ${worn.length > 1 ? 'are' : 'is'} carrying heavy fatigue and will race below their ratings.`) : null,
           !entry.scored ? h('p', { class: 'notice' }, squad.natQual.reason) : null,
           runners.length < 5 && entry.scored ? h('p', { class: 'notice notice--warn' }, 'Fewer than five healthy runners. The team can’t post a score.') : null,
           list,

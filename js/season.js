@@ -91,7 +91,9 @@
       history: [],
       news: [],
       recruiting: null,
-      offseason: null
+      offseason: null,
+      training: null,
+      homeCourse: S.newHomeCourse()
     };
     programs.forEach((sq) => {
       state.squads[sq] = {
@@ -159,16 +161,47 @@
       usedNumbers: used,
       id: `${school.id}-${state.season}-${i}`
     }));
+    // Rival programs train too. A coach who skips workouts falls behind.
+    runners.forEach((a) => { a.form = 1; });
     if (oppCache.size > 600) oppCache.clear();
     oppCache.set(key, runners);
     return runners;
   };
 
-  /* ---------- Schedule ---------- */
+  /* ---------- Venues ---------- */
 
   function courseName(rng) {
     return `${U.pick(XC.names.coursePrefix, rng)} ${U.pick(XC.names.courseSuffix, rng)}`;
   }
+
+  // Your own course. Kept in the save so facilities can upgrade it later.
+  S.newHomeCourse = function (rng = Math.random) {
+    return {
+      name: courseName(rng),
+      type: U.weightedKey(XC.course.TERRAIN_WEIGHTS, rng),
+      seed: U.randInt(1, 2 ** 31 - 1, rng)
+    };
+  };
+
+  // Every school has one home course: same name, terrain and layout each
+  // time you visit.
+  S.venueFor = function (state, school) {
+    if (school.id === state.school.id) return Object.assign({}, state.homeCourse);
+    const rng = U.mulberry32(U.hash(`venue|${school.id}`));
+    return {
+      name: courseName(rng),
+      type: U.weightedKey(XC.course.TERRAIN_WEIGHTS, rng),
+      seed: U.hash(`course|${school.id}`)
+    };
+  };
+
+  function nationalVenue(rng) {
+    const name = U.pick(XC.names.nationalVenues, rng);
+    const vrng = U.mulberry32(U.hash(`venue|${name}`));
+    return { name, type: U.weightedKey({ flat: 3, rolling: 4, hilly: 1, mud: 2 }, vrng), seed: U.hash(`course|${name}`) };
+  }
+
+  /* ---------- Schedule ---------- */
 
   function hostOf(school) {
     return { id: school.id, short: school.short, name: school.name, lat: school.lat, lon: school.lon };
@@ -184,7 +217,6 @@
       .slice(0, 14)
       .map((x) => x.s);
     const prefixes = U.shuffle(XC.names.invitePrefix, rng);
-    const types = ['flat', 'rolling', 'hilly', 'mud'];
     const homeInvite = U.randInt(0, 2, rng);
 
     const meets = [];
@@ -194,7 +226,7 @@
         type: 'invite',
         name: `${prefixes[i]} ${U.pick(XC.names.inviteSuffix, rng)}`,
         host: hostOf(host),
-        course: { name: courseName(rng), type: U.pick(types, rng) }
+        course: S.venueFor(state, host)
       });
     }
 
@@ -204,7 +236,7 @@
       type: 'conference',
       name: `${home.conf === 'Independent' ? 'Independent' : home.conf} Championship`,
       host: hostOf(confHost),
-      course: { name: courseName(rng), type: U.pick(['rolling', 'hilly', 'flat'], rng) }
+      course: S.venueFor(state, confHost)
     });
 
     const regionMates = others.filter((s) => s.region === home.region);
@@ -213,7 +245,7 @@
       type: 'regional',
       name: `NCAA ${home.region} Regional`,
       host: hostOf(regHost),
-      course: { name: courseName(rng), type: U.pick(['rolling', 'hilly', 'mud'], rng) }
+      course: S.venueFor(state, regHost)
     });
 
     const natHost = U.pick(others, rng);
@@ -221,7 +253,7 @@
       type: 'national',
       name: 'NCAA Division III Championships',
       host: hostOf(natHost),
-      course: { name: U.pick(XC.names.nationalVenues, rng), type: U.pick(['flat', 'rolling', 'mud'], rng) }
+      course: nationalVenue(rng)
     });
 
     return meets.map((m, i) => Object.assign(m, {
@@ -399,7 +431,8 @@
     });
     squad.roster.forEach((a) => {
       if (!raced.has(a.id)) return;
-      const risk = 0.012 + ((100 - a.stats.dur) / 100) * 0.05;
+      const risk = XC.training.raceInjuryRisk(a);
+      XC.training.afterRace(a);
       if (meet.type !== 'national' && Math.random() < risk) {
         a.injury = U.randInt(1, 3);
         summary.injuries.push({ name: A.fullName(a), out: a.injury });
@@ -410,13 +443,19 @@
   S.runMeet = function (state) {
     const meet = state.schedule[state.meetIndex];
     if (!meet.weather) meet.weather = XC.api.simulatedWeather(meet.month, meet.id);
+    // Skipped the workout day: the team rested through the block.
+    if (!state.training || state.training.meetIndex !== state.meetIndex || !state.training.done) {
+      if (!state.training || state.training.meetIndex !== state.meetIndex) XC.training.openBlock(state);
+      XC.training.restBlock(state);
+    }
+    const layout = XC.course.layoutFor(meet.course);
     const factor = state.programs.length === 2 ? 0.6 : 1;
     const races = [];
     let repTotal = 0;
 
     state.programs.forEach((sq) => {
       const teams = S.buildTeams(state, meet, sq);
-      const sim = R.simulate({ squad: sq, course: meet.course.type, weather: meet.weather, teams });
+      const sim = R.simulate({ squad: sq, course: meet.course.type, climbPerKm: layout.climbPerKm, weather: meet.weather, teams });
       const summary = summarize(sim, teams, meet, sq);
       applyToRoster(state, meet, sq, sim, summary);
 
@@ -443,7 +482,10 @@
 
     if (meet.type === 'regional') qualify(state, meet);
     if (meet.type === 'national') closeSeason(state);
-    else state.meetIndex += 1;
+    else {
+      state.meetIndex += 1;
+      XC.training.openBlock(state);
+    }
 
     return races;
   };
@@ -545,6 +587,8 @@
           const row = A.progress(a);
           a.year += 1;
           a.injury = 0;
+          a.fatigue = 0;
+          a.form = 0;
           return Object.assign(row, { yearBefore, yearAfter: a.year });
         })
         .sort((x, y) => y.delta - x.delta);
@@ -565,6 +609,7 @@
     state.meetIndex = 0;
     state.phase = 'preseason';
     state.offseason = null;
+    state.training = null;
     state.programs.forEach((sq) => {
       state.squads[sq].inviteWins = 0;
       state.squads[sq].natQual = null;
@@ -642,6 +687,23 @@
     S.resetRecruiting(state);
     state.phase = 'season';
     state.meetIndex = 0;
+    XC.training.startSeason(state);
+  };
+
+  /* ---------- Save upgrades ---------- */
+
+  // Fill in fields that older saves don't have. Safe to run on every load.
+  S.migrate = function (state) {
+    if (!state.homeCourse) state.homeCourse = S.newHomeCourse();
+    state.programs.forEach((sq) => {
+      state.squads[sq].roster.forEach((a) => {
+        if (typeof a.fatigue !== 'number') a.fatigue = 10;
+        if (typeof a.form !== 'number') a.form = 0;
+      });
+    });
+    if (state.phase === 'season' && (!state.training || state.training.meetIndex !== state.meetIndex)) XC.training.openBlock(state);
+    if (state.phase !== 'season' && state.training === undefined) state.training = null;
+    return state;
   };
 
   /* ---------- News ---------- */

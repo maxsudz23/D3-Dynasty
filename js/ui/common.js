@@ -116,10 +116,91 @@
     return chip;
   };
 
-  ui.meter = function (fraction, label) {
+  ui.meter = function (fraction, label, cls = '') {
     const fill = h('div', { class: 'meter__fill' });
     fill.style.setProperty('--fill', `${U.clamp(fraction, 0, 1) * 100}%`);
-    return h('div', { class: 'meter', role: 'img', 'aria-label': label }, fill);
+    return h('div', { class: `meter${cls ? ` ${cls}` : ''}`, role: 'img', 'aria-label': label }, fill);
+  };
+
+  // Fatigue bar that shifts from calm to red as a runner wears down.
+  ui.fatigueMeter = function (f) {
+    const level = f < 20 ? 'fresh' : f < 40 ? 'ok' : f < 60 ? 'tired' : 'worn';
+    return ui.meter(f / 100, `Fatigue ${Math.round(f)} of 100, ${XC.training.fatigueLabel(f).toLowerCase()}`, `meter--fatigue meter--${level}`);
+  };
+
+  /* ---------- Course map ---------- */
+
+  // Small SVG map of a generated course with start and finish markers for
+  // each squad that races there.
+  ui.courseMap = function (course, programs) {
+    const C = XC.course;
+    const layout = C.layoutFor(course);
+    const VW = 160;
+    const VH = 90;
+    const pt = ([x, y]) => [U.round(x * VW, 2), U.round(y * VH, 2)];
+    const points = layout.pts.map((p) => pt(p).join(',')).join(' ');
+    const trailTag = layout.closed ? 'polygon' : 'polyline';
+    const tallest = Math.max(1, ...layout.hills.map((hl) => hl.h));
+    const svgKids = [U.svg('rect', { class: 'course-map__grass', x: 0, y: 0, width: VW, height: VH })];
+    layout.hills.forEach((hl) => {
+      const rings = U.clamp(Math.round(hl.h / 4), 1, 6);
+      for (let r = rings; r >= 1; r--) {
+        svgKids.push(U.svg('ellipse', {
+          class: 'course-map__hill',
+          cx: U.round(hl.x * VW, 2), cy: U.round(hl.y * VH, 2),
+          rx: U.round(hl.rx * VW * 1.6 * (r / (rings + 1)), 2), ry: U.round(hl.ry * VH * 1.6 * (r / (rings + 1)), 2),
+          opacity: U.round(0.35 + 0.65 * (hl.h / tallest), 2)
+        }));
+      }
+    });
+    svgKids.push(U.svg(trailTag, { class: 'course-map__edge', points }));
+    svgKids.push(U.svg(trailTag, { class: 'course-map__trail', points }));
+    for (let f = 0.05; f < 1; f += 0.1) {
+      const [x, y] = pt(C.pointAt(layout, f));
+      const [x2, y2] = pt(C.pointAt(layout, f + 0.004));
+      const ang = U.round((Math.atan2(y2 - y, x2 - x) * 180) / Math.PI, 1);
+      svgKids.push(U.svg('path', { class: 'course-map__arrow', d: 'M2.2,0 L-1.6,-1.8 L-1.6,1.8 Z', transform: `translate(${x},${y}) rotate(${ang})` }));
+    }
+    // Place each label beside its marker, on whichever side is clear of
+    // other markers and labels.
+    const markers = [];
+    const placed = [];
+    const OFFSETS = [[0, 8], [0, -4.5], [14, 1.8], [-14, 1.8], [0, 13], [0, -9.5]];
+    const label = (x, y, text) => {
+      const halfW = text.length * 1.25 + 1;
+      const fits = ([dx, dy]) => {
+        const lx = x + dx;
+        const ly = y + dy - 1.8;
+        if (lx - halfW < 1 || lx + halfW > VW - 1 || ly < 3 || ly > VH - 2) return false;
+        const clearOf = (m) => Math.abs(m.x - lx) > halfW + 2.5 || Math.abs(m.y - ly) > 4.5;
+        return markers.every(clearOf) && placed.every((p) => Math.abs(p.x - lx) > halfW + p.halfW + 1 || Math.abs(p.y - ly) > 5.5);
+      };
+      const [dx, dy] = OFFSETS.find(fits) || OFFSETS[0];
+      placed.push({ x: x + dx, y: y + dy - 1.8, halfW });
+      return U.svg('text', { class: 'course-map__label', x: U.round(x + dx, 2), y: U.round(y + dy, 2), 'text-anchor': 'middle' }, text);
+    };
+    const starts = [];
+    programs.forEach((sq) => {
+      const [x, y] = pt(C.pointAt(layout, C.routeAt(layout, sq, 0)));
+      const same = starts.find((s) => Math.hypot(s.x - x, s.y - y) < 6);
+      if (same) same.names.push(sq);
+      else starts.push({ x, y, names: [sq] });
+    });
+    const [fx, fy] = pt(C.pointAt(layout, C.routeAt(layout, programs[0], 1)));
+    starts.forEach((s) => markers.push({ x: s.x, y: s.y }));
+    markers.push({ x: fx, y: fy });
+    starts.forEach((s) => svgKids.push(U.svg('circle', { class: 'course-map__start', cx: s.x, cy: s.y, r: 2.6 })));
+    svgKids.push(U.svg('rect', { class: 'course-map__finish', x: U.round(fx - 2.6, 2), y: U.round(fy - 2.6, 2), width: 5.2, height: 5.2 }));
+    svgKids.push(label(fx, fy, 'Finish'));
+    starts.forEach((s) => {
+      const text = programs.length > 1 && s.names.length === 1 ? `${XC.season.squadNoun(s.names[0])}'s start` : 'Start';
+      svgKids.push(label(s.x, s.y, text));
+    });
+    const svg = U.svg('svg', {
+      class: `course-map course-map--${course.type}`, viewBox: `0 0 ${VW} ${VH}`, role: 'img',
+      'aria-label': `${course.name}: ${C.describe(layout)}`
+    }, svgKids);
+    return svg;
   };
 
   ui.loading = function (root, text) {

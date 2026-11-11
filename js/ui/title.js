@@ -11,7 +11,7 @@
 
   function continueGame(saved) {
     XC.audio.select();
-    XC.state = saved;
+    XC.state = XC.season.migrate(saved);
     XC.activeSquad = saved.programs[0];
     ui.setTheme(saved.school.primary, saved.school.accent);
     XC.go('hub');
