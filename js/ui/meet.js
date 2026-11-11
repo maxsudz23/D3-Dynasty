@@ -126,10 +126,10 @@
       U.clear(area);
 
       // Contenders: field ranked by team strength, with your team slotted in.
-      const field = S.fieldSchools(state, meet, sq).map((s) => ({ short: s.short, primary: s.primary, accent: s.accent, ovr: Math.round(state.opp[sq][s.id]), user: false }));
+      const field = S.fieldSchools(state, meet, sq).map((s) => ({ id: s.id, short: s.short, primary: s.primary, accent: s.accent, ovr: Math.round(state.opp[sq][s.id]), user: false }));
       const entry = S.userEntry(state, meet, sq);
       const userOvr = A.teamOvr(squad.roster);
-      if (entry && entry.scored) field.push({ short: state.school.short, primary: state.school.primary, accent: state.school.accent, ovr: userOvr, user: true });
+      if (entry && entry.scored) field.push({ id: 'user', short: state.school.short, primary: state.school.primary, accent: state.school.accent, ovr: userOvr, user: true });
       field.sort((a, b) => b.ovr - a.ovr);
       const userRank = field.findIndex((f) => f.user);
       const shown = field.slice(0, 6);
@@ -138,7 +138,7 @@
         h('thead', null, h('tr', null, h('th', { scope: 'col' }, 'Rank'), h('th', { scope: 'col', class: 'cell-left' }, 'Team'), h('th', { scope: 'col' }, 'Team OVR'))),
         h('tbody', null, shown.map((f) => h('tr', { class: f.user ? 'is-user' : '' },
           h('td', null, String(field.indexOf(f) + 1)),
-          h('td', { class: 'cell-left' }, ui.teamChip(f.primary, f.accent), f.short),
+          h('td', { class: 'cell-left' }, ui.teamMark(f), f.short),
           h('td', null, String(f.ovr))))));
       area.appendChild(ui.panel(`${S.squadLabel(sq)} contenders`, contenders, {
         aside: userRank >= 0 ? `You rank ${U.ordinal(userRank + 1)} of ${field.length} on paper` : `${field.length} teams`
@@ -306,26 +306,30 @@
         h('div', { class: 'results-hero__rep' }, h('strong', null, ui.delta(res.repDelta)), h('span', null, 'Rep'))));
 
       // Team standings
-      const teamTable = h('div', { class: 'table-wrap' }, h('table', { class: 'grid' },
+      const teamTable = h('div', { class: 'table-wrap' }, h('table', { class: 'grid grid--dense' },
         h('caption', { class: 'visually-hidden' }, 'Team scores'),
         h('thead', null, h('tr', null,
           ['Pl', 'Team', 'Score', '1', '2', '3', '4', '5', '(6)', '(7)', 'Spread'].map((c, i) => h('th', { scope: 'col', class: i === 1 ? 'cell-left' : '' }, c)))),
         h('tbody', null, res.standings.map((s) => h('tr', { class: s.isUser ? 'is-selected' : '' },
           h('td', null, s.place ? String(s.place) : '—'),
-          h('td', { class: 'cell-left' }, ui.teamChip(s.primary, s.accent), s.short),
+          h('td', { class: 'cell-left cell-team-name' }, h('span', { class: 'team-label' }, ui.teamMark(s), h('span', null, s.short))),
           h('td', null, s.complete ? String(s.score) : 'INC'),
           Array.from({ length: 7 }, (_, i) => h('td', { class: i >= 5 ? 'cell-dim' : '' }, s.places[i] ? String(s.places[i]) : '')),
           h('td', null, s.spread !== null ? U.formatTime(s.spread) : '—'))))));
 
       // Individuals: top 25 plus your runners further back
       const indiv = res.individuals.filter((r, i) => i < 25 || r.isUser);
+      const teamById = {};
+      res.standings.forEach((s) => { teamById[s.id] = s; });
+      // Individual qualifiers race without a team score, so the user may be missing.
+      if (!teamById.user) teamById.user = { id: 'user', primary: state.school.primary, accent: state.school.accent };
       const indivTable = h('div', { class: 'table-wrap' }, h('table', { class: 'grid' },
         h('caption', { class: 'visually-hidden' }, 'Individual results'),
-        h('thead', null, h('tr', null, ['Pl', 'Runner', 'Team', 'Time', ''].map((c, i) => h('th', { scope: 'col', class: i === 1 ? 'cell-name' : '' }, c)))),
+        h('thead', null, h('tr', null, ['Pl', 'Runner', 'Team', 'Time', ''].map((c, i) => h('th', { scope: 'col', class: i === 1 ? 'cell-name' : i === 2 ? 'cell-left' : '' }, c)))),
         h('tbody', null, indiv.map((r) => h('tr', { class: r.isUser ? 'is-user' : '' },
           h('td', null, String(r.place)),
           h('td', { class: 'cell-name' }, r.name),
-          h('td', null, r.short),
+          h('td', { class: 'cell-left cell-team' }, teamById[r.teamId] ? ui.teamMark(teamById[r.teamId]) : null, r.short),
           h('td', null, U.formatTime(r.time)),
           h('td', null, r.pr ? h('span', { class: 'badge badge--good' }, 'PR') : ''))))));
 

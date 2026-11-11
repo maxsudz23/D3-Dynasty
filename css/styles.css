@@ -922,6 +922,30 @@ body.is-title .ticker {
   min-width: 170px;
 }
 
+/* The 11-column team scores table: tighter cells so names fit on one line. */
+.grid--dense th,
+.grid--dense td {
+  padding: 0 7px;
+}
+
+.grid .cell-team-name {
+  min-width: 140px;
+  line-height: 1.1;
+  white-space: normal;
+}
+
+/* Keeps a team's mark beside its name when a long name wraps. */
+.team-label {
+  display: inline-flex;
+  align-items: center;
+}
+
+.team-label .team-mark,
+.team-label .team-chip {
+  flex: none;
+  vertical-align: 0;
+}
+
 .grid .cell-dim {
   color: var(--reserve);
   font-weight: 500;
@@ -992,14 +1016,27 @@ body.is-title .ticker {
   text-align: center;
 }
 
+/* Chips and logo marks take the same 28px, so team names line up. */
 .team-chip {
   display: inline-block;
   width: 12px;
   height: 12px;
-  margin-right: 8px;
+  margin: 0 10px 0 6px;
   vertical-align: -1px;
   background: linear-gradient(135deg, var(--chip-a, #888) 50%, var(--chip-b, #444) 50%);
   box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.2);
+}
+
+.team-mark {
+  display: inline-block;
+  width: 22px;
+  height: 25px;
+  margin-right: 6px;
+  vertical-align: -7px;
+}
+
+.cell-team {
+  white-space: nowrap;
 }
 
 .meter {

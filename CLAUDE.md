@@ -24,6 +24,8 @@ D3 Dynasty is a Division III cross country coaching game in plain HTML, CSS and 
 - **Engine** (pure, testable in node with `global.window = global`): `util.js`, `data/schools.js`, `data/logos.js`, `data/names.js`, `athletes.js`, `race.js`, `course.js`, `training.js`, `api.js`, `season.js`.
 - **UI:** `ui/common.js` holds the theme, crest, portraits, chrome, toasts and confirm dialog.
   - `ui.crest(school)` draws the school's athletics logo on a white shield edged in its primary color when `XC.logos.pathFor(school)` has one, and the generated monogram otherwise. Custom schools (id `custom`) and any logo that fails to load get the monogram.
+  - `ui.teamMark(team)` is the small mark beside a team name in the meet preview field, the live race panel, and both results tables. Teams with a logo get a 22×25 logo shield, and the rest get the two-color chip. Both take 28px, so names line up. `team.id` is the school id, or `'user'` for the player's school.
+  - The results team-scores table is `grid--dense` (7px cell padding), and its name cell (`cell-team-name`) may wrap. Before that change, long names like Claremont-Mudd-Scripps pushed the table past its panel at 1440px.
   - It also has `ui.courseMap(course, programs)` (an SVG map that places labels to avoid collisions), `ui.fatigueMeter(f)`, and `ui.meter(fraction, label, cls)`.
 - **Screen hooks:** each screen registers on `XC.screens[name]` with any of:
   - `title`, `render(root, params)`, `legend()`, `onKey(e)`, `back()`, `onSquadChange()`, `cleanup()`, `squadTabs`, `context`

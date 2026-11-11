@@ -60,10 +60,20 @@
     U.svg('path', { d: SHIELD, fill: '#FFFFFF', stroke: school.primary, 'stroke-width': '6' }),
     U.svg('image', {
       href: src, x: String(50 - bw / 2), y: String(51 - bh / 2), width: String(bw), height: String(bh), preserveAspectRatio: 'xMidYMid meet',
-      on: { error: () => { if (svg.parentNode) svg.parentNode.replaceChild(monogram(school, label), svg); } }
+      on: { error: () => { if (svg.parentNode) svg.parentNode.replaceChild(asFallback(svg, monogram(school, label)), svg); } }
     }));
     return svg;
   };
+
+  // Keep a failed logo's size classes and accessibility on its monogram.
+  function asFallback(logo, mono) {
+    mono.setAttribute('class', logo.getAttribute('class').replace(' crest--logo', ''));
+    ['role', 'aria-label', 'aria-hidden'].forEach((attr) => {
+      if (logo.hasAttribute(attr)) mono.setAttribute(attr, logo.getAttribute(attr));
+      else mono.removeAttribute(attr);
+    });
+    return mono;
+  }
 
   function monogram(school, label) {
     const initials = U.initials(school.short || school.name || 'XC');
@@ -134,6 +144,21 @@
     chip.style.setProperty('--chip-a', primary);
     chip.style.setProperty('--chip-b', accent);
     return chip;
+  };
+
+  // A team's mark in tables and lists: its logo on a small shield when the
+  // school has one, otherwise the two-color chip. Team objects carry the
+  // school id, or 'user' for the player's school. Always followed by the
+  // team's name, so it's hidden from screen readers.
+  ui.teamMark = function (team) {
+    const school = team.id === 'user' && XC.state ? XC.state.school : team;
+    if (!XC.logos || !XC.logos.has(school)) return ui.teamChip(team.primary, team.accent);
+    const mark = ui.crest(school);
+    mark.setAttribute('class', `${mark.getAttribute('class')} team-mark`);
+    mark.removeAttribute('role');
+    mark.removeAttribute('aria-label');
+    mark.setAttribute('aria-hidden', 'true');
+    return mark;
   };
 
   ui.meter = function (fraction, label, cls = '') {

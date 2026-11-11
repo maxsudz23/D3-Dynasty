@@ -559,7 +559,7 @@
         const team = this.teams[s.id];
         this.teamList.appendChild(h('li', { class: s.id === 'user' ? 'is-user' : '' },
           h('span', { class: 'pos' }, String(scores.indexOf(s) + 1)),
-          h('span', null, ui.teamChip(team.primary, team.accent), team.short),
+          h('span', null, ui.teamMark(team), team.short),
           h('span', null, s.n < 5 ? `${s.score}*` : String(s.score))));
       });
       if (!top.length) this.teamList.appendChild(h('li', null, h('span'), h('span', null, 'Scores post after the gun'), h('span')));
