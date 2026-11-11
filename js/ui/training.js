@@ -20,6 +20,7 @@
     if (!zone) return h('span', { class: 'badge badge--line' }, 'Rest');
     return h('span', { class: `badge zone zone--${zone.key}` }, zone.label);
   }
+  const dnfBadge = (text) => h('span', { class: 'badge zone zone--danger' }, text);
 
   const pct = (x) => `${Math.round(x * 100)}%`;
   const riskText = (r) => (r < 0.01 ? 'under 1%' : `${U.round(r * 100, 1)}%`);
@@ -247,13 +248,18 @@
           el.appendChild(h('p', null, zoneBadge(null), ` Race-day fatigue ${Math.round(p.race)}`));
           return;
         }
-        el.classList.toggle('plan-row__proj--warn', p.zone.key === 'over' || p.zone.key === 'danger');
-        el.appendChild(h('p', null, zoneBadge(p.zone), ` Dose ${pct(p.x)}`));
+        el.classList.toggle('plan-row__proj--warn', p.dnf || p.zone.key === 'over' || p.zone.key === 'danger');
+        el.appendChild(p.dnf
+          ? h('p', null, dnfBadge('Won’t finish'), ` Dose ${pct(p.x)} before they stop`)
+          : h('p', null, zoneBadge(p.zone), ` Dose ${pct(p.x)}`));
         el.appendChild(h('p', { class: 'plan-row__meta' },
           `Fatigue after ${Math.round(p.after)}, race day ${Math.round(p.race)}. Injury risk ${riskText(p.risk)}`));
-        if (p.strain > 1) {
+        if (p.dnf) {
           el.appendChild(h('p', { class: 'workout-group__warn' },
-            `${Math.round(p.strain * 100)}% of the time they can hold this pace, even counting rest. More rest or fewer reps.`));
+            `Asks for ${pct(p.strain)} of the time they can hold this pace. Likely drops out during ${T.stopPoint(res.workout, p.done)}. More rest, fewer reps or an easier pace.`));
+        } else if (p.close || p.strain > 1) {
+          el.appendChild(h('p', { class: 'workout-group__warn' },
+            `${pct(p.strain)} of the time they can hold this pace, even counting rest. They might not finish.`));
         }
       });
       this.groupNotes.forEach(({ note, group }) => {
@@ -263,11 +269,19 @@
           note.textContent = 'No runners assigned. Pick this group in a runner’s menu below.';
           return;
         }
-        const doses = members.map((a) => T.dose(group.workout, a, sq));
-        const over = members.filter((a, i) => doses[i] > T.ZONES[2].max);
-        note.appendChild(h('span', null, `${members.map((a) => A.shortName(a)).join(', ')}. `));
+        const previews = members.map((a) => T.preview(state, sq, a, T.resolve(plan, a)));
+        // A runner who drops out only takes the dose of what they finish.
+        const doses = previews.map((p) => p.x);
+        const dnf = members.filter((a, i) => previews[i].dnf);
+        const over = members.filter((a, i) => !previews[i].dnf && doses[i] > T.ZONES[2].max);
+        const names = (list) => list.map((a) => A.shortName(a)).join(', ');
+        note.appendChild(h('span', null, `${names(members)}. `));
         note.appendChild(h('span', null, `Doses ${pct(Math.min(...doses))} to ${pct(Math.max(...doses))}.`));
-        if (over.length) note.appendChild(h('span', { class: 'workout-group__warn' }, ` Too much for ${over.map((a) => A.shortName(a)).join(', ')}.`));
+        if (dnf.length) {
+          note.appendChild(h('span', { class: 'workout-group__warn' },
+            dnf.length === members.length ? ' Nobody in this group can finish it.' : ` Won’t finish: ${names(dnf)}.`));
+        }
+        if (over.length) note.appendChild(h('span', { class: 'workout-group__warn' }, ` Too much for ${names(over)}.`));
       });
     },
 
@@ -342,15 +356,21 @@
       if (state.training.done) return;
       // Warn before sending anyone well past their limit.
       const risky = [];
+      const dnf = [];
       state.programs.forEach((sq) => {
         state.squads[sq].roster.forEach((a) => {
           const p = T.preview(state, sq, a, T.resolve(state.training.plans[sq], a));
-          if (p.zone && p.zone.key === 'danger') risky.push(A.shortName(a));
+          if (p.dnf) dnf.push(A.shortName(a));
+          else if (p.zone && p.zone.key === 'danger') risky.push(A.shortName(a));
         });
       });
-      if (risky.length) {
-        const ok = await ui.confirm(`${risky.length} runner${risky.length > 1 ? 's are' : ' is'} set far past their limit (${risky.slice(0, 4).join(', ')}${risky.length > 4 ? '…' : ''}). That risks injury and heavy fatigue. Run anyway?`, 'Run it');
-        if (!ok) return;
+      const list = (names) => `${names.slice(0, 4).join(', ')}${names.length > 4 ? '…' : ''}`;
+      const parts = [];
+      if (dnf.length) parts.push(`${dnf.length} runner${dnf.length > 1 ? 's' : ''} can’t finish ${dnf.length > 1 ? 'their sessions' : 'the session'} and will drop out (${list(dnf)}).`);
+      if (risky.length) parts.push(`${risky.length} runner${risky.length > 1 ? 's are' : ' is'} set far past their limit (${list(risky)}).`);
+      if (parts.length) {
+        const ok = await ui.confirm(`${parts.join(' ')} That risks injury and heavy fatigue. Run anyway?`, 'Run it');
+        if (!ok || state.training.done) return;
       }
       T.runDay(state);
       const rows = Object.values(state.training.report.squads).flat();
@@ -360,6 +380,7 @@
       XC.audio.fanfare();
       ui.renderTicker();
       this.draw();
+      ui.renderLegend(this.legend());
       window.scrollTo(0, 0);
     },
 
@@ -378,15 +399,17 @@
       }
       const rows = report.squads[sq];
       const worked = rows.filter((r) => r.zone);
+      const dropped = rows.filter((r) => r.dnf);
       const gains = rows.reduce((n, r) => n + r.gains.length, 0);
       const hurt = rows.filter((r) => r.injury);
-      const cooked = rows.filter((r) => r.zone === 'over' || r.zone === 'danger');
+      const cooked = rows.filter((r) => r.dnf || r.zone === 'over' || r.zone === 'danger');
 
       const lines = [
         `${worked.length} runner${worked.length === 1 ? '' : 's'} worked out, ${rows.length - worked.length} recovered.`,
+        dropped.length ? `${dropped.length} dropped out before the end.` : '',
         gains ? `${gains} rating point${gains === 1 ? '' : 's'} gained.` : 'No rating points this time; progress carries over.',
         hurt.length ? `${hurt.length} injur${hurt.length === 1 ? 'y' : 'ies'}.` : 'No injuries.'
-      ];
+      ].filter(Boolean);
 
       const table = h('div', { class: 'table-wrap' }, h('table', { class: 'grid' },
         h('caption', { class: 'visually-hidden' }, 'Workout report'),
@@ -395,7 +418,7 @@
         h('tbody', null, rows.map((r) => h('tr', { class: r.injury ? 'is-reserve' : '' },
           h('td', { class: 'cell-left' }, r.name),
           h('td', { class: 'cell-left' }, r.group ? `${r.group}: ${r.desc}` : r.desc),
-          h('td', null, r.zone ? zoneBadge(T.ZONES.find((z) => z.key === r.zone)) : '—', r.zone ? ` ${pct(r.x)}` : ''),
+          h('td', null, r.dnf ? dnfBadge('Dropped out') : r.zone ? zoneBadge(T.ZONES.find((z) => z.key === r.zone)) : '—', r.zone ? ` ${pct(r.x)}` : ''),
           h('td', null, `${Math.round(r.before)} → ${Math.round(r.after)}`),
           h('td', null, ui.delta(r.form)),
           h('td', null, r.gains.length ? h('span', { class: 'badge badge--good' }, `+${r.gains.join(' +')}`) : '—'),

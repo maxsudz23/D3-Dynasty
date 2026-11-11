@@ -12,6 +12,9 @@
      resting through a block costs a little.
    - Fatigue recovers by the week, so short gaps before championships call
      for a taper.
+   - A session that asks for more than a runner can hold ends early: they
+     run until they blow up, then drop out. Running to failure costs extra
+     and pays back less than a session they could finish.
    Pure: no DOM. */
 (function (XC) {
   'use strict';
@@ -233,10 +236,13 @@
       density = fmt.continuous ? 0.55 + 0.45 / (1 + 1.5 * ratio) : 0.4 + 0.6 / (1 + 2 * ratio);
     }
     const fraction = (work / tte) * density;
-    return { fraction, mult: 1 + 1.2 * Math.max(0, fraction - 0.8) ** 1.3 };
+    return { fraction, rep: repMin / tte, mult: strainMult(fraction) };
   };
 
-  T.load = function (w, a, sq) {
+  const strainMult = (fraction) => 1 + 1.2 * Math.max(0, fraction - 0.8) ** 1.3;
+
+  // Load before the strain multiplier.
+  function baseLoad(w, a, sq) {
     const spec = T.TYPES[w.type];
     const fmt = spec.formats[w.format];
     let i = spec.intensities[w.intensity].i;
@@ -247,8 +253,10 @@
     if (fmt.rest && !fmt.continuous) density = 0.8 + 0.2 * (work / (work + restMin || 1));
     // Floats keep you running, so they add load instead of relieving it.
     else if (fmt.rest && fmt.continuous) density = 1 + 0.15 * (restMin / (work + restMin || 1));
-    return work * i * i * spec.load * (fmt.loadMult || 1) * density * T.strain(w, a, sq).mult;
-  };
+    return work * i * i * spec.load * (fmt.loadMult || 1) * density;
+  }
+
+  T.load = (w, a, sq) => baseLoad(w, a, sq) * T.strain(w, a, sq).mult;
 
   // Load a runner absorbs well in one key session.
   T.capacity = function (a) {
@@ -256,7 +264,50 @@
     return U.clamp(14.8 + (s.end - 60) * 0.1 + (s.dur - 60) * 0.06 + (s.mnt - 60) * 0.03 + (a.year - 1) * 0.8, 9, 26);
   };
 
+  // The planned dose, as if the runner finishes the whole session.
   T.dose = (w, a, sq) => T.load(w, a, sq) / T.capacity(a);
+
+  // How much of their time to exhaustion (the strain fraction) a runner can
+  // push through before they blow up. Tough runners dig deeper; tired legs
+  // give out sooner.
+  T.breakingPoint = (a, day) => U.clamp(1.15 + (a.stats.mnt - 60) * 0.004 - Math.max(0, day - 25) * 0.004, 0.95, 1.35);
+  T.BREAK_SD = 0.06;
+
+  // How far into a session a runner gets, given their workout-day fatigue.
+  // Without rng it's the expected outcome (for previews); with rng the
+  // breaking point varies a little, as it does on the day. Strain grows
+  // with each rep, so a runner over their breaking point gets limit/strain
+  // of the way through. A single rep longer than they can hold stops them
+  // inside the first one.
+  T.attempt = function (w, a, sq, day, rng) {
+    const s = T.strain(w, a, sq);
+    const cap = T.capacity(a);
+    const expected = T.breakingPoint(a, day);
+    const limit = rng ? Math.max(0.85, expected * (1 + U.gauss(0, T.BREAK_SD, rng))) : expected;
+    let done = Math.min(1, limit / s.fraction);
+    if (s.rep > limit) done = Math.min(done, limit / (s.rep * (w.reps || 1)));
+    const base = baseLoad(w, a, sq);
+    // Within about two spreads of the breaking point a finish isn't sure.
+    const close = s.fraction > expected * (1 - 2 * T.BREAK_SD);
+    if (done >= 1) return { done: 1, dnf: false, close, x: (base * s.mult) / cap, strain: s.fraction, limit: expected };
+    // They held the pace right up to their limit, then stopped.
+    return { done, dnf: true, close: true, x: (base * done * strainMult(limit)) / cap, strain: s.fraction, limit: expected };
+  };
+
+  // Where in the session a runner stopped: "rep 2 of 12", "18 of 40 min".
+  T.stopPoint = function (w, done) {
+    const fmt = T.formatOf(w);
+    if (!fmt.reps) return `${Math.max(1, Math.floor(w.work * done))} of ${w.work} min`;
+    const noun = fmt.progressive ? 'segment' : w.format === 'fartlek' ? 'surge' : 'rep';
+    const n = Math.min(w.reps, Math.floor(w.reps * done + 1e-9) + 1);
+    return `${noun} ${n} of ${w.reps}`;
+  };
+  T.stopText = (w, done) => (T.formatOf(w).reps ? `Dropped out during ${T.stopPoint(w, done)}` : `Dropped out ${T.stopPoint(w, done)} in`);
+
+  // What running to failure costs on top of the work done: the session
+  // breaks down (less benefit), the legs are trashed (extra fatigue), it
+  // dents confidence (form) and tired form raises injury risk.
+  T.DNF = { stim: 0.5, fatigue: 12, form: 1, risk: 1.5 };
 
   T.ZONES = [
     { max: 0.55, key: 'light', label: 'Light' },
@@ -338,17 +389,23 @@
       const after = Math.max(0, day - 10);
       return { x: 0, zone: null, day, after, race: Math.max(0, after - half), risk: 0, stim: 0 };
     }
-    const x = T.dose(res.workout, a, sq);
-    const after = Math.min(100, day + workoutFatigue(x));
+    const att = T.attempt(res.workout, a, sq, day);
+    const x = att.x;
+    const dnf = att.dnf ? T.DNF : null;
+    const after = Math.min(100, day + workoutFatigue(x) + (dnf ? dnf.fatigue : 0));
     return {
       x,
-      strain: T.strain(res.workout, a, sq).fraction,
+      planned: T.dose(res.workout, a, sq),
+      strain: att.strain,
+      dnf: att.dnf,
+      close: att.close,
+      done: att.done,
       zone: T.zone(x),
       day,
       after,
       race: Math.max(0, after - half),
-      risk: Math.min(0.5, workoutRisk(x, day, a)),
-      stim: stimulus(x, day) * trackBonus(state, res.workout)
+      risk: Math.min(0.5, workoutRisk(x, day, a) * (dnf ? dnf.risk : 1)),
+      stim: stimulus(x, day) * trackBonus(state, res.workout) * (dnf ? dnf.stim : 1)
     };
   };
 
@@ -427,11 +484,13 @@
     }
   }
 
-  // Scale volume so the group's middle runner lands on the target dose.
-  function fitVolume(w, members, sq, target) {
+  // Scale volume so the group's middle runner lands on the target dose,
+  // without anyone getting near the point where they'd drop out.
+  function fitVolume(w, members, sq, target, days) {
     const fmt = T.formatOf(w);
     const doseOf = (cand) => median(members.map((a) => T.dose(cand, a, sq)));
     const peakOf = (cand) => Math.max(...members.map((a) => T.dose(cand, a, sq)));
+    const atRisk = (cand) => members.filter((a, i) => T.attempt(cand, a, sq, days[i]).close).length;
     const candidates = [];
     const workRange = [];
     for (let v = fmt.work.min; v <= fmt.work.max + 1e-9; v += fmt.work.step) workRange.push(U.round(v, 1));
@@ -447,7 +506,7 @@
     let bestErr = Infinity;
     candidates.forEach((c) => {
       // Hit the middle runner's target without pushing anyone into overreach.
-      const err = Math.abs(doseOf(c) - target) + Math.max(0, peakOf(c) - Math.max(target + 0.08, 1.1)) * 3;
+      const err = Math.abs(doseOf(c) - target) + Math.max(0, peakOf(c) - Math.max(target + 0.08, 1.1)) * 3 + atRisk(c) * 2;
       if (err < bestErr) {
         bestErr = err;
         best = c;
@@ -460,11 +519,12 @@
   // a weaker assistant coach would make.
   T.recommend = function (state, sq, members, { quality = T.advisorQuality(state), rng = Math.random } = {}) {
     if (!members.length) return T.make('threshold');
-    const fatigue = median(members.map((a) => T.dayFatigue(state, a)));
+    const days = members.map((a) => T.dayFatigue(state, a));
+    const fatigue = median(days);
     let target = T.targetDose(state, fatigue);
     target *= 1 + U.gauss(0, (1 - quality) * 0.4, rng);
     const type = pickType(state, members, rng, quality);
-    const w = fitVolume(shapeFor(type, state, fatigue, rng), members, sq, U.clamp(target, 0.25, 1.6));
+    const w = fitVolume(shapeFor(type, state, fatigue, rng), members, sq, U.clamp(target, 0.25, 1.6), days);
     w.source = quality < 1 ? 'staff' : 'auto';
     return w;
   };
@@ -583,24 +643,30 @@
           a.form = U.clamp(0.5 * T.formOf(a) - 0.35, -3, 4.5);
         } else {
           const w = res.workout;
-          const x = T.dose(w, a, sq);
+          const att = T.attempt(w, a, sq, day, rng);
+          const dnf = att.dnf ? T.DNF : null;
+          const x = att.x;
           const zone = T.zone(x);
-          const stim = stimulus(x, day) * trackBonus(state, w);
+          const stim = stimulus(x, day) * trackBonus(state, w) * (dnf ? dnf.stim : 1);
           row.desc = T.describe(w);
           row.title = T.title(w);
           row.x = U.round(x, 2);
           row.zone = zone.key;
           row.note = noteFor(zone.key, res.mode);
+          if (dnf) {
+            row.dnf = { done: U.round(att.done, 3), at: T.stopPoint(w, att.done) };
+            row.note = `${T.stopText(w, att.done)}: couldn’t hold the pace any longer.`;
+          }
           row.gains = gainStats(a, w, stim);
-          a.form = U.clamp(0.5 * T.formOf(a) + 1.4 * stim - 0.35, -3, 4.5);
+          a.form = U.clamp(0.5 * T.formOf(a) + 1.4 * stim - 0.35 - (dnf ? dnf.form : 0), -3, 4.5);
           a.lastWorkout = w.type;
-          if (rng() < workoutRisk(x, day, a)) {
+          if (rng() < workoutRisk(x, day, a) * (dnf ? dnf.risk : 1)) {
             const [what, out] = U.pick(INJURIES, rng);
             a.injury = Math.max(a.injury, out);
             row.injury = { what, out };
           }
-          day = Math.min(100, day + workoutFatigue(x));
-          if (w.source === 'staff' && (row.injury || zone.key === 'danger')) row.note += ' This was the staff’s suggestion.';
+          day = Math.min(100, day + workoutFatigue(x) + (dnf ? dnf.fatigue : 0));
+          if (w.source === 'staff' && (row.injury || dnf || zone.key === 'danger')) row.note += ' This was the staff’s suggestion.';
         }
         a.fatigue = U.round(Math.max(0, day - half), 1);
         row.after = a.fatigue;

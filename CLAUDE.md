@@ -90,6 +90,11 @@ D3 Dynasty is a Division III cross country coaching game in plain HTML, CSS and 
   - Better END stretches the limit slightly.
   - `strain = work / tte × rest density`, and cost is multiplied by `1 + 1.2 × max(0, strain − 0.8)^1.3`.
   - The plan screen warns when strain is over 100%.
+- **Dropping out:** a runner's breaking point is `1.15 + (MNT−60)·0.004 − max(0, day fatigue−25)·0.004` of their strain limit, clamped to 0.95–1.35. On the day it varies by a 6% spread (`T.BREAK_SD`).
+  - `T.attempt(w, a, sq, day, rng?)` returns how much they finish: `limit / strain`, or less if a single rep is longer than they can hold. Without `rng` it's the expected outcome used by the previews.
+  - A runner who drops out takes the dose of the part they finished, with the strain multiplier at their limit. Then `T.DNF` applies: stimulus ×0.5, +12 fatigue, −1 form, injury risk ×1.5.
+  - `T.dose` is still the planned full-session dose. Previews, the group note, the run confirm and the report all use the attempt (`Won't finish`, `Dropped out during rep 2 of 12`).
+  - `fitVolume` penalizes any candidate where a member is within two spreads of their breaking point, so suggestions and auto plans never produce dropouts.
 - **Outcomes:**
   - Fatigue gain is `18 × dose^1.8`.
   - Benefit flattens above a dose of 1 and shrinks with fatigue.
@@ -126,6 +131,7 @@ No test files are in the repo. Re-create scripts like these in the scratchpad ra
     - Never training was worse.
     - 1.5× or more was clearly worse, with rising injuries.
     - Max for everyone injured so many runners the team couldn't score.
+    - After dropouts were added (60 seasons, average place percentile, lower is better): auto 0.268, never 0.334, 1.5× 0.331, max for everyone 0.631. Everyone on 12×2000 m at mile pace scored 0.350, worse than never training. Auto plans had 0 dropouts.
   - Re-run it after changing any training number.
   - A dose table lists standard and tester sessions for an average and a strong runner.
 - **Browser (puppeteer):**
