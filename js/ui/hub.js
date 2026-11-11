@@ -114,10 +114,10 @@
     },
     legend() {
       return [
-        { key: 'Enter', label: 'Select', action: () => document.activeElement && document.activeElement.click() },
+        { key: 'Enter', label: 'Select', keyboardOnly: true, action: () => document.activeElement && document.activeElement.click() },
         { key: 'D', label: 'Depth chart', action: () => XC.go('roster') },
         { key: 'S', label: 'Schedule', action: () => XC.go('schedule') },
-        { key: 'M', label: 'Mute', action: () => XC.settings.toggleSound() }
+        { key: 'M', label: 'Mute', keyboardOnly: true, action: () => XC.settings.toggleSound() }
       ];
     },
     onKey(e) {

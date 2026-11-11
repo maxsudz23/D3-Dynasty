@@ -62,6 +62,7 @@ html {
 body {
   margin: 0;
   min-height: 100vh;
+  min-height: 100dvh;
   display: flex;
   flex-direction: column;
   font-family: var(--font-ui);
@@ -1890,7 +1891,8 @@ body.is-title .ticker {
   width: 100%;
   aspect-ratio: 16 / 9;
   min-height: 0;
-  max-height: calc(100vh - 360px);
+  /* Floor keeps the course readable on a phone held sideways. */
+  max-height: max(200px, calc(100vh - 360px));
   background: #6E9457;
 }
 
@@ -2509,13 +2511,88 @@ body.is-title .ticker {
     grid-template-columns: repeat(4, minmax(0, 1fr));
   }
 
-  .legend {
-    display: none;
+  .masthead {
+    padding-top: 12px;
+  }
+
+  .masthead__status {
+    gap: 6px 10px;
+    padding-bottom: 4px;
+  }
+
+  .legend-bar {
+    padding: 8px 12px;
   }
 
   .toasts {
     right: 16px;
-    bottom: 60px;
+    bottom: 104px;
+  }
+}
+
+/* On phones the legend becomes a row of real buttons, since it holds the
+   only Back control on several screens. */
+@media (max-width: 600px), (hover: none) and (pointer: coarse) {
+  .legend {
+    gap: 6px;
+  }
+
+  .legend__item {
+    flex: 1 1 auto;
+    justify-content: center;
+    min-height: 40px;
+    padding: 6px 10px;
+    border: 1px solid rgba(26, 36, 49, 0.25);
+    background: rgba(255, 255, 255, 0.7);
+  }
+}
+
+/* Phones held sideways: give the screen back the height the chrome takes. */
+@media (max-height: 500px) {
+  .masthead {
+    padding-top: 8px;
+  }
+
+  .screen-title {
+    font-size: var(--step-3);
+  }
+
+  .context-bar {
+    margin-top: 6px;
+    min-height: 44px;
+  }
+
+  .legend-bar {
+    padding-top: 6px;
+    padding-bottom: 6px;
+  }
+
+  .ticker {
+    display: none;
+  }
+}
+
+/* Touch screens: no keyboard, so drop key hints and shortcuts that repeat an
+   on-screen control. */
+@media (hover: none) and (pointer: coarse) {
+  .keycap:not(.keycap--bumper),
+  .legend__item--keyboard,
+  .press-start {
+    display: none;
+  }
+
+  /* Squad bumpers read Q and E for keyboards; show arrows instead. */
+  .keycap--bumper {
+    font-size: 0;
+  }
+
+  .keycap--bumper::before {
+    font-size: 1.4rem;
+    content: '\2039';
+  }
+
+  .keycap--bumper:last-child::before {
+    content: '\203A';
   }
 }
 

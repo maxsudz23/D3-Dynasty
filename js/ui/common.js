@@ -234,9 +234,13 @@
   ui.renderLegend = function (items) {
     const legend = document.getElementById('legend');
     U.clear(legend);
+    // Items marked keyboardOnly repeat an on-screen control (squad tabs, the
+    // sound toggle, a focused button), so touch screens hide them.
     (items || []).forEach((item) => {
       legend.appendChild(h('button', {
-        type: 'button', class: 'legend__item', on: { click: () => item.action && item.action() }
+        type: 'button',
+        class: `legend__item${item.keyboardOnly ? ' legend__item--keyboard' : ''}`,
+        on: { click: () => item.action && item.action() }
       }, h('span', { class: 'keycap', 'aria-hidden': 'true' }, item.key), item.label));
     });
   };

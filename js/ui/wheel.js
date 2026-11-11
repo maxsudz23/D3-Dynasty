@@ -341,7 +341,7 @@
         { key: 'Space', label: 'Spin', action: () => this.spin() },
         { key: 'A', label: 'Spin all', action: () => this.spinAll() }
       ];
-      if (XC.state && XC.state.programs.length > 1) items.push({ key: 'Q E', label: 'Squad', action: () => XC.setSquad(XC.activeSquad === 'M' ? 'W' : 'M') });
+      if (XC.state && XC.state.programs.length > 1) items.push({ key: 'Q E', label: 'Squad', keyboardOnly: true, action: () => XC.setSquad(XC.activeSquad === 'M' ? 'W' : 'M') });
       items.push({ key: 'Esc', label: 'Hub', action: () => XC.go('hub') });
       return items;
     },

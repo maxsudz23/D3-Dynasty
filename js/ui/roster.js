@@ -255,14 +255,14 @@
 
     legend(params) {
       const items = [
-        { key: 'Enter', label: 'Move runner', action: () => this.toggleGrab() },
+        { key: 'Enter', label: 'Move runner', keyboardOnly: true, action: () => this.toggleGrab() },
         { key: 'R', label: 'Auto reorder', action: () => this.autoReorder() }
       ];
       if (XC.state && cutAllowed(XC.state)) items.push({ key: 'X', label: 'Cut', action: () => this.cut() });
       if (XC.state && params && params.mode === 'cut' && XC.state.phase === 'cut') {
         items.push({ key: 'Shift Enter', label: 'Start season', action: () => this.finishCuts() });
       }
-      if (XC.state && XC.state.programs.length > 1) items.push({ key: 'Q E', label: 'Squad', action: () => XC.setSquad(XC.activeSquad === 'M' ? 'W' : 'M') });
+      if (XC.state && XC.state.programs.length > 1) items.push({ key: 'Q E', label: 'Squad', keyboardOnly: true, action: () => XC.setSquad(XC.activeSquad === 'M' ? 'W' : 'M') });
       items.push({ key: 'Esc', label: 'Back', action: () => this.back(params) });
       return items;
     },

@@ -58,7 +58,7 @@
             'Recruit names and photos from randomuser.me. Race-day weather from Open-Meteo. Programs are real; every athlete is fictional.'))));
     },
     legend() {
-      return [{ key: 'Enter', label: 'Start', action: () => document.activeElement && document.activeElement.click() }];
+      return [{ key: 'Enter', label: 'Start', keyboardOnly: true, action: () => document.activeElement && document.activeElement.click() }];
     },
     onKey(e) {
       if (e.key === 'Enter' && !(e.target instanceof HTMLButtonElement)) {

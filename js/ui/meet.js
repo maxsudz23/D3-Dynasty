@@ -198,7 +198,7 @@
         { key: 'Enter', label: 'Start race', action: () => this.start() },
         { key: 'L', label: 'Edit lineup', action: () => XC.go('roster', { from: 'meet' }) }
       ];
-      if (XC.state && XC.state.programs.length > 1) items.push({ key: 'Q E', label: 'Squad', action: () => XC.setSquad(XC.activeSquad === 'M' ? 'W' : 'M') });
+      if (XC.state && XC.state.programs.length > 1) items.push({ key: 'Q E', label: 'Squad', keyboardOnly: true, action: () => XC.setSquad(XC.activeSquad === 'M' ? 'W' : 'M') });
       items.push({ key: 'Esc', label: 'Hub', action: () => XC.go('hub') });
       return items;
     },
@@ -340,7 +340,7 @@
 
     legend(params) {
       const items = [{ key: 'Enter', label: 'Continue', action: () => (params.from === 'schedule' ? XC.go('schedule') : this.continue()) }];
-      if (XC.state && XC.state.programs.length > 1) items.push({ key: 'Q E', label: 'Squad', action: () => XC.setSquad(XC.activeSquad === 'M' ? 'W' : 'M') });
+      if (XC.state && XC.state.programs.length > 1) items.push({ key: 'Q E', label: 'Squad', keyboardOnly: true, action: () => XC.setSquad(XC.activeSquad === 'M' ? 'W' : 'M') });
       return items;
     },
 
