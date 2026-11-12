@@ -77,15 +77,28 @@
     return roster.sort((a, b) => b.ovr - a.ovr);
   }
 
-  // A real team's roster (js/data/rosters.js). Ratings and potential are
-  // seeded by name, so every save gets the same team; class year shapes
-  // the rating.
-  const REAL_MEAN = { 1: 62, 2: 66, 3: 70, 4: 73 };
+  // OVR from a real season-best time. Uses the race model's seconds per
+  // rating point (R.baseTime), anchored so a national-class mark (men 8K
+  // 24:20, women 6K 21:25) is a 90.
+  S.REAL_MARK = { M: { anchor: 1460, perPoint: 6.73 }, W: { anchor: 1285, perPoint: 5.2 } };
+  S.ovrFromMark = function (squad, mark) {
+    const [min, sec] = mark.split(':').map(Number);
+    const t = min * 60 + sec;
+    const k = S.REAL_MARK[squad];
+    return U.clamp(Math.round(90 + (k.anchor - t) / k.perPoint), 40, 95);
+  };
+
+  // A real team's roster (js/data/rosters.js). OVR comes from each
+  // runner's best mark; the ratings around it and potential are seeded by
+  // name, so every save gets the same team. No mark: a seeded rating a
+  // little below the class average.
+  const REAL_MEAN = { 1: 58, 2: 62, 3: 66, 4: 69 };
   function realRoster(squad, rows, school) {
     const used = new Set();
-    const roster = rows.map(([first, last, year, hometown]) => {
+    const roster = rows.map(([first, last, year, hometown, mark]) => {
       const rng = U.mulberry32(U.hash(`real|${school.id}|${squad}|${first} ${last}`));
-      const ovr = U.clamp(Math.round(REAL_MEAN[year] + U.gauss(0, 6, rng)), 50, 90);
+      const seeded = U.clamp(Math.round(REAL_MEAN[year] + U.gauss(0, 4, rng)), 50, 80);
+      const ovr = mark ? S.ovrFromMark(squad, mark) : seeded;
       const pot = year <= 2
         ? A.randomPot({ A: 15, B: 35, C: 35, D: 15 }, rng)
         : A.randomPot({ A: 5, B: 25, C: 45, D: 25 }, rng);

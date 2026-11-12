@@ -16,6 +16,10 @@
   const CHANGELOG = [
     {
       date: 'Nov 12, 2026',
+      text: 'WashU\u2019s ratings now come from the team\u2019s real 2026 season-best times, so the Bears start as one of the top programs in the country.'
+    },
+    {
+      date: 'Nov 12, 2026',
       text: 'Start a new dynasty as WashU and you coach the real 2026 Bears: all 30 men and 24 women, with their real hometowns and class years.'
     },
     {
@@ -33,10 +37,6 @@
     {
       date: 'Nov 12, 2026',
       text: 'Give any of your top seven their own race plan, from sitting and kicking to packing up or holding back. Reading who suits which plan is up to you.'
-    },
-    {
-      date: 'Nov 12, 2026',
-      text: 'UAA schools race on their real home courses, traced from the published course maps, with separate men\u2019s and women\u2019s routes.'
     }
   ];
 
