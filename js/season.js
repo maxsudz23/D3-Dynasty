@@ -342,6 +342,67 @@
 
   S.currentMeet = (state) => (state.phase === 'season' ? state.schedule[state.meetIndex] : null);
 
+  /* ---------- JV races ---------- */
+
+  // Invitationals add a JV race for runners outside the top seven.
+  S.hasJV = (meet) => !!meet && meet.type === 'invite';
+
+  // Race names from the host school's colors: "Red Race" for varsity and
+  // "Green Race" for JV. Without two distinct color names, "Varsity Race"
+  // and "JV Race".
+  S.raceNames = function (state, meet) {
+    if (!S.hasJV(meet)) return null;
+    const host = meet.host && meet.host.id === state.school.id ? state.school : XC.schools.byId(meet.host && meet.host.id);
+    const primary = host && host.primary ? U.colorName(host.primary) : null;
+    const accent = host && host.accent ? U.colorName(host.accent) : null;
+    if (primary && accent && primary !== accent) return { varsity: `${primary} Race`, jv: `${accent} Race` };
+    return { varsity: 'Varsity Race', jv: 'JV Race' };
+  };
+
+  // Your JV: healthy runners outside the racing seven.
+  S.jvRunners = function (state, sq) {
+    const roster = state.squads[sq].roster;
+    const lineup = A.lineup(roster);
+    return roster.filter((a) => a.injury <= 0 && !lineup.includes(a));
+  };
+
+  // A rival's JV: seven runners about nine points under its varsity,
+  // seeded per school, season and squad.
+  S.oppJV = function (state, school, sq) {
+    const str = state.opp[sq][school.id] - 9;
+    const rng = U.mulberry32(U.hash(`${school.id}|${sq}|${state.season}|jv`));
+    const used = new Set();
+    const offsets = [5, 3, 1, 0, -2, -4, -6];
+    return offsets.map((off, i) => {
+      const a = A.create({
+        person: XC.api.localPerson(sq, rng, school),
+        ovr: U.clamp(Math.round(str + off + U.gauss(0, 2.5, rng)), 40, 95),
+        year: U.randInt(1, 4, rng),
+        rng,
+        usedNumbers: used,
+        id: `${school.id}-${state.season}-jv${i}`
+      });
+      a.form = 1;
+      return a;
+    });
+  };
+
+  S.buildJVTeams = function (state, meet, sq) {
+    const runners = S.jvRunners(state, sq);
+    if (!S.hasJV(meet) || !runners.length) return null;
+    const squad = state.squads[sq];
+    const school = state.school;
+    const teams = S.fieldSchools(state, meet, sq).map((s) => ({
+      id: s.id, name: s.name, short: s.short, primary: s.primary, accent: s.accent,
+      isUser: false, scored: true, strategy: null, runners: S.oppJV(state, s, sq)
+    }));
+    teams.push({
+      id: 'user', name: school.name, short: school.short, primary: school.primary, accent: school.accent,
+      isUser: true, scored: true, strategy: squad.strategy, plans: squad.plans || {}, runners
+    });
+    return teams;
+  };
+
   /* ---------- Fields ---------- */
 
   S.fieldSchools = function (state, meet, sq) {
@@ -472,14 +533,18 @@
     };
   }
 
-  function applyToRoster(state, meet, sq, sim, summary) {
+  // races: [{ sim, summary, jv }]. Varsity and JV racers both race (and
+  // tire, and risk injury); only varsity places count toward career bests.
+  function applyToRoster(state, meet, sq, races) {
     const squad = state.squads[sq];
     const raced = new Set();
     const planOf = {};
-    sim.all.filter((e) => e.teamId === 'user').forEach((e) => {
+    const summaryOf = {};
+    races.forEach(({ sim, summary, jv }) => sim.all.filter((e) => e.teamId === 'user').forEach((e) => {
       const a = e.runner;
       raced.add(a.id);
       planOf[a.id] = e.strategy;
+      summaryOf[a.id] = summary;
       a.career.races += 1;
       if (e.dnf) return;
       const row = summary.individuals.find((r) => r.athleteId === a.id);
@@ -487,6 +552,7 @@
         if (a.pr !== null && row) row.pr = true;
         a.pr = U.round(e.time, 1);
       }
+      if (jv) return;
       if (a.career.best === null || e.place < a.career.best) a.career.best = e.place;
       if (e.place === 1) a.career.wins += 1;
       if (e.place <= 10) a.career.top10 += 1;
@@ -494,7 +560,7 @@
         a.career.aa += 1;
         summary.aa.push(A.fullName(a));
       }
-    });
+    }));
 
     // Runners who sat out heal one meet; racers roll for new injuries.
     squad.roster.forEach((a) => {
@@ -512,7 +578,7 @@
       XC.training.afterRace(a, cost.fatigue);
       if (meet.type !== 'national' && Math.random() < risk) {
         a.injury = U.randInt(1, 3);
-        summary.injuries.push({ name: A.fullName(a), out: a.injury });
+        summaryOf[a.id].injuries.push({ name: A.fullName(a), out: a.injury });
       }
     });
   }
@@ -528,13 +594,29 @@
     const layout = XC.course.layoutFor(meet.course);
     const factor = state.programs.length === 2 ? 0.6 : 1;
     const races = [];
+    const jvRaces = [];
     let repTotal = 0;
 
     state.programs.forEach((sq) => {
+      // Both fields are set before either race, so a varsity injury
+      // doesn't reshuffle who runs JV.
       const teams = S.buildTeams(state, meet, sq);
-      const sim = R.simulate({ squad: sq, course: meet.course.type, climbPerKm: layout.climbPerKm, weather: meet.weather, teams });
+      const jvTeams = S.buildJVTeams(state, meet, sq);
+      const simulate = (t) => R.simulate({ squad: sq, course: meet.course.type, climbPerKm: layout.climbPerKm, weather: meet.weather, teams: t });
+      const sim = simulate(teams);
       const summary = summarize(sim, teams, meet, sq);
-      applyToRoster(state, meet, sq, sim, summary);
+      const ran = [{ sim, summary, jv: false }];
+      if (jvTeams) {
+        const jvSim = simulate(jvTeams);
+        const jvSummary = summarize(jvSim, jvTeams, meet, sq);
+        jvSummary.jv = true;
+        meet.jv = meet.jv || {};
+        meet.jv[sq] = jvSummary;
+        ran.push({ sim: jvSim, summary: jvSummary, jv: true });
+        jvRaces.push({ squad: sq, sim: jvSim, teams: jvTeams, jv: true });
+        if (jvSummary.userPlace === 1) S.addNews(state, `${state.school.short} ${S.squadLabel(sq).toLowerCase()} JV wins the ${S.raceNames(state, meet).jv} at the ${meet.name}.`);
+      }
+      applyToRoster(state, meet, sq, ran);
 
       let delta = 0;
       if (meet.type === 'national') {
@@ -553,6 +635,8 @@
       raceNews(state, meet, sq, summary);
     });
 
+    // JV races run after the varsity races.
+    races.push(...jvRaces);
     meet.done = true;
     meet.repDelta = U.round(repTotal, 1);
     state.rep = U.round(U.clamp(state.rep + repTotal, 0, 100), 1);

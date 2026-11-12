@@ -63,14 +63,19 @@
         type: 'button', 'aria-pressed': String(n === 1), on: { click: () => this.setSpeed(n) }
       }, `${n}x`));
       this.skipBtn = ui.button('Skip to finish', () => this.skip(), { variant: 'ghost', key: 'Space' });
-      this.nextBtn = ui.button(this.isLast ? 'View results' : `Next: ${S.squadLabel(XC.live.races[this.params.i + 1].squad)} race`,
+      // Invitationals name their races after the host's colors.
+      this.names = S.raceNames(XC.state, meet);
+      const raceLabel = (r) => (this.names ? `${S.squadLabel(r.squad)} ${r.jv ? this.names.jv : this.names.varsity}` : `${S.squadLabel(r.squad)} race`);
+      this.nextBtn = ui.button(this.isLast ? 'View results' : `Next: ${raceLabel(XC.live.races[this.params.i + 1])}`,
         () => this.next(), { variant: 'primary', size: 'big', key: 'Enter' });
       this.nextBtn.hidden = true;
 
       root.appendChild(h('div', { class: 'race' },
         h('div', { class: 'race__head' },
           h('div', { class: 'race__heading' },
-            h('h2', { class: 'race__title' }, `${S.squadLabel(sq)} ${R.DIST[sq].label}`),
+            h('h2', { class: 'race__title' }, this.names
+              ? `${race.jv ? this.names.jv : this.names.varsity}: ${S.squadLabel(sq)} ${R.DIST[sq].label}`
+              : `${S.squadLabel(sq)} ${R.DIST[sq].label}`),
             h('p', { class: 'race__sub' }, `${meet.name}, ${meet.course.name}. ${R.COURSES[meet.course.type].label}, ${U.lowerFirst(C.lapsText(this.layout, sq))}${meet.weather ? `, ${XC.api.toF(meet.weather.tempC)}° and ${meet.weather.label.toLowerCase()}` : ''}`)),
           h('div', { class: 'actions race__controls' },
             h('div', { class: 'speed', role: 'group', 'aria-label': 'Playback speed' }, this.speedBtns),
@@ -440,13 +445,16 @@
 
     finish() {
       this.phase = 'done';
-      const res = this.meet.results[this.race.squad];
+      const res = this.race.jv ? this.meet.jv[this.race.squad] : this.meet.results[this.race.squad];
       const school = XC.state.school.short;
       let line;
       if (res.userPlace) line = `${res.winner.short} takes the team title with ${res.winner.score}. ${school} finishes ${U.ordinal(res.userPlace)} with ${res.userScore}.`;
       else if (res.winner) line = `${res.winner.short} takes the team title with ${res.winner.score} points.`;
       else line = 'The race is final.';
-      setTimeout(() => this.say(line), 600);
+      // Only if this race is still on screen: moving on quickly must not
+      // carry this call into the next race.
+      const race = this.race;
+      setTimeout(() => { if (this.race === race) this.say(line); }, 600);
       this.skipBtn.hidden = true;
       this.nextBtn.hidden = false;
       this.nextBtn.focus();

@@ -2225,6 +2225,36 @@ body.is-title .ticker {
 
 /* ---------- Results ---------- */
 
+/* Varsity / JV switch on invitational results */
+.race-toggle {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 12px;
+}
+
+.race-toggle__btn {
+  min-height: 40px;
+  padding: 6px 16px;
+  border: 2px solid var(--ink-2);
+  background: transparent;
+  font-family: var(--font-ui);
+  font-size: var(--step-0);
+  font-weight: 700;
+  color: var(--ink);
+  cursor: pointer;
+}
+
+.race-toggle__btn[aria-pressed='true'] {
+  background: var(--ink);
+  color: #FFFFFF;
+}
+
+.race-toggle__btn:focus-visible {
+  outline: 3px solid var(--team-hi);
+  outline-offset: 2px;
+}
+
 .results-hero {
   position: relative;
   display: grid;

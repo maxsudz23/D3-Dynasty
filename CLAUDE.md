@@ -75,6 +75,13 @@ D3 Dynasty is a Division III cross country coaching game in plain HTML, CSS and 
   - `+ form − max(0, fatigue − 20) × 0.12`.
   - Rival runners race at form +1, so a coach who never trains falls behind.
   - The hill rating's weight is `clamp(climbPerKm / 32, 0.03, 0.5)`, from the actual course. Flat, rolling and mud keep their SPD, END and DUR/MNT bonuses.
+- **JV races (invitationals only):** `S.hasJV(meet)` is true for `type === 'invite'`.
+  - **Your JV:** every healthy runner outside the top seven (`S.jvRunners`). A squad with no reserves skips its JV race.
+  - **Opponents' JV:** seven seeded runners per field school, about 9 under its varsity strength (`S.oppJV`, keyed `school|squad|season|jv`).
+  - **Running it:** both fields are set before either race. JV results live in `meet.jv[sq]` (marked `jv: true`), and `meet.results[sq]` stays varsity-only, so the hub and schedule are unchanged. The JV races are appended after the varsity races in the race view.
+  - **Effects:** `applyToRoster(state, meet, sq, races)` applies fatigue, injury risk, race counts and PRs to JV racers too. Career best, wins, top 10, All-American, rep and invite wins are varsity-only. A JV team win makes a news line.
+  - **Names:** `S.raceNames` builds them from the host's colors via `U.colorName` (Red, Maroon, Navy, Gold…), e.g. "Red Race" (varsity) and "Green Race" (JV). If both colors give the same name (NYU, Illinois Wesleyan, Dickinson, Kenyon), they fall back to "Varsity Race" and "JV Race".
+  - **Screens:** the meet preview shows both names and how many will run JV. The results screen toggles between the two races, and JV shows no rep.
 - **Race injury risk:** `(0.008 + (100 − DUR)/100 × 0.035) × (0.7 + (fatigue/40)²)`. Each race adds `12 + (100 − DUR) × 0.06` fatigue.
 - **Race plans (`race.js`, meet preview):** the team plan (`squad.strategy`: hard, even or neg) applies to everyone. Any of the starting seven can get their own plan in `squad.plans[athleteId]`. A missing entry or `'team'` means they follow the team plan. Opponents only use team plans.
   - **Plans** (`R.PLANS`, effects in `R.planEffect`):

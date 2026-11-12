@@ -16,6 +16,10 @@
   const CHANGELOG = [
     {
       date: 'Nov 12, 2026',
+      text: 'Invitationals now have JV races for everyone outside your top seven, named after the host\u2019s colors, like the Red Race and the Green Race at WashU.'
+    },
+    {
+      date: 'Nov 12, 2026',
       text: 'The WashU men now have their real roster headshots in the game.'
     },
     {
@@ -33,10 +37,6 @@
     {
       date: 'Nov 12, 2026',
       text: 'Plan each runner\u2019s weekly mileage on the workout screen, or leave it on auto. More miles build fitness, but every runner has a limit before fatigue and injuries catch up.'
-    },
-    {
-      date: 'Nov 12, 2026',
-      text: 'NESCAC schools race on their real home courses, from Middlebury\u2019s golf course to Trinity\u2019s Green Monster Hill. Wheaton and North Central share St. James Farm with Chicago.'
     }
   ];
 

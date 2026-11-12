@@ -137,6 +137,36 @@
   U.rgbToHex = ({ r, g, b }) =>
     '#' + [r, g, b].map((v) => Math.round(U.clamp(v, 0, 255)).toString(16).padStart(2, '0')).join('').toUpperCase();
 
+  // The everyday name of a team color ("Red", "Navy", "Gold"...), for race
+  // names like "Red Race". The school colors in the data are approximate.
+  U.colorName = function (hex) {
+    const { r: R, g: G, b: B } = U.hexToRgb(hex);
+    const r = R / 255;
+    const g = G / 255;
+    const b = B / 255;
+    const max = Math.max(r, g, b);
+    const min = Math.min(r, g, b);
+    const l = (max + min) / 2;
+    const d = max - min;
+    const s = d === 0 ? 0 : d / (1 - Math.abs(2 * l - 1));
+    let h = 0;
+    if (d) {
+      h = max === r ? ((g - b) / d) % 6 : max === g ? (b - r) / d + 2 : (r - g) / d + 4;
+      h = (h * 60 + 360) % 360;
+    }
+    if (l >= 0.93) return 'White';
+    if (l <= 0.13 || (l <= 0.2 && s < 0.3)) return 'Black';
+    if (s < 0.15) return l >= 0.6 ? 'Silver' : 'Gray';
+    if (h < 12 || h >= 340) return l < 0.34 ? 'Maroon' : 'Red';
+    if (h < 40) return l < 0.3 ? 'Brown' : 'Orange';
+    if (h < 65) return 'Gold';
+    if (h < 165) return 'Green';
+    if (h < 195) return 'Teal';
+    if (h < 255) return l < 0.3 ? 'Navy' : l > 0.6 ? 'Light Blue' : 'Blue';
+    if (h < 300) return 'Purple';
+    return l < 0.35 ? 'Maroon' : 'Red';
+  };
+
   U.luminance = function (hex) {
     const { r, g, b } = U.hexToRgb(hex);
     const lin = (c) => {

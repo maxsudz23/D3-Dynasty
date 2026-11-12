@@ -21,6 +21,15 @@
     return notes;
   }
 
+  // Who runs the JV race: healthy runners outside the top seven.
+  function jvNote(state, meet, sq) {
+    const jv = S.jvRunners(state, sq);
+    const name = S.raceNames(state, meet).jv;
+    return h('p', { class: 'muted' }, jv.length
+      ? `${name} (JV): ${jv.length} runner${jv.length === 1 ? '' : 's'} outside your top seven will race.`
+      : `${name} (JV): no healthy runners outside your top seven, so you won\u2019t have a JV team.`);
+  }
+
   function hillNote(course, layout) {
     if (layout.climbPerKm >= 9) return `${course.note} Strong climbers gain real ground here.`;
     if (layout.climbPerKm < 3) return `${course.note} Barely a hill on it.`;
@@ -65,7 +74,8 @@
           h('span', null, meet.date),
           h('span', null, `Hosted by ${meet.host.short}`),
           h('span', null, meet.course.name),
-          h('span', null, distances)));
+          h('span', null, distances),
+          S.hasJV(meet) ? h('span', null, `${S.raceNames(state, meet).varsity} and ${S.raceNames(state, meet).jv} (JV)`) : null));
 
       const course = R.COURSES[meet.course.type];
       const layout = XC.course.layoutFor(meet.course);
@@ -180,6 +190,7 @@
           !entry.scored ? h('p', { class: 'notice' }, squad.natQual.reason) : null,
           runners.length < 5 && entry.scored ? h('p', { class: 'notice notice--warn' }, 'Fewer than five healthy runners. The team can’t post a score.') : null,
           list,
+          S.hasJV(meet) && entry.scored ? jvNote(state, meet, sq) : null,
           injured.length ? h('p', { class: 'muted' }, `Injured: ${injured.map((a) => `${A.fullName(a)} (out ${a.injury})`).join(', ')}`) : null,
           this.strategyPicker(sq),
           this.runnerPlans(sq, runners));
@@ -323,6 +334,7 @@
       this.params = params;
       this.meet = state.schedule[params.meetIndex];
       if (!this.meet || !this.meet.done) return XC.go('hub');
+      this.view = 'varsity';
       this.draw();
       if (params.fresh) this.celebrate();
     },
@@ -338,18 +350,32 @@
       const meet = this.meet;
       const state = XC.state;
       const sq = XC.activeSquad;
-      const res = meet.results[sq];
+      // Invitationals with a JV race toggle between the two.
+      const jvRes = meet.jv && meet.jv[sq];
+      const names = jvRes ? S.raceNames(state, meet) : null;
+      const isJV = !!(jvRes && this.view === 'jv');
+      const res = isJV ? jvRes : meet.results[sq];
       U.clear(root);
       if (!res) {
         root.appendChild(h('p', { class: 'empty' }, 'No results for this squad.'));
         return;
       }
+      if (jvRes) {
+        const tab = (key, label) => h('button', {
+          type: 'button', class: 'race-toggle__btn', 'aria-pressed': String((key === 'jv') === isJV), 'data-nav': '',
+          on: { click: () => { this.view = key; XC.audio.nav(); this.draw(); } }
+        }, label);
+        root.appendChild(h('div', { class: 'race-toggle', role: 'group', 'aria-label': 'Race' },
+          tab('varsity', `${names.varsity} (varsity)`),
+          tab('jv', `${names.jv} (JV)`)));
+      }
+      const teamWord = isJV ? `${S.squadLabel(sq)} JV` : `${S.squadLabel(sq)} team`;
 
       let placeText;
       let line;
       if (res.userPlace) {
         placeText = U.ordinal(res.userPlace);
-        line = `${S.squadLabel(sq)} team finished ${U.ordinal(res.userPlace)} of ${res.nTeams} with ${res.userScore} points.`;
+        line = `${teamWord} finished ${U.ordinal(res.userPlace)} of ${res.nTeams} with ${res.userScore} points.`;
       } else if (res.individualsOnly) {
         const best = res.individuals.find((i) => i.isUser);
         placeText = best ? U.ordinal(best.place) : '—';
@@ -370,8 +396,10 @@
         h('p', { class: 'results-hero__place' }, placeText),
         h('div', null,
           h('p', { class: 'results-hero__line' }, line),
-          h('p', { class: 'results-hero__sub' }, `${meet.name}. ${sub}`)),
-        h('div', { class: 'results-hero__rep' }, h('strong', null, ui.delta(res.repDelta)), h('span', null, 'Rep'))));
+          h('p', { class: 'results-hero__sub' }, `${isJV ? `${names.jv}, ` : names ? `${names.varsity}, ` : ''}${meet.name}. ${sub}`)),
+        isJV
+          ? h('div', { class: 'results-hero__rep' }, h('strong', null, '—'), h('span', null, 'No rep'))
+          : h('div', { class: 'results-hero__rep' }, h('strong', null, ui.delta(res.repDelta)), h('span', null, 'Rep'))));
 
       // Team standings
       const teamTable = h('div', { class: 'table-wrap' }, h('table', { class: 'grid grid--dense' },
@@ -407,7 +435,7 @@
       res.aa.forEach((n) => notes.push(['good', `${n} earns All-American honors.`]));
       res.injuries.forEach((inj) => notes.push(['bad', `${inj.name} picked up an injury and will miss ${inj.out} meet${inj.out > 1 ? 's' : ''}.`]));
       res.dnfs.forEach((n) => notes.push(['bad', `${n} did not finish.`]));
-      if (meet.type === 'regional' && state.squads[sq].natQual) notes.push([state.squads[sq].natQual.team ? 'good' : 'bad', state.squads[sq].natQual.reason]);
+      if (!isJV && meet.type === 'regional' && state.squads[sq].natQual) notes.push([state.squads[sq].natQual.team ? 'good' : 'bad', state.squads[sq].natQual.reason]);
       if (!notes.length) notes.push(['', 'No injuries, no surprises. On to the next one.']);
 
       const isFinal = meet.type === 'national' && state.phase === 'recap';
@@ -416,7 +444,7 @@
         h('div', { class: 'stack' },
           ui.panel('Team scores', teamTable, { aside: `${res.nTeams} teams` }),
           ui.panel('Meet notes', h('ul', { class: 'notes' }, notes.map(([k, t]) => h('li', { class: k ? `note--${k}` : '' }, t))))),
-        ui.panel('Individual results', indivTable, { aside: `${S.squadLabel(sq)} ${R.DIST[sq].label}` })));
+        ui.panel('Individual results', indivTable, { aside: `${names ? `${isJV ? names.jv : names.varsity}, ` : ''}${S.squadLabel(sq)} ${R.DIST[sq].label}` })));
 
       root.appendChild(h('div', { class: 'actions actions--end' },
         fromSchedule
