@@ -26,6 +26,8 @@
         ['Caleb', 'Brox', 3, 'Princeton, NJ', '26:10.0'],
         ['Dominic', 'Buckman', 2, 'Webster Groves, MO', '26:45.4'],
         ['Brayden', 'Bunt', 1, 'Charleston, SC', '25:05.9'],
+        // 8K PR from TFRRS (Oct 2023); speed from his track PRs (see ratings).
+        ['Calvin', 'Crossland', 4, 'Park City, UT', '27:02.9'],
         ['Brody', 'Cushing', 1, 'Mount Prospect, IL', '25:51.1'],
         ['Grey', 'Donner', 1, 'Alpharetta, GA', '27:02.8'],
         ['Paul', 'Fleck', 2, 'Baldwin, NY', '27:06.7'],
@@ -64,7 +66,10 @@
       ratings: {
         M: {
           'Freddie van der Velden': { spd: 85, kck: 90 },
-          'Mateo Gros-Slovinsky': { spd: 85, kck: 93 }
+          'Mateo Gros-Slovinsky': { spd: 85, kck: 93 },
+          // 1:57.40 800 / 3:59.45 1500 on TFRRS: a fast, kick-heavy runner
+          // whose 8K PR (27:02.9) still makes him a 66 overall.
+          'Calvin Crossland': { spd: 80, kck: 80, end: 52 }
         }
       },
       // Roster headshots from washubears.com, hosted here. Runners without
@@ -75,6 +80,7 @@
         'Caleb Brox': 'img/roster/washu/m/caleb-brox.webp',
         'Dominic Buckman': 'img/roster/washu/m/dominic-buckman.webp',
         'Brayden Bunt': 'img/roster/washu/m/brayden-bunt.webp',
+        'Calvin Crossland': 'img/roster/washu/m/calvin-crossland.webp',
         'Brody Cushing': 'img/roster/washu/m/brody-cushing.webp',
         'Grey Donner': 'img/roster/washu/m/grey-donner.webp',
         'Paul Fleck': 'img/roster/washu/m/paul-fleck.webp',

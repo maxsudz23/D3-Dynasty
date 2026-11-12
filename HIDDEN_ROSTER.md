@@ -4,11 +4,10 @@ These WashU runners are on the real 2026 roster but aren't in the game. At the t
 
 This file isn't served on the site (`.assetsignore` skips `*.md`).
 
-## Men (3)
+## Men (2)
 
 | Name | Year | Hometown | 2026 season best | Row for `rosters.js` |
 |---|---|---|---|---|
-| Calvin Crossland | Senior | Park City, UT | 27:44.8 | `['Calvin', 'Crossland', 4, 'Park City, UT', '27:44.8'],` |
 | Kaleb McElfish | Senior | Rancho Santa Margarita, CA | 27:03.1 | `['Kaleb', 'McElfish', 4, 'Rancho Santa Margarita, CA', '27:03.1'],` |
 | Jackson Proffitt | First-year | Lexington, KY | no mark | `['Jackson', 'Proffitt', 1, 'Lexington, KY', null],` |
 
