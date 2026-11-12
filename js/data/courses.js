@@ -436,7 +436,7 @@
       'Very spectator friendly: most of the loop is visible from the central fields'
     ],
     confidence: 'medium',
-    notes: 'Wheaton (IL)\'s home course: its Gil Dodds Invitational is held here every year. UChicago hosted the 2026 UAA Championships here, about 30 miles from campus; it hosted no other meet in 2022–2026. Also a CCIW championship course. Traced from the 2012 CCIW men\'s map, which shows the same loop as the 2026 UAA map; the direction and lap counts are read from its lap colors and mile markers, not published.',
+    notes: 'Home course for Wheaton (IL), whose Gil Dodds Invitational is held here every year, and North Central, which hosted the CCIW Championships here. UChicago hosted the 2026 UAA Championships here, about 30 miles from campus; it hosted no other meet in 2022–2026. Also a CCIW championship course. Traced from the 2012 CCIW men\'s map, which shows the same loop as the 2026 UAA map; the direction and lap counts are read from its lap colors and mile markers, not published.',
     sources: [
       'https://athletics.uchicago.edu/sports/2026/8/6/cross-country-2027-uaa-championships.aspx',
       'https://athletics.uchicago.edu/news/2026/10/31/-18-mens-cross-country-claims-third-place-finish-at-uaa-championships.aspx',
@@ -484,6 +484,7 @@
     washu: 'siue',
     uchicago: 'st-james-farm',
     wheatonil: 'st-james-farm',
+    northcentral: 'st-james-farm',
     case: 'squire-valleevue-farm',
     rochester: 'genesee-valley-park',
     cmu: 'youthtowne-fields',

@@ -58,7 +58,7 @@ A phone-style inbox screen (`XC.screens.texts`) where runners message the coach 
 - **Wiring:** `S.venueFor`, new games and `S.migrate` use a school's real course. An old save moves onto it from the next season's schedule, unless `homeCourse.custom` is set.
 - **UI:** the meet preview map and the race canvas draw every leg, separate starts and finishes, and arrows in running direction. The preview gives each race's route its own row.
 
-**Courses traced:** Wheaton (IL) also hosts on St. James Farm (its Gil Dodds Invitational), so it shares Chicago's course.
+**Courses traced:** Wheaton (IL) and North Central also host on St. James Farm (Wheaton's Gil Dodds Invitational; North Central's CCIW Championships), so they share Chicago's course.
 
 | School | Course | Confidence | Source map | M/W length vs 8K/6K |
 |---|---|---|---|---|
