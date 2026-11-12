@@ -232,9 +232,7 @@
       const warn = h('p', { class: 'notice notice--warn' });
 
       const tagFor = (plan, packSize) => {
-        if (plan === 'pack') return packSize >= 2 ? `pack of ${packSize}, steadier` : 'no pack to run with';
-        if (plan === 'hard') return 'riskier';
-        if (plan === 'neg') return 'steadier';
+        if (plan === 'pack') return packSize >= 2 ? `pack of ${packSize}` : 'no pack to run with';
         if (plan === 'hills') return 'more fatigue';
         if (plan === 'easy') return 'less fatigue and injury risk';
         return '';
