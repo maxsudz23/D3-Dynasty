@@ -46,22 +46,67 @@
     return (heat + cold + rain + wind) * km * (1.25 - (dur / 100) * 0.5);
   };
 
+  // Individual plans for the user's starting seven. 'team' follows the
+  // team's pace plan; the rest override it for that runner.
+  R.PLANS = {
+    team: { label: 'Team plan', short: 'Team', note: 'Race the team’s pace plan.' },
+    hard: { label: 'Go out hard', short: 'Hard', note: 'Grab position early. Strong endurance pays; others fade.' },
+    even: { label: 'Even pace', short: 'Even', note: 'Run within yourself. Steady and predictable.' },
+    neg: { label: 'Negative split', short: 'Neg split', note: 'Start controlled and reel runners in. Rewards kick and race IQ.' },
+    pack: { label: 'Pack up', short: 'Pack', note: 'Run with the other pack runners. The pack pulls its back end up and holds its front back, and evens out bad days. Needs at least two.' },
+    kick: { label: 'Sit and kick', short: 'Kick', note: 'Stay tucked in, then everything in the last kilometer. Great with a big kick, costly without one.' },
+    hills: { label: 'Attack the hills', short: 'Hills', note: 'Push every climb. Pays on hilly courses, wasted on flat ones, and adds fatigue.' },
+    easy: { label: 'Hold back', short: 'Hold back', note: 'A controlled effort: slower, but much less fatigue and injury risk. For tired or returning runners.' }
+  };
+
+  // How each plan changes fatigue and injury risk from the race.
+  R.PLAN_COST = {
+    hills: { fatigue: 1.3, injury: 1.15 },
+    hard: { fatigue: 1.1, injury: 1 },
+    easy: { fatigue: 0.55, injury: 0.5 }
+  };
+
   const PROFILES = {
     hard: [0.236, 0.247, 0.255, 0.262],
     even: [0.248, 0.25, 0.252, 0.25],
-    neg: [0.256, 0.252, 0.248, 0.244]
+    neg: [0.256, 0.252, 0.248, 0.244],
+    kick: [0.257, 0.256, 0.252, 0.235],
+    pack: [0.249, 0.25, 0.251, 0.25],
+    hills: [0.246, 0.251, 0.253, 0.25],
+    easy: [0.249, 0.25, 0.251, 0.25]
   };
 
-  function runRunner(runner, strategy, ctx, rng) {
+  const hillWeightOf = (ctx) => (typeof ctx.climbPerKm === 'number'
+    ? U.clamp(ctx.climbPerKm / 32, 0.03, 0.5)
+    : { hilly: 0.4, rolling: 0.1 }[ctx.course] || 0);
+
+  // What a plan does to a runner's effective rating before race-day luck,
+  // and how much it widens or narrows that luck. Pack effects come later,
+  // since they depend on the other pack runners.
+  R.planEffect = function (runner, plan, ctx) {
+    const s = runner.stats;
+    switch (plan) {
+      case 'hard': return { eff: (s.end - 75) * 0.18, sd: 1.45 };
+      case 'neg': return { eff: (s.kck - 72) * 0.12 + (s.iq - 72) * 0.06, sd: 0.85 };
+      case 'kick': return { eff: (s.kck - 74) * 0.22 + (s.iq - 72) * 0.04, sd: 0.95 };
+      case 'hills': {
+        const climb = typeof ctx.climbPerKm === 'number' ? ctx.climbPerKm : 6;
+        return { eff: (s.hil - 72) * hillWeightOf(ctx) * 0.5 + (s.end - 72) * 0.03 - (climb < 4 ? 0.6 : 0), sd: 1.05 };
+      }
+      case 'easy': return { eff: -3 + (s.iq - 72) * 0.04, sd: 0.8 };
+      case 'pack':
+      case 'even':
+      default: return { eff: (s.iq - 72) * 0.04, sd: 1 };
+    }
+  };
+
+  // Rating on this course and day, before any plan.
+  function baseEff(runner, ctx) {
     const s = runner.stats;
     const ovr = runner.ovr;
     let eff = ovr;
-
     // Hill rating counts in proportion to the course's actual climbing.
-    const hillWeight = typeof ctx.climbPerKm === 'number'
-      ? U.clamp(ctx.climbPerKm / 32, 0.03, 0.5)
-      : { hilly: 0.4, rolling: 0.1 }[ctx.course] || 0;
-    eff += (s.hil - ovr) * hillWeight;
+    eff += (s.hil - ovr) * hillWeightOf(ctx);
     switch (ctx.course) {
       case 'flat': eff += (s.spd - ovr) * 0.3; break;
       case 'rolling': eff += (s.end - ovr) * 0.2; break;
@@ -71,19 +116,46 @@
     // Training: sharpness helps, accumulated fatigue hurts.
     eff += (runner.form || 0) - Math.max(0, (runner.fatigue || 0) - 20) * 0.12;
     if (ctx.weather && ctx.weather.soft) eff += ((s.dur + s.mnt) / 2 - ovr) * 0.15;
+    return eff;
+  }
 
-    let sd = 1.4 + ((100 - s.mnt) / 100) * 4.2;
-    if (strategy === 'hard') {
-      eff += (s.end - 75) * 0.18;
-      sd *= 1.45;
-    } else if (strategy === 'neg') {
-      eff += (s.kck - 72) * 0.12 + (s.iq - 72) * 0.06;
-      sd *= 0.85;
-    } else {
-      eff += (s.iq - 72) * 0.04;
+  // Pack running: members' ratings pull toward the pack's average, the
+  // tighter the pack the bigger the lift, and they share much of their
+  // race-day luck. One runner alone has no pack and just runs even.
+  R.PACK = { pull: 0.3, lift: 1.8, liftPerPoint: 0.12, shared: 0.6 };
+  R.packAdjust = function (effs) {
+    if (effs.length < 2) return effs.map(() => 0);
+    const mean = U.avg(effs);
+    const spread = Math.max(...effs) - Math.min(...effs);
+    const lift = Math.max(0, R.PACK.lift - spread * R.PACK.liftPerPoint);
+    return effs.map((e) => (mean - e) * R.PACK.pull + lift);
+  };
+
+  // Expected change in effective rating from a plan compared with even
+  // pace, for the meet preview. packRunners: everyone on 'pack', this
+  // runner included.
+  R.planEdge = function (runner, plan, ctx, packRunners = []) {
+    const even = R.planEffect(runner, 'even', ctx).eff;
+    let eff = R.planEffect(runner, plan, ctx).eff;
+    if (plan === 'pack' && packRunners.length >= 2) {
+      const effs = packRunners.map((r) => baseEff(r, ctx) + R.planEffect(r, 'pack', ctx).eff);
+      eff += R.packAdjust(effs)[packRunners.indexOf(runner)] || 0;
     }
-    eff += U.gauss(0, sd, rng);
-    const badDay = rng() < 0.035 * (1.4 - s.mnt / 100);
+    return eff - even;
+  };
+  R.baseEff = baseEff;
+
+  function runRunner(runner, strategy, ctx, rng, pre) {
+    const s = runner.stats;
+    let eff = pre ? pre.eff : baseEff(runner, ctx) + R.planEffect(runner, strategy, ctx).eff;
+    let sd = (1.4 + ((100 - s.mnt) / 100) * 4.2) * (pre ? pre.sd : R.planEffect(runner, strategy, ctx).sd);
+    if (pre && pre.shared !== undefined) {
+      // Pack runners share part of their luck, so they race together.
+      eff += pre.shared * sd * R.PACK.shared + U.gauss(0, sd * Math.sqrt(1 - R.PACK.shared ** 2), rng);
+    } else {
+      eff += U.gauss(0, sd, rng);
+    }
+    const badDay = rng() < 0.035 * (1.4 - s.mnt / 100) * (pre && pre.shared !== undefined ? 0.6 : 1);
     if (badDay) eff -= U.randFloat(5, 12, rng);
 
     const km = ctx.meters / 1000;
@@ -91,12 +163,13 @@
     const dnf = rng() < 0.003 + ((100 - s.dur) / 100) * 0.008;
 
     // Pace profile drives the animation and splits.
-    const profile = PROFILES[strategy].slice();
+    const profile = (PROFILES[strategy] || PROFILES.even).slice();
     const kickShift = ((s.kck - 70) / 100) * 0.012;
     profile[3] -= kickShift;
     profile[0] += kickShift * 0.5;
     profile[1] += kickShift * 0.5;
-    for (let i = 0; i < 4; i++) profile[i] += U.gauss(0, 0.0025, rng);
+    const wobble = pre && pre.wobble ? pre.wobble : [0, 1, 2, 3].map(() => U.gauss(0, 0.0025, rng));
+    for (let i = 0; i < 4; i++) profile[i] += wobble[i];
     const total = profile.reduce((a, b) => a + b, 0);
     let acc = 0;
     const cum = profile.map((p) => {
@@ -114,14 +187,31 @@
     };
   }
 
-  /* teams: [{ id, name, short, primary, accent, isUser, scored, strategy, runners: [athlete] }] */
+  // The plan a runner races: their own plan, or the team's pace plan.
+  R.resolvePlan = (plan, teamStrategy) => (plan && plan !== 'team' && R.PLANS[plan] ? plan : teamStrategy);
+
+  /* teams: [{ id, name, short, primary, accent, isUser, scored, strategy,
+     plans?: { [athleteId]: planKey }, runners: [athlete] }] */
   R.simulate = function ({ squad, course, climbPerKm, weather, teams, rng = Math.random }) {
     const ctx = { squad, course, climbPerKm, weather, meters: R.DIST[squad].meters };
     const entries = [];
     teams.forEach((team) => {
-      team.runners.forEach((runner) => {
-        const strategy = team.strategy || U.weightedKey({ even: 5, hard: 3, neg: 2 }, rng);
-        const out = runRunner(runner, strategy, ctx, rng);
+      const plans = team.plans || {};
+      const strategyOf = (runner) => R.resolvePlan(plans[runner.id], team.strategy || U.weightedKey({ even: 5, hard: 3, neg: 2 }, rng));
+      const chosen = team.runners.map((runner) => ({ runner, strategy: strategyOf(runner) }));
+      // Pack runners are set up together: pulled toward the pack's
+      // average, sharing luck and pace wobble.
+      const pack = chosen.filter((c) => c.strategy === 'pack');
+      const pre = new Map();
+      if (pack.length >= 2) {
+        const effs = pack.map((c) => baseEff(c.runner, ctx) + R.planEffect(c.runner, 'pack', ctx).eff);
+        const adj = R.packAdjust(effs);
+        const shared = U.gauss(0, 1, rng);
+        const wobble = [0, 1, 2, 3].map(() => U.gauss(0, 0.0025, rng));
+        pack.forEach((c, i) => pre.set(c.runner.id, { eff: effs[i] + adj[i], sd: 0.8, shared, wobble }));
+      }
+      chosen.forEach(({ runner, strategy }) => {
+        const out = runRunner(runner, strategy, ctx, rng, pre.get(runner.id));
         entries.push(Object.assign({ runner, teamId: team.id, strategy }, out));
       });
     });

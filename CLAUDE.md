@@ -38,7 +38,7 @@ D3 Dynasty is a Division III cross country coaching game in plain HTML, CSS and 
 - **Legend items:** `{ key, label, action, keyboardOnly? }`. Set `keyboardOnly: true` on items that repeat an on-screen control (squad tabs, the sound toggle, "Enter: select focused"), so touch screens hide them.
 - **Guard actions in the function itself:** keyboard shortcuts and legend buttons call screen methods directly and skip the disabled buttons, so every action must check its own preconditions. The wheel freeze came from this.
 - **State:** `XC.state` is saved to localStorage key `d3dynasty.save.v1` (version 1; the pre-rename key `harriers27.dynasty.v1` is still read as a fallback). `XC.live` holds values that aren't saved, such as the latest race sims used for the animation.
-  - `S.migrate(state)` runs on every load and fills in fields older saves lack: `homeCourse`, `training`, and athlete `fatigue`/`form`.
+  - `S.migrate(state)` runs on every load and fills in fields older saves lack: `homeCourse`, `training`, `squad.plans` (also pruned of runners who left), and athlete `fatigue`/`form`.
   - New saved fields must be added there.
 - **Phases:** `preseason` (recruiting wheel) → `season` (`meetIndex` 0–5, each meet preceded by a workout day in `state.training`) → `recap` → `graduation` → `progression` → `cut` → `S.startNewSeason` → `preseason`. `S.runMeet` saves results before the race animation plays, so reloading can't reroll a race.
 
@@ -56,6 +56,23 @@ D3 Dynasty is a Division III cross country coaching game in plain HTML, CSS and 
   - Rival runners race at form +1, so a coach who never trains falls behind.
   - The hill rating's weight is `clamp(climbPerKm / 32, 0.03, 0.5)`, from the actual course. Flat, rolling and mud keep their SPD, END and DUR/MNT bonuses.
 - **Race injury risk:** `(0.008 + (100 − DUR)/100 × 0.035) × (0.7 + (fatigue/40)²)`. Each race adds `12 + (100 − DUR) × 0.06` fatigue.
+- **Race plans (`race.js`, meet preview):** the team plan (`squad.strategy`: hard, even or neg) applies to everyone. Any of the starting seven can get their own plan in `squad.plans[athleteId]`. A missing entry or `'team'` means they follow the team plan. Opponents only use team plans.
+  - **Plans** (`R.PLANS`, effects in `R.planEffect`):
+    - hard: `(END−75)×0.18`, with luck ×1.45.
+    - even: `(IQ−72)×0.04`.
+    - neg: `(KCK−72)×0.12 + (IQ−72)×0.06`, with luck ×0.85.
+    - kick: `(KCK−74)×0.22 + (IQ−72)×0.04`.
+    - hills: `(HIL−72) × hill weight × 0.5 + (END−72)×0.03`, minus 0.6 below 4 m/km of climb.
+    - easy (hold back): −3.
+  - **Pack** (`R.PACK`, `R.packAdjust`): with two or more pack runners, each one's rating moves 30% toward the pack average and gains `max(0, 1.8 − 0.12 × spread)`, where spread is the pack's rating range. Pack runners also share 60% of their race-day luck and their pace wobble, cut luck to ×0.8, and have a 40% lower bad-day chance. A lone pack runner runs even.
+  - **Race costs** (`R.PLAN_COST`): hills give fatigue ×1.3 and injury ×1.15, hard gives fatigue ×1.1, and easy gives fatigue ×0.55 and injury ×0.5. `applyToRoster` applies these through `T.afterRace(a, mult)`.
+  - **Preview:** each runner's row shows `R.planEdge`, the expected rating change against even pace on this course, pack included.
+  - **Balance** (3,000 races per setup, 14 teams, flat, rolling and hilly):
+    - The best plan per runner beat any single team plan by 0.6–1.5 team places.
+    - A tight pack of three beat even pace, and packing all seven lost.
+    - Hills won on hilly courses and lost on flat ones.
+    - Holding back everyone cost about 3 places.
+    - Re-run this after changing plan numbers.
 - **Race view:** before the gun the live panel shows "Scores post after the gun" and lists your runners in lineup order. The race is simulated before the animation, so sorting tied runners at the start line would leak the final order.
 
 ## Courses (`course.js`)

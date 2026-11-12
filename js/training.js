@@ -695,8 +695,9 @@
     }
   };
 
-  T.afterRace = function (a) {
-    a.fatigue = U.round(Math.min(100, T.fatigueOf(a) + T.raceFatigue(a)), 1);
+  // mult scales the race's fatigue (an individual plan like holding back).
+  T.afterRace = function (a, mult = 1) {
+    a.fatigue = U.round(Math.min(100, T.fatigueOf(a) + T.raceFatigue(a) * mult), 1);
   };
 
   XC.training = T;

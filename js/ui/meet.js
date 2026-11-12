@@ -181,7 +181,8 @@
           runners.length < 5 && entry.scored ? h('p', { class: 'notice notice--warn' }, 'Fewer than five healthy runners. The team can’t post a score.') : null,
           list,
           injured.length ? h('p', { class: 'muted' }, `Injured: ${injured.map((a) => `${A.fullName(a)} (out ${a.injury})`).join(', ')}`) : null,
-          this.strategyPicker(sq));
+          this.strategyPicker(sq),
+          this.runnerPlans(sq, runners));
       }
       area.appendChild(ui.panel(`${S.squadLabel(sq)} lineup`, lineupBody, { aside: entry ? `Team OVR ${userOvr}` : '' }));
 
@@ -194,18 +195,102 @@
     strategyPicker(sq) {
       const squad = XC.state.squads[sq];
       return h('fieldset', { class: 'strategy' },
-        h('legend', null, 'Race plan'),
+        h('legend', null, 'Team race plan'),
         Object.entries(R.STRATEGIES).map(([key, s]) => {
           const input = h('input', { type: 'radio', name: `strategy-${sq}`, value: key, checked: squad.strategy === key });
           input.addEventListener('change', () => {
             squad.strategy = key;
             XC.audio.nav();
             XC.save();
+            // Runners on the team plan now race this one.
+            if (this.drawPlans) this.drawPlans();
           });
           return h('label', { class: 'strategy__option' }, input,
             h('span', { class: 'strategy__label' }, s.label),
             h('span', { class: 'strategy__note' }, s.note));
         }));
+    },
+
+    // Individual plans for the starting seven. Each runner follows the team
+    // plan unless given one of their own; the edge column shows what the
+    // plan should do for them on this course.
+    runnerPlans(sq, runners) {
+      const state = XC.state;
+      const squad = state.squads[sq];
+      const meet = this.meet;
+      if (!squad.plans) squad.plans = {};
+      const layout = XC.course.layoutFor(meet.course);
+      const ctx = { squad: sq, course: meet.course.type, climbPerKm: layout.climbPerKm, weather: meet.weather, meters: R.DIST[sq].meters };
+      const planOf = (a) => R.resolvePlan(squad.plans[a.id], squad.strategy);
+      const list = h('div', { class: 'runner-plans__list' });
+      const reset = ui.button('Put everyone on the team plan', () => {
+        runners.forEach((a) => { delete squad.plans[a.id]; });
+        XC.audio.nav();
+        XC.save();
+        draw();
+      }, { variant: 'ghost', size: 'small' });
+      const warn = h('p', { class: 'notice notice--warn' });
+
+      const tagFor = (plan, packSize) => {
+        if (plan === 'pack') return packSize >= 2 ? `pack of ${packSize}, steadier` : 'no pack to run with';
+        if (plan === 'hard') return 'riskier';
+        if (plan === 'neg') return 'steadier';
+        if (plan === 'hills') return 'more fatigue';
+        if (plan === 'easy') return 'less fatigue and injury risk';
+        return '';
+      };
+
+      const draw = () => {
+        U.clear(list);
+        const pack = runners.filter((a) => planOf(a) === 'pack');
+        runners.forEach((a, i) => {
+          const own = squad.plans[a.id] || 'team';
+          const plan = planOf(a);
+          const select = h('select', { class: 'select', id: `plan-${sq}-${a.id}`, 'aria-label': `Race plan for ${A.fullName(a)}` },
+            Object.entries(R.PLANS).map(([key, p]) => h('option', { value: key, selected: key === own },
+              key === 'team' ? `Team (${R.PLANS[squad.strategy].short})` : p.label)));
+          select.addEventListener('change', () => {
+            if (select.value === 'team') delete squad.plans[a.id];
+            else squad.plans[a.id] = select.value;
+            XC.audio.nav();
+            XC.save();
+            draw();
+            const again = document.getElementById(select.id);
+            if (again) again.focus();
+          });
+          const st = a.stats;
+          const edge = R.planEdge(a, plan, ctx, pack);
+          const tag = tagFor(plan, pack.length);
+          list.appendChild(h('div', { class: `runner-plan${own === 'team' ? '' : ' runner-plan--own'}` },
+            h('div', { class: 'runner-plan__who' },
+              h('p', { class: 'runner-plan__name' }, `${i + 1}. ${A.fullName(a)}`),
+              h('p', { class: 'runner-plan__meta' },
+                h('span', null, `OVR ${a.ovr}`), h('span', null, `END ${st.end}`), h('span', null, `KCK ${st.kck}`),
+                h('span', null, `HIL ${st.hil}`), h('span', null, `IQ ${st.iq}`), h('span', null, `Fatigue ${Math.round(a.fatigue || 0)}`))),
+            select,
+            h('p', { class: 'runner-plan__edge' },
+              ui.delta(edge),
+              h('span', { class: 'runner-plan__tag' }, tag || 'expected vs even pace'))));
+        });
+        const lone = pack.length === 1;
+        warn.hidden = !lone;
+        warn.textContent = lone ? `${A.shortName(pack[0])} is the only runner set to Pack up and will run even pace. Put at least one more runner in the pack.` : '';
+        reset.hidden = !runners.some((a) => squad.plans[a.id]);
+      };
+      this.drawPlans = draw;
+      draw();
+
+      return h('section', { class: 'runner-plans', 'aria-label': 'Individual race plans' },
+        h('div', { class: 'runner-plans__head' },
+          h('h3', { class: 'runner-plans__title' }, 'Individual plans'),
+          reset),
+        h('p', { class: 'muted' }, 'Give any of your seven their own plan. The number is the expected change in their race-day rating compared with even pace on this course. Luck still swings every race.'),
+        warn,
+        list,
+        h('details', { class: 'runner-plans__help' },
+          h('summary', null, 'What each plan does'),
+          h('dl', { class: 'info-list' }, Object.entries(R.PLANS).filter(([key]) => key !== 'team').flatMap(([, p]) => [
+            h('dt', null, p.label), h('dd', null, p.note)]))));
     },
 
     start() {

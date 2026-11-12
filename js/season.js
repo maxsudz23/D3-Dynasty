@@ -99,6 +99,7 @@
       state.squads[sq] = {
         roster: startingRoster(sq, people[sq] || [], school),
         strategy: 'even',
+        plans: {},
         inviteWins: 0,
         natQual: null
       };
@@ -326,7 +327,7 @@
   S.userEntry = function (state, meet, sq) {
     const squad = state.squads[sq];
     const school = state.school;
-    const base = { id: 'user', name: school.name, short: school.short, primary: school.primary, accent: school.accent, isUser: true, strategy: squad.strategy };
+    const base = { id: 'user', name: school.name, short: school.short, primary: school.primary, accent: school.accent, isUser: true, strategy: squad.strategy, plans: squad.plans || {} };
     if (meet.type === 'national') {
       const qual = squad.natQual;
       if (!qual || !qual.team) {
@@ -414,9 +415,11 @@
   function applyToRoster(state, meet, sq, sim, summary) {
     const squad = state.squads[sq];
     const raced = new Set();
+    const planOf = {};
     sim.all.filter((e) => e.teamId === 'user').forEach((e) => {
       const a = e.runner;
       raced.add(a.id);
+      planOf[a.id] = e.strategy;
       a.career.races += 1;
       if (e.dnf) return;
       const row = summary.individuals.find((r) => r.athleteId === a.id);
@@ -442,8 +445,11 @@
     });
     squad.roster.forEach((a) => {
       if (!raced.has(a.id)) return;
-      const risk = XC.training.raceInjuryRisk(a);
-      XC.training.afterRace(a);
+      // Individual plans change what the race costs: holding back spares
+      // the legs, attacking hills doesn't.
+      const cost = R.PLAN_COST[planOf[a.id]] || { fatigue: 1, injury: 1 };
+      const risk = XC.training.raceInjuryRisk(a) * cost.injury;
+      XC.training.afterRace(a, cost.fatigue);
       if (meet.type !== 'national' && Math.random() < risk) {
         a.injury = U.randInt(1, 3);
         summary.injuries.push({ name: A.fullName(a), out: a.injury });
@@ -712,7 +718,11 @@
     const real = realVenue(state.school.id);
     if (real && state.homeCourse.courseId !== real.courseId && !state.homeCourse.custom) state.homeCourse = real;
     state.programs.forEach((sq) => {
-      state.squads[sq].roster.forEach((a) => {
+      const squad = state.squads[sq];
+      // Individual race plans, keyed by athlete. Drop runners who left.
+      const ids = new Set(squad.roster.map((a) => a.id));
+      squad.plans = Object.fromEntries(Object.entries(squad.plans || {}).filter(([id, plan]) => ids.has(id) && R.PLANS[plan]));
+      squad.roster.forEach((a) => {
         if (typeof a.fatigue !== 'number') a.fatigue = 10;
         if (typeof a.form !== 'number') a.form = 0;
       });

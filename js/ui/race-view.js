@@ -555,7 +555,7 @@
         const mine = this.teams.user ? this.teams.user.runners : [];
         if (!mine.length) this.userList.appendChild(h('li', null, h('span'), h('span', null, 'No runners in this race'), h('span')));
         mine.forEach((a) => this.userList.appendChild(h('li', null,
-          h('span', { class: 'pos' }, '—'), h('span', null, A.shortName(a)), h('span'))));
+          h('span', { class: 'pos' }, '—'), h('span', null, A.shortName(a), this.planTag(a)), h('span'))));
         return;
       }
       const ord = this.order();
@@ -582,9 +582,17 @@
         const status = o.e.dnf && o.p >= o.e.dnfAt ? 'DNF' : o.done ? U.formatTime(o.e.time) : this.phase === 'marks' ? '' : `${Math.round(o.p * 100)}%`;
         this.userList.appendChild(h('li', null,
           h('span', { class: 'pos' }, o.e.dnf && o.p >= o.e.dnfAt ? '—' : String(o.pos)),
-          h('span', null, A.shortName(o.e.runner)),
+          h('span', null, A.shortName(o.e.runner), this.planTag(o.e.runner)),
           h('span', null, status)));
       });
+    },
+
+    // A runner's own race plan, when it differs from the team's.
+    planTag(a) {
+      const team = this.teams.user;
+      const own = team && team.plans && team.plans[a.id];
+      if (!own || own === 'team' || !R.PLANS[own]) return null;
+      return h('span', { class: 'race__plan' }, R.PLANS[own].short);
     },
 
     legend() {
