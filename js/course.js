@@ -510,7 +510,15 @@
     legDefs.forEach(([id, l]) => {
       const raw = l.pts.map(toLeg);
       const smooth = l.smooth === false ? raw : chaikin(raw, !!l.closed, 2);
-      legs[id] = makeLeg(id, resample(smooth, !!l.closed, STEP), !!l.closed);
+      let pts = resample(smooth, !!l.closed, STEP);
+      // Smoothing moves a loop's first point; start the loop at the point
+      // nearest the traced one, so fraction 0 is where the tracer put it.
+      if (l.closed) {
+        let best = 0;
+        pts.forEach((p, i) => { if (dist(p, raw[0]) < dist(pts[best], raw[0])) best = i; });
+        pts = pts.slice(best).concat(pts.slice(0, best));
+      }
+      legs[id] = makeLeg(id, pts, !!l.closed);
     });
 
     const paths = {};

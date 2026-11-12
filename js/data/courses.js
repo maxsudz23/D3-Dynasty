@@ -479,8 +479,486 @@
     }
   };
 
+  /* ---------- NESCAC ---------- */
+
+  COURSES['middlebury-golf-course'] = {
+    name: 'Middlebury College XC Course',
+    city: 'Middlebury',
+    state: 'VT',
+    type: 'rolling',
+    kind: 'loop',
+    // Estimated from the maps' elevation profile (366–474 ft, two big
+    // climbs per lap); no total is published.
+    climbPerKm: 9,
+    features: [
+      'The Red Kelly Trail around the Ralph Myhre Golf Course',
+      'Starts and finishes on the playing fields by the Athletics Complex',
+      'A ridge along the north edge of the golf course and a wooded ridge along the south',
+      'A footbridge before the woods that lead back to the fields'
+    ],
+    confidence: 'high',
+    notes: 'Home of the Aldrich Invitational; Middlebury hosts the 2026 NESCAC Championships here. Traced from Middlebury\'s 2023 men\'s 8K and 2024 women\'s 6K maps.',
+    sources: [
+      'https://athletics.middlebury.edu/facilities/cross-country-course/2',
+      'https://athletics.middlebury.edu/documents/2023/8/28/CrossCountryCourseMapMen23_2.pdf',
+      'https://athletics.middlebury.edu/documents/2024/7/30/WomenXCCourse24.pdf',
+      'https://www.middleburycampus.com/article/2014/10/xc-runners-gear-up-for-nescacs-on-home-course'
+    ],
+    trace: {
+      mapSource: 'https://athletics.middlebury.edu/documents/2023/8/28/CrossCountryCourseMapMen23_2.pdf',
+      // Pixel coordinates on the men's map rendered at 2000×1545, north up.
+      // The women's map uses the same base.
+      legs: {
+        // Down the west side of the field block and along its bottom.
+        start: { pts: [[1330, 600], [1332, 760], [1335, 945], [1420, 948], [1515, 945]] },
+        // The golf-course lap, counterclockwise from the field block's SE
+        // corner: up its east side, north past the stadium, west along the
+        // north ridge, down the west side, east along the south ridge,
+        // over the footbridge and back through the woods.
+        loop: {
+          closed: true,
+          pts: [
+            [1515, 945], [1510, 800], [1507, 700], [1505, 640], [1500, 580], [1420, 577], [1350, 575],
+            [1335, 520], [1330, 420], [1325, 320], [1300, 270], [1200, 280], [1080, 300], [1000, 270],
+            [930, 235], [800, 210], [660, 212], [560, 215], [470, 225], [400, 280], [340, 350],
+            [290, 440], [275, 520], [300, 610], [270, 680], [330, 720], [450, 768], [530, 785],
+            [570, 820], [620, 880], [680, 890], [800, 882], [900, 890], [925, 935], [1030, 935],
+            [1090, 980], [1200, 1080], [1300, 1160], [1420, 1170], [1480, 1120], [1550, 1010], [1535, 960]
+          ]
+        },
+        // Women: the lower fields by South Street.
+        lower: {
+          closed: true,
+          pts: [[1515, 945], [1600, 965], [1640, 1040], [1690, 1160], [1712, 1280], [1700, 1370],
+            [1600, 1378], [1520, 1372], [1512, 1300], [1515, 1180], [1525, 1100], [1555, 1010]]
+        },
+        // Women's finish: from the woods south past km 5 to the lower fields.
+        wbranch: { pts: [[1480, 1120], [1488, 1170], [1495, 1230], [1512, 1300]] },
+        wfinish: { pts: [[1600, 965], [1555, 900], [1515, 800], [1490, 720], [1450, 710]] },
+        mfinish: { pts: [[1507, 700], [1470, 688], [1430, 685]] }
+      },
+      races: {
+        M: {
+          label: 'Around the playing fields, two laps of the golf course, then the finish on the fields',
+          path: [
+            { leg: 'start' },
+            { leg: 'loop', from: [1515, 945], to: [1507, 700], laps: 2 },
+            { leg: 'mfinish' }
+          ]
+        },
+        W: {
+          label: 'The lower fields, one lap of the golf course, then back through the lower fields to the finish',
+          path: [
+            { leg: 'start' },
+            { leg: 'lower' },
+            { leg: 'loop', from: [1515, 945], to: [1480, 1120] },
+            { leg: 'wbranch' },
+            { leg: 'lower', from: [1512, 1300], to: [1600, 965], reverse: true },
+            { leg: 'wfinish' }
+          ]
+        }
+      },
+      hills: [{ x: 560, y: 230, r: 220, h: 1 }, { x: 760, y: 890, r: 220, h: 1 }, { x: 330, y: 700, r: 120, h: 0.6 }],
+      layoutLabel: '4 km golf-course loop',
+      describe: 'Around the golf course on the Red Kelly Trail, with a ridge on each side'
+    }
+  };
+
+  COURSES['pickard-field'] = {
+    name: 'Pickard Cross Country Course',
+    city: 'Brunswick',
+    state: 'ME',
+    type: 'flat',
+    kind: 'loop',
+    features: [
+      'A perimeter loop around Bowdoin\'s playing fields: woods on the west, Harpswell Rd on the east',
+      'Grass, dirt and a wood-chip trail through the trees',
+      'A long diagonal start across the fields',
+      'Called "pancake flat" and fast'
+    ],
+    confidence: 'high',
+    notes: 'Re-laid after the 2022–2024 Pickard Field renovations. Bowdoin hosted the 2024 NESCAC Championships here and the Maine State Meet in 2025 and 2026. Traced from Bowdoin\'s 2025 course map.',
+    sources: [
+      'https://athletics.bowdoin.edu/facilities/pickard-cross-country-course/4',
+      'https://athletics.bowdoin.edu/images/2025/9/16/XCcourse25.png',
+      'https://bowdoinorient.com/2024/09/12/bowdoin-hosts-first-cross-country-meet-since-2022/',
+      'https://athletics.bowdoin.edu/news/2024/10/31/mens-cross-country-bowdoin-to-host-nescac-cross-country-championships-saturday.aspx',
+      'https://www.middleburycampus.com/article/2024/11/middlebury-cross-country-competes-at-nescac-championship-meet'
+    ],
+    trace: {
+      mapSource: 'https://athletics.bowdoin.edu/images/2025/9/16/XCcourse25.png',
+      // Pixel coordinates on the 2000×1174 map, north up.
+      legs: {
+        // The white starting segment: diagonally across the fields, east
+        // along the turf field, round to Harpswell Rd.
+        start: { pts: [[380, 135], [690, 570], [1000, 1000], [1300, 950], [1560, 905], [1640, 920], [1720, 960], [1840, 950], [1940, 925]] },
+        // The yellow perimeter loop, from the junction south-west of Pickard
+        // Field: north past Farley, west along the top, down the woods
+        // edge, east along the south, north by Harpswell Rd, back west.
+        loop: {
+          closed: true,
+          pts: [
+            [890, 710], [800, 680], [755, 620], [725, 500], [725, 330], [705, 200], [680, 120], [665, 60],
+            [500, 50], [300, 72], [150, 140], [125, 250], [140, 400], [170, 530], [215, 600], [150, 665],
+            [80, 700], [75, 800], [110, 920], [125, 990], [150, 1100], [200, 1160], [500, 1140], [760, 1125],
+            [1100, 1060], [1400, 1010], [1670, 965], [1800, 962], [1940, 925], [1965, 800], [1950, 650],
+            [1900, 475], [1600, 545], [1300, 612], [1000, 685]
+          ]
+        }
+      },
+      races: {
+        M: {
+          label: 'The starting segment, then three laps of the perimeter loop',
+          path: [
+            { leg: 'start' },
+            { leg: 'loop', from: [1940, 925], to: [890, 710] },
+            { leg: 'loop', from: [890, 710], to: [705, 200], laps: 3 }
+          ]
+        },
+        W: {
+          label: 'The starting segment, then two laps of the perimeter loop',
+          path: [
+            { leg: 'start' },
+            { leg: 'loop', from: [1940, 925], to: [890, 710] },
+            { leg: 'loop', from: [890, 710], to: [705, 200], laps: 2 }
+          ]
+        }
+      },
+      hills: [],
+      layoutLabel: '2 km perimeter loop with a starting segment',
+      describe: 'A flat, fast loop around Bowdoin\'s playing fields'
+    }
+  };
+
+  COURSES['wainwright'] = {
+    name: 'Wainwright Recreation Complex',
+    city: 'South Portland',
+    state: 'ME',
+    type: 'flat',
+    kind: 'loop',
+    features: [
+      'A flat grass loop around six ball diamonds',
+      'Start and finish on parallel chutes in the south-east corner',
+      'A long straight along a tree line',
+      'The 8K adds an out-and-back up a lane between two tree rows'
+    ],
+    confidence: 'medium',
+    notes: 'Bates has no fixed home course and races nothing on its Lewiston campus. Its hosted meets moved between Pineland Farms (2022, 2024; hilly, no map found), Roy\'s Golf Center in Auburn (2023) and Wainwright, where it hosted the 2026 Regional Preview and the 2026 NCAA DIII East Regional. Wainwright is the current venue and the only one with maps. Traced from Bates\'s 2026 regional 8K and 6K maps.',
+    sources: [
+      'https://gobatesbobcats.com/sports/2026/10/19/2026-ncaa-east-regionals-m.aspx',
+      'https://gobatesbobcats.com/documents/2026/10/22/BatesXC_2026NCAARegionals_CourseMap_v2-3.pdf',
+      'https://ncaaorg.s3.amazonaws.com/championships/sports/crosstrack/d3/crosscountry/2026-27D3XCC_RegionalFinalsHosts.pdf',
+      'https://www.tfrrs.org/results/xc/28016/Bates_Regional_Preview',
+      'https://brandeisjudges.com/news/2026/9/6/cross-country-earns-two-individual-one-team-win-at-bates-regional-preview-race.aspx',
+      'https://gobatesbobcats.com/sports/mens-cross-country/schedule/2026'
+    ],
+    trace: {
+      mapSource: 'https://gobatesbobcats.com/documents/2026/10/22/BatesXC_2026NCAARegionals_CourseMap_v2-3.pdf',
+      // Pixel coordinates on the men's 8K page rendered at 1999×1545.
+      legs: {
+        start: { pts: [[1475, 1060], [1600, 850], [1700, 680], [1740, 560], [1790, 520], [1890, 545]] },
+        // The 8K loop from the top of the start chute: down the east side,
+        // west along the south past the tents, round the diamonds, the
+        // tree-line diagonal, up beside the chutes, out and back along the
+        // northern lane.
+        loop: {
+          closed: true,
+          pts: [
+            [1890, 545], [1925, 600], [1905, 800], [1850, 950], [1790, 1050], [1690, 1150], [1590, 1240],
+            [1530, 1205], [1390, 1130], [1250, 1045], [1100, 1050], [900, 1080], [700, 1100], [600, 1105],
+            [450, 1070], [330, 960], [200, 860], [100, 780], [75, 710], [130, 640], [250, 545], [350, 465],
+            [420, 520], [650, 640], [900, 770], [1100, 880], [1290, 1020], [1340, 950], [1400, 830],
+            [1460, 740], [1530, 640], [1420, 570], [1200, 420], [950, 265], [720, 115], [770, 45],
+            [1000, 180], [1300, 330], [1590, 520], [1640, 420], [1690, 395], [1730, 420], [1800, 480]
+          ]
+        },
+        // Women: straight up beside the chutes, skipping the lane.
+        shortcut: { pts: [[1530, 640], [1560, 580], [1590, 520]] },
+        finish: { pts: [[1730, 420], [1600, 640], [1480, 840], [1370, 1030]] }
+      },
+      races: {
+        M: {
+          label: 'Up the start chute, two 4K loops with the northern lane, then the finish chute',
+          path: [{ leg: 'start' }, { leg: 'loop', to: [1730, 420], laps: 1 }, { leg: 'finish' }]
+        },
+        W: {
+          label: 'Up the start chute, two 3K loops, then the finish chute',
+          path: [
+            { leg: 'start' },
+            { leg: 'loop', to: [1530, 640] },
+            { leg: 'shortcut' },
+            { leg: 'loop', from: [1590, 520], to: [1890, 545] },
+            { leg: 'loop', from: [1890, 545], to: [1530, 640] },
+            { leg: 'shortcut' },
+            { leg: 'loop', from: [1590, 520], to: [1730, 420] },
+            { leg: 'finish' }
+          ]
+        }
+      },
+      hills: [],
+      layoutLabel: 'Loop around the ball diamonds',
+      describe: 'Flat grass around six ball diamonds, with a long tree-line straight'
+    }
+  };
+
+  COURSES['long-lane-farm'] = {
+    name: 'Wes Fuhrman \'05 Trails at Long Lane Farm',
+    city: 'Middletown',
+    state: 'CT',
+    type: 'rolling',
+    kind: 'loop',
+    features: [
+      'Start and finish at the south end of a long, narrow upper field by Long Lane',
+      'Wooded trails west of the field, with a creek crossing',
+      'Two out-and-back fingers: one in the back field by West St., one in the woods',
+      'Long gradual hills and one major hill, which the 8K climbs twice'
+    ],
+    confidence: 'high',
+    notes: 'Home of the Cardinal Invitational; hosted the 2005 and 2015 NESCAC Championships. Traced from Wesleyan\'s official 8000 m and 6000 m maps, which are schematic drawings from 2015 or earlier, so the shape is approximate.',
+    sources: [
+      'https://athletics.wesleyan.edu/sports/2020/6/17/facilities-xc-course.aspx',
+      'https://athletics.wesleyan.edu/sports/2020/8/20/wesleyan-university-cross-country-home-course-maps.aspx?id=1608',
+      'https://athletics.wesleyan.edu/news/2025/9/20/womens-cross-country-womens-cross-country-places-third-at-home.aspx',
+      'https://athletics.wpi.edu/news/2025/9/20/mens-cross-country-places-fourth-at-stacked-wesleyan-cardinal-invitational.aspx'
+    ],
+    trace: {
+      mapSource: 'https://athletics.wesleyan.edu/documents/2020/8/20//wesfuhrman8kxccoursemap_men.pdf?id=1959',
+      // Pixel coordinates on the 8000 m map rendered at 1545×2000, north up.
+      // The park runs north to south, so it's turned to fit the wide frame.
+      rotate: -90,
+      legs: {
+        // The long upper field: up its west side, round the top, down the
+        // east side and back to the start/finish at its south end.
+        field: {
+          closed: true,
+          pts: [[745, 1515], [725, 1300], [740, 1060], [785, 800], [825, 600], [850, 525], [905, 528],
+            [918, 620], [900, 800], [875, 1000], [850, 1200], [835, 1270], [815, 1400], [800, 1540],
+            [760, 1570], [710, 1555]]
+        },
+        // Out to the Long Lane edge (mile 1) and back to the top of the field.
+        east: { pts: [[835, 1270], [900, 1255], [945, 1215], [985, 1050], [990, 975], [930, 950], [920, 800], [918, 620]] },
+        // The woods circuit from the junction on the field's west side:
+        // over the creek, up and down the back-field finger, then up and
+        // down the woods finger.
+        woods: {
+          closed: true,
+          pts: [[740, 1060], [690, 1100], [660, 1250], [630, 1390], [570, 1450], [450, 1470], [432, 1260],
+            [340, 1245], [300, 1100], [285, 900], [280, 770], [305, 745], [328, 770], [345, 900],
+            [365, 1100], [385, 1200], [440, 1228], [520, 1180], [590, 1060], [620, 900], [640, 700],
+            [670, 535], [705, 555], [712, 640], [690, 800], [665, 980], [700, 1050]]
+        }
+      },
+      races: {
+        M: {
+          label: 'Around the upper field and Long Lane, then the woods circuit twice',
+          path: [
+            { leg: 'field', to: [835, 1270] },
+            { leg: 'east' },
+            { leg: 'field', from: [918, 620], to: [740, 1060], reverse: true },
+            { leg: 'woods' },
+            { leg: 'field', from: [740, 1060], to: [745, 1515], reverse: true },
+            { leg: 'field', from: [745, 1515], to: [740, 1060] },
+            { leg: 'woods' },
+            { leg: 'field', from: [740, 1060], to: [745, 1515], reverse: true }
+          ]
+        },
+        W: {
+          label: 'Around the upper field and Long Lane, the woods circuit, then one more lap of the field',
+          path: [
+            { leg: 'field', to: [835, 1270] },
+            { leg: 'east' },
+            { leg: 'field', from: [918, 620], to: [740, 1060], reverse: true },
+            { leg: 'woods' },
+            { leg: 'field', from: [740, 1060], to: [745, 1515], reverse: true },
+            { leg: 'field' }
+          ]
+        }
+      },
+      layoutLabel: 'Field loop and woods circuit',
+      describe: 'A long upper field and a wooded circuit across the creek, with two out-and-back fingers'
+    }
+  };
+
+  COURSES['wickham-park'] = {
+    name: 'Wickham Park',
+    city: 'Manchester',
+    state: 'CT',
+    type: 'hilly',
+    kind: 'point',
+    features: [
+      '"The Green Monster", a steep hill on the east side, climbed in the second mile',
+      'A big open-field loop in the north of the park',
+      'A stone wall and dirt road through the woods in the middle',
+      'Separate start and finish lines in the eastern field; the finish is slightly uphill'
+    ],
+    confidence: 'high',
+    notes: 'Trinity\'s home course (its datelines say Hartford, but the park is in Manchester). The home invitational, renamed the George Suitor Invitational in 2025, is a 5K; the 8K and 6K routes traced here are from the 2021 NESCAC Championships Trinity hosted. The maps are hand-drawn sketches, so shapes are approximate.',
+    sources: [
+      'https://bantamsports.com/sports/2021/8/30/wickham-park-cross-country-course-maps.aspx',
+      'https://nescac.com/news/2021/10/26/trinity-set-to-host-nescac-cross-country-championship-sunday.aspx',
+      'https://bantamsports.com/news/2025/9/7/mens-cross-country-mens-xc-finished-third-at-george-suitor-invitational.aspx',
+      'https://bantamsports.com/news/2024/9/7/mens-cross-country-bantams-take-5th-in-home-invitational.aspx',
+      'https://en.wikipedia.org/wiki/Wickham_Park_(Manchester,_Connecticut)'
+    ],
+    trace: {
+      mapSource: 'https://bantamsports.com/documents/2021/9/9/WickhamPark_8k_TrinityCollege.pdf',
+      // Pixel coordinates on the 8K sketch rendered at 2000×1214, north up.
+      // The 6K sketch uses the same base. Not laps: one tour of the park.
+      legs: {
+        start: { pts: [[1785, 940], [1785, 700], [1790, 450], [1800, 250], [1790, 160], [1720, 105]] },
+        north: { pts: [[1720, 105], [1200, 115], [700, 100], [300, 95], [285, 130]] },
+        // Mile 1 ends cutting back east below the open field.
+        west1: { pts: [[285, 130], [300, 300], [340, 430], [390, 515], [480, 530], [640, 490], [715, 465]] },
+        // Mile 4 runs all the way down the west side to the stone wall.
+        west4: { pts: [[285, 130], [240, 300], [210, 450], [195, 600], [215, 720], [270, 790], [330, 820]] },
+        cabin: { pts: [[715, 465], [850, 420], [1000, 370], [1150, 310], [1300, 260], [1450, 225], [1580, 200], [1800, 180]] },
+        // Down the far east edge and up Green Monster Hill to the cabin.
+        monster: {
+          pts: [[1800, 180], [1845, 250], [1855, 450], [1870, 700], [1880, 900], [1850, 975], [1750, 990],
+            [1680, 985], [1640, 900], [1615, 780], [1580, 620], [1530, 520], [1450, 470], [1380, 380],
+            [1300, 300], [1200, 330], [1150, 350]]
+        },
+        west3: { pts: [[1150, 350], [1000, 410], [800, 465], [600, 525], [420, 605], [240, 680], [235, 740], [300, 800], [330, 820]] },
+        wall: { pts: [[330, 820], [590, 830], [800, 800], [1000, 775], [1300, 750], [1520, 725]] },
+        // Mile 3 round the south-east corner and up the east edge.
+        southeast: {
+          pts: [[1520, 725], [1580, 725], [1615, 820], [1650, 960], [1700, 1000], [1800, 1005], [1930, 975],
+            [1955, 850], [1940, 700], [1915, 560], [1895, 400], [1870, 250], [1820, 150], [1720, 105]]
+        },
+        // Men's last mile: the wooded path beside Green Monster, round the
+        // team-tent field, north to the finish.
+        tents: {
+          pts: [[1520, 725], [1495, 600], [1430, 480], [1455, 420], [1550, 400], [1700, 440], [1712, 540],
+            [1680, 690], [1730, 790], [1850, 850], [1905, 810], [1880, 620], [1840, 460], [1760, 330]]
+        },
+        // Women's last 1000 m from the 3-mile mark.
+        wlast: {
+          pts: [[1915, 560], [1895, 400], [1870, 250], [1840, 170], [1780, 165], [1730, 195], [1600, 215],
+            [1450, 235], [1400, 300], [1410, 410], [1530, 420], [1690, 445], [1700, 480], [1660, 600],
+            [1650, 700], [1750, 800], [1860, 870], [1880, 850], [1840, 700], [1810, 600], [1790, 450], [1770, 330]]
+        }
+      },
+      races: {
+        M: {
+          label: 'A tour of the park: the open field twice, Green Monster Hill, the stone wall, and the team-tent field to finish',
+          path: [
+            { leg: 'start' }, { leg: 'north' }, { leg: 'west1' }, { leg: 'cabin' }, { leg: 'monster' },
+            { leg: 'west3' }, { leg: 'wall' }, { leg: 'southeast' }, { leg: 'north' }, { leg: 'west4' },
+            { leg: 'wall' }, { leg: 'tents' }
+          ]
+        },
+        W: {
+          label: 'The open field, Green Monster Hill, the stone wall, then a loop of the team-tent field to finish',
+          path: [
+            { leg: 'start' }, { leg: 'north' }, { leg: 'west1' }, { leg: 'cabin' }, { leg: 'monster' },
+            { leg: 'west3' }, { leg: 'wall' }, { leg: 'southeast', to: [1915, 560] }, { leg: 'wlast' }
+          ]
+        }
+      },
+      hills: [{ x: 1600, y: 650, r: 160, h: 1 }, { x: 1200, y: 360, r: 160, h: 0.5 }],
+      layoutLabel: 'A tour of the park',
+      describe: 'A winding tour of the park with the steep Green Monster Hill'
+    }
+  };
+
+  // Verified venues with no usable map: real name and terrain, generated
+  // layout. Trace them when a map turns up.
+
+  COURSES['mt-greylock'] = {
+    name: 'Mt. Greylock XC Loops',
+    city: 'Williamstown',
+    state: 'MA',
+    type: 'hilly',
+    kind: 'loop',
+    features: [
+      'At Mount Greylock Regional School, off campus',
+      'Very hilly, with technical woods sections',
+      'One big hill climbed twice in the 8K'
+    ],
+    confidence: 'medium',
+    notes: 'Williams hosts the Purple Valley Classic here, its only home meet in 2025 and 2026, and hosted the 2019 NESCAC Championships. No course map: the old 2008 map images on Williams\'s directions page return 404 with no archived copy.',
+    sources: [
+      'https://ephsports.williams.edu/sports/2020/8/11/cross-country-directions.aspx?id=1257',
+      'https://ephsports.williams.edu/sports/mens-cross-country/schedule/2025',
+      'https://ephsports.williams.edu/news/2026/6/16/mens-cross-country-williams-cross-country-announces-2026-schedule.aspx',
+      'https://ephsports.williams.edu/news/2025/9/20/mens-cross-country-mens-cross-country-puts-in-strong-showing-at-purple-valley-classic.aspx'
+    ]
+  };
+
+  COURSES['quarry-road'] = {
+    name: 'Quarry Road Trails',
+    city: 'Waterville',
+    state: 'ME',
+    type: 'hilly',
+    features: [
+      'Colby\'s own trail system, used for Nordic skiing in winter',
+      'Known as hilly and challenging'
+    ],
+    confidence: 'medium',
+    notes: 'Colby calls Quarry Road its home course and hosted the 2019 Maine State Meet (8K) there, but it has hosted no cross country meet since a September 2022 dual with Thomas. No race map or lap structure is published, so even loop or point-to-point is unknown.',
+    sources: [
+      'https://colbyathletics.com/news/2019/10/5/10_5_2019_1223.aspx',
+      'https://colbyathletics.com/sports/2020/5/28/facilities-xc-trails.aspx',
+      'https://colbyathletics.com/sports/cross-country/schedule/2022',
+      'https://colbyathletics.com/sports/cross-country/schedule/2026'
+    ]
+  };
+
+  COURSES['hamilton-college'] = {
+    name: 'Hamilton College Cross Country Course',
+    city: 'Clinton',
+    state: 'NY',
+    type: 'rolling',
+    kind: 'loop',
+    features: [
+      'On campus: the golf course and farm fields west of the athletic complex',
+      'Mostly grass with one short gravel stretch',
+      'Starts on high ground with a fast downhill opening'
+    ],
+    confidence: 'high',
+    notes: 'Hamilton hosts three home meets each fall, including the Hamilton Invitational, and hosted the 2022 NESCAC Championships. The only maps found are from 2014, before the course was rebuilt alongside new baseball and softball fields, so the layout is generated.',
+    sources: [
+      'https://athletics.hamilton.edu/facilities/?id=6',
+      'https://results.runnercard.com/runner/data/13582/5680/schedule/2014%20Hamilton%20XC%20Invitational%20Information.pdf',
+      'https://athletics.hamilton.edu/news/2022/10/30/mens-cross-country-brady-23-paces-mens-cross-country-in-nescac-championships.aspx',
+      'https://athletics.hamilton.edu/news/2025/10/12/mens-cross-country-mens-cross-country-dominates-in-capturing-hamilton-invitational-title.aspx'
+    ]
+  };
+
+  COURSES['harkness-park'] = {
+    name: 'Harkness Memorial State Park',
+    city: 'Waterford',
+    state: 'CT',
+    type: 'rolling',
+    kind: 'loop',
+    features: [
+      'Open coastal lawns of the Eolia mansion estate on Long Island Sound',
+      'Stretches along the shoreline fence, dirt roads and a crushed-stone path',
+      'Two field loops, run in opposite directions',
+      'Only gentle grades; fast course records (8K 23:43, 6K 19:51)'
+    ],
+    confidence: 'high',
+    notes: 'Home of the Connecticut College Invitational; hosted the NCAA DIII Mideast Regionals (2021, 2024) and the 2025 NESCAC Championships. Conn\'s map has no direction arrows and its km labels don\'t match Conn\'s own turn-by-turn description, so the running order couldn\'t be traced reliably; the layout is generated. Conn\'s course-tour videos could settle it.',
+    sources: [
+      'https://camelathletics.com/sports/2024/9/3/harkness-park-course-description.aspx',
+      'https://camelathletics.com/facilities/?id=14',
+      'https://camelathletics.com/sports/2024/9/24/2024-ncaa-division-iii-mideast-regional-cross-country-championship.aspx',
+      'https://camelathletics.com/news/2025/10/30/mens-cross-country-camels-set-to-host-2025-nescac-xc-championships.aspx',
+      'http://oak.conncoll.edu/sports/xcmap.pdf'
+    ]
+  };
+
   // schoolId -> courseId
   const HOME_OF = {
+    middlebury: 'middlebury-golf-course',
+    williams: 'mt-greylock',
+    colby: 'quarry-road',
+    hamilton: 'hamilton-college',
+    conncoll: 'harkness-park',
+    trinityct: 'wickham-park',
+    wesleyan: 'long-lane-farm',
+    bates: 'wainwright',
+    bowdoin: 'pickard-field',
     washu: 'siue',
     uchicago: 'st-james-farm',
     wheatonil: 'st-james-farm',

@@ -91,10 +91,31 @@ D3 Dynasty is a Division III cross country coaching game in plain HTML, CSS and 
   - `C.lapsText`, `C.loopLabel` and `C.describe` read a traced course's labels from its data.
 - **Real home courses (`data/courses.js`):** courses keyed by course id, with `homeOf[schoolId]`.
   - `C.layoutFor` builds a course with a `trace` through `C.fromTrace`. A course without one is generated, steered by its `kind` and `climbPerKm`.
-  - **Traces:** points in the source map's pixel coordinates, drawn in running direction, with optional `rotate`. Each race is a list of leg segments `{ leg, from?, to?, laps?, reverse? }`, where from/to are leg fractions or `[x, y]` points on the leg. Traced routes may cross themselves; `C.isClear` only applies to generated ones.
+  - **Traces:** points in the source map's pixel coordinates, drawn in running direction, with optional `rotate`. Each race is a list of leg segments `{ leg, from?, to?, laps?, reverse? }`, where from/to are leg fractions or `[x, y]` points on the leg. Traced routes may cross themselves; `C.isClear` only applies to generated ones. Smoothing moves a closed leg's first point, so `C.fromTrace` rotates each loop to start at the point nearest the traced first point. A segment's default `from` of 0 is then where the tracer put it.
   - Distances come from scaling each race's path to its race length, so a good trace has men's/women's path lengths near 8:6. The data check flags anything more than 12% off.
-  - **The UAA pilot is shipped and live** (commit `64be998`, 2026-11-12): WashU (SIUE), Chicago (St. James Farm), Case (Squire Valleevue Farm), CMU (Youthtowne Fields), Rochester (Genesee Valley Park) and Brandeis (Highland Park, Attleboro). Wheaton (IL) and North Central share St. James Farm (Wheaton's Gil Dodds Invitational; North Central hosted CCIW Championships there). Emory and NYU have no verifiable home course, so they keep generated venues. The 133 other programs are still generated. `ROADMAP.md` (Real home courses, Progress report) has the per-course confidence, the research notes and the plan for the other conferences.
+  - **Status by conference** (`ROADMAP.md`, Real home courses, has the per-course research notes):
+    - **UAA** (shipped 2026-11-12, commit `64be998`): traced WashU (SIUE), Chicago (St. James Farm), Case (Squire Valleevue Farm), CMU (Youthtowne Fields), Rochester (Genesee Valley Park) and Brandeis (Highland Park, Attleboro).
+    - **Wheaton (IL) and North Central** (CCIW) share the traced St. James Farm.
+    - **NESCAC** (2026-11-12): traced Middlebury (golf course), Bowdoin (Pickard Field), Bates (Wainwright, South Portland), Wesleyan (Long Lane Farm) and Trinity (Wickham Park). Williams, Colby, Hamilton and Conn College have their real venue but a generated layout (see below).
+    - Every other program is still generated.
   - Only names, facts, sources and our traced points ship. Never ship map images.
+  - **Courses we couldn't find or make:** researched schools left on generated venues. Keep this list current, and revisit a school when a map turns up.
+
+    | School | Conference | Why |
+    |---|---|---|
+    | NYU | UAA | No home meet in 2022–2026. It ran an invitational at Van Cortlandt Park until about 2008, but there's no college 8K/6K map. |
+    | Emory | UAA | No regular home meet. It hosted the 2022 UAA Championships at Nash Farm Battlefield in Hampton, GA, but the map is gone: Emory's old site is in maintenance mode, and the web archive has only error pages. |
+    | Amherst | NESCAC | Its on-campus course (fields and the Wildlife Sanctuary) is short and rarely used: the 2025 Little Three ran 6K/4K there. No map or 8K/6K format; Amherst hosted the 2023 NESCACs at UMass's course instead. |
+    | Tufts | NESCAC | No home meet in 2022–2026. Its old Grafton farm course (1999–2008) has no map; Franklin Park in Boston is a regular venue but not Tufts's course. |
+
+  - **Venues found but not traced:** in `data/courses.js` with real name, terrain and sources but no `trace`, so the layout is generated. Trace them when a usable map turns up.
+
+    | School | Venue | Why no trace |
+    |---|---|---|
+    | Williams | Mt. Greylock XC Loops, Williamstown MA | No map: the 2008 map images return 404 with no archive, and the team site is behind a Cloudflare challenge. |
+    | Colby | Quarry Road Trails, Waterville ME | No race map or lap structure, so even loop or point-to-point is unknown. No home meet since a 2022 dual. |
+    | Hamilton | Hamilton College XC Course, Clinton NY | The only maps (2014) predate the rebuild for the new baseball and softball fields. |
+    | Conn College | Harkness Memorial State Park, Waterford CT | The map has no arrows, and its km labels conflict with Conn's turn-by-turn description. Conn's course-tour videos could settle the order. |
 - **Where courses come from:** every school has a fixed home course from `S.venueFor`: its real course when `XC.courses.forSchool` has one, otherwise one seeded by school id, with the same name, terrain and layout on every visit.
   - The user's own course is `state.homeCourse = { name, type, seed, courseId? }`. New games start on the school's real course. `S.migrate` moves an old save's random home course onto the real one unless `homeCourse.custom` is set, which the planned course editor should set. Meets already on the schedule keep their stored course.
   - The nationals venue is seeded by its venue name.

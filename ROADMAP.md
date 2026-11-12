@@ -80,6 +80,15 @@ A phone-style inbox screen (`XC.screens.texts`) where runners message the coach 
   - **Emory:** no regular home meet. It hosted the 2022 UAA Championships at Nash Farm Battlefield in Hampton, GA, but that map is gone (Emory's old site is in maintenance mode, and the web archive has only error pages).
   - Revisit both if a map turns up.
 
+**NESCAC (2026-11-12):**
+- **Traced:** Middlebury (golf course, high), Bowdoin (Pickard Field, high), Bates (Wainwright, medium), Wesleyan (Long Lane Farm, high) and Trinity (Wickham Park, high). M/W lengths are within 2.5% of 8K/6K, except Wickham (−4.3%, a hand-drawn sketch) and Wesleyan (−9.5%, a schematic not drawn to scale).
+- **Venue only, generated layout:** Williams (Mt. Greylock, no map), Colby (Quarry Road, no race map), Hamilton (2014 map predates a rebuild) and Conn College (Harkness, map conflicts with the written description).
+- **Not found:** Amherst and Tufts. CLAUDE.md has the reasons, in "Courses we couldn't find or make".
+- **Judgment calls:**
+  - Bates has no fixed home course, so it uses Wainwright, its 2026 venue. Pineland Farms, its traditional hilly course, has no map.
+  - Trinity's home meet is a 5K, so its trace follows the 2021 NESCAC 8K/6K maps.
+- **Engine fix:** smoothed loops now start at the traced first point. Before, a race ending at a loop's start could finish a few meters off.
+
 **What the pilot taught:**
 - Most D3 "home" courses are off campus, and several schools only ever hosted a conference meet. Record the honest situation in `notes` and use medium confidence.
 - Conference championship pages, especially "UAA Championships" host pages, are the best source of official 8K/6K maps.
