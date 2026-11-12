@@ -436,11 +436,12 @@
       'Very spectator friendly: most of the loop is visible from the central fields'
     ],
     confidence: 'medium',
-    notes: 'UChicago hosted the 2026 UAA Championships here, about 30 miles from campus; it hosted no other meet in 2022–2026. Also Wheaton\'s Gil Dodds Invitational venue and a CCIW championship course. Traced from the 2012 CCIW men\'s map, which shows the same loop as the 2026 UAA map; the direction and lap counts are read from its lap colors and mile markers, not published.',
+    notes: 'Wheaton (IL)\'s home course: its Gil Dodds Invitational is held here every year. UChicago hosted the 2026 UAA Championships here, about 30 miles from campus; it hosted no other meet in 2022–2026. Also a CCIW championship course. Traced from the 2012 CCIW men\'s map, which shows the same loop as the 2026 UAA map; the direction and lap counts are read from its lap colors and mile markers, not published.',
     sources: [
       'https://athletics.uchicago.edu/sports/2026/8/6/cross-country-2027-uaa-championships.aspx',
       'https://athletics.uchicago.edu/news/2026/10/31/-18-mens-cross-country-claims-third-place-finish-at-uaa-championships.aspx',
       'https://athletics.uchicago.edu/images/2026/10/27/UAA_XC_Course_Map.png',
+      'https://athletics.wheaton.edu/news/2025/9/20/mens-cross-country-the-thunder-mens-cross-country-team-places-third-at-its-gil-dodds-invitational.aspx',
       'https://cciw.org/sports/2012/10/10/MCC_1010122531.aspx?id=772',
       'https://cciw.org/custompages/CCIW_Links/CrossCountry/Results/2012/Mens.Course.jpg'
     ],
@@ -482,6 +483,7 @@
   const HOME_OF = {
     washu: 'siue',
     uchicago: 'st-james-farm',
+    wheatonil: 'st-james-farm',
     case: 'squire-valleevue-farm',
     rochester: 'genesee-valley-park',
     cmu: 'youthtowne-fields',
