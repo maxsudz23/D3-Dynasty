@@ -176,8 +176,9 @@ D3 Dynasty is a Division III cross country coaching game in plain HTML, CSS and 
 - **Future hooks:** `T.advisorQuality(state)` reads `state.staff.trainingQuality` (assistant coaches), and staff suggestions carry `source: 'staff'`. `state.facilities.trainingRoom` and `state.facilities.track` add bonuses. `ROADMAP.md` covers the planned texts, assistant coaches, facilities and real home courses.
 
 ## Title-screen "What's new" note
-- `LATEST_CHANGE` at the top of `js/ui/title.js` is shown in the title screen's bottom-right corner, or below the menu on narrow or short screens.
-- Update its date and its one or two plain sentences with every user-facing release on `main`.
+- `CHANGELOG` at the top of `js/ui/title.js` is newest first. The first entry shows in the title screen's bottom-right corner, or below the menu on narrow or short screens. The next five sit under a "Past updates" `<details>` toggle.
+- With every user-facing release on `main`, add a new entry at the top (date plus one or two plain sentences) and keep the list to six.
+- The title screen's `onKey` ignores Enter on the toggle's `<summary>`, so Enter opens it instead of starting a game.
 
 ## Mobile
 - At 600px wide or less, and on touch screens, the legend bar becomes a row of real buttons. It holds the only Back control on several screens, so it must never be hidden.

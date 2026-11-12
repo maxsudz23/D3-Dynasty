@@ -9,12 +9,50 @@
 
   /* ======================= Title ======================= */
 
-  // The latest change, shown in a corner of the title screen. Update it
-  // with every release: one or two plain sentences.
-  const LATEST_CHANGE = {
-    date: 'Nov 12, 2026',
-    text: 'Plan each runner\u2019s weekly mileage on the workout screen, or leave it on auto. More miles build fitness, but every runner has a limit before fatigue and injuries catch up.'
-  };
+  // Release notes for the title screen, newest first. The first entry is
+  // shown in a corner; the next five sit under "Past updates". Add a new
+  // entry at the top with every user-facing release (one or two plain
+  // sentences) and keep the list to six.
+  const CHANGELOG = [
+    {
+      date: 'Nov 12, 2026',
+      text: 'Plan each runner\u2019s weekly mileage on the workout screen, or leave it on auto. More miles build fitness, but every runner has a limit before fatigue and injuries catch up.'
+    },
+    {
+      date: 'Nov 12, 2026',
+      text: 'NESCAC schools race on their real home courses, from Middlebury\u2019s golf course to Trinity\u2019s Green Monster Hill. Wheaton and North Central share St. James Farm with Chicago.'
+    },
+    {
+      date: 'Nov 12, 2026',
+      text: 'Give any of your top seven their own race plan, from sitting and kicking to packing up or holding back. Reading who suits which plan is up to you.'
+    },
+    {
+      date: 'Nov 12, 2026',
+      text: 'UAA schools race on their real home courses, traced from the published course maps, with separate men\u2019s and women\u2019s routes.'
+    },
+    {
+      date: 'Nov 12, 2026',
+      text: 'Athletes now come from real hometowns, mostly near their school, with the occasional international.'
+    },
+    {
+      date: 'Nov 11, 2026',
+      text: 'Real athletics logos appear for 71 schools, on your crest and beside opponents in previews, races and results.'
+    }
+  ];
+
+  // The latest change, with the five before it in a toggle.
+  function newsNote() {
+    const [latest, ...past] = CHANGELOG;
+    const entry = (c) => h('li', { class: 'title-news__item' },
+      h('p', { class: 'title-news__date' }, c.date),
+      h('p', { class: 'title-news__text' }, c.text));
+    return h('aside', { class: 'title-news', 'aria-label': 'What\u2019s new' },
+      h('p', { class: 'title-news__label' }, `What\u2019s new \u00b7 ${latest.date}`),
+      h('p', { class: 'title-news__text' }, latest.text),
+      past.length ? h('details', { class: 'title-news__past' },
+        h('summary', null, 'Past updates'),
+        h('ol', { class: 'title-news__list' }, past.slice(0, 5).map(entry))) : null);
+  }
 
   function continueGame(saved) {
     XC.audio.select();
@@ -63,14 +101,14 @@
           h('p', { class: 'press-start', 'aria-hidden': 'true' }, 'Press Enter'),
           h('p', { class: 'title-credit' },
             'Recruit names and photos from randomuser.me. Race-day weather from Open-Meteo. Programs are real; every athlete is fictional.')),
-        h('aside', { class: 'title-news', 'aria-label': 'Latest change' },
-          h('p', { class: 'title-news__label' }, `What\u2019s new \u00b7 ${LATEST_CHANGE.date}`),
-          h('p', { class: 'title-news__text' }, LATEST_CHANGE.text))));
+        newsNote()));
     },
     legend() {
       return [{ key: 'Enter', label: 'Start', keyboardOnly: true, action: () => document.activeElement && document.activeElement.click() }];
     },
     onKey(e) {
+      // Enter on the "Past updates" toggle opens it rather than starting.
+      if (e.key === 'Enter' && e.target instanceof Element && e.target.closest('summary')) return false;
       if (e.key === 'Enter' && !(e.target instanceof HTMLButtonElement)) {
         if (this.saved) continueGame(this.saved);
         else newGame(null);
