@@ -1,0 +1,55 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <!-- D3 Dynasty GroupMe bot avatar. Game palette: navy #1A2431, steel
+       #2E4A6B, gold #E0A526. Keep the art inside the circle GroupMe crops. -->
+  <defs>
+    <clipPath id="tile"><rect width="512" height="512"/></clipPath>
+    <linearGradient id="shell" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#4A6F96"/>
+      <stop offset="1" stop-color="#2E4A6B"/>
+    </linearGradient>
+    <radialGradient id="glow" cx="0.5" cy="0.5" r="0.5">
+      <stop offset="0" stop-color="#FFE7A3"/>
+      <stop offset="0.55" stop-color="#E0A526"/>
+      <stop offset="1" stop-color="#E0A526" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+
+  <g clip-path="url(#tile)">
+    <rect width="512" height="512" fill="#1A2431"/>
+    <!-- Speed streaks like the game's background -->
+    <path d="M300 -20 L380 -20 L180 540 L100 540 Z" fill="#FFFFFF" opacity="0.05"/>
+    <path d="M410 -20 L450 -20 L250 540 L210 540 Z" fill="#FFFFFF" opacity="0.04"/>
+  </g>
+
+  <!-- Antenna -->
+  <rect x="249" y="96" width="14" height="58" rx="7" fill="#9FB3C8"/>
+  <circle cx="256" cy="92" r="30" fill="url(#glow)"/>
+  <circle cx="256" cy="92" r="15" fill="#E0A526"/>
+  <circle cx="251" cy="87" r="5" fill="#FFF3CC"/>
+
+  <!-- Ears -->
+  <rect x="94" y="222" width="40" height="92" rx="14" fill="#E0A526"/>
+  <rect x="378" y="222" width="40" height="92" rx="14" fill="#E0A526"/>
+
+  <!-- Head -->
+  <rect x="120" y="148" width="272" height="236" rx="56" fill="url(#shell)"/>
+  <rect x="120" y="148" width="272" height="236" rx="56" fill="none" stroke="#9FB3C8" stroke-width="6" opacity="0.6"/>
+
+  <!-- Visor with glowing eyes -->
+  <rect x="150" y="196" width="212" height="104" rx="34" fill="#0F1620"/>
+  <rect x="186" y="224" width="46" height="48" rx="16" fill="#E0A526"/>
+  <rect x="280" y="224" width="46" height="48" rx="16" fill="#E0A526"/>
+  <rect x="194" y="230" width="14" height="14" rx="5" fill="#FFF3CC"/>
+  <rect x="288" y="230" width="14" height="14" rx="5" fill="#FFF3CC"/>
+
+  <!-- Grille mouth -->
+  <rect x="204" y="318" width="104" height="34" rx="12" fill="#1A2431"/>
+  <rect x="226" y="324" width="6" height="22" rx="3" fill="#9FB3C8"/>
+  <rect x="246" y="324" width="6" height="22" rx="3" fill="#9FB3C8"/>
+  <rect x="266" y="324" width="6" height="22" rx="3" fill="#9FB3C8"/>
+  <rect x="286" y="324" width="6" height="22" rx="3" fill="#9FB3C8"/>
+
+  <!-- The logo's racing stripe, worn like a collar -->
+  <path d="M142 402 H330 L314 430 H126 Z" fill="#2E4A6B"/>
+  <path d="M324 402 H386 L370 430 H308 Z" fill="#E0A526"/>
+</svg>

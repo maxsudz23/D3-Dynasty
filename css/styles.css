@@ -2867,8 +2867,13 @@ body.is-title .ticker {
   color: var(--ink-3);
 }
 
-.plan-row__miles label {
+.plan-row__miles label,
+.plan-row__recent {
   white-space: nowrap;
+}
+
+.plan-row__miles {
+  flex-wrap: wrap;
 }
 
 .plan-row__miles .select {

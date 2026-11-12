@@ -725,6 +725,8 @@
       squad.roster.forEach((a) => {
         if (typeof a.fatigue !== 'number') a.fatigue = 10;
         if (typeof a.form !== 'number') a.form = 0;
+        // Mileage conditioning (saved since the conditioning update).
+        if (typeof a.base !== 'number') a.base = XC.training.baseOf(a);
       });
     });
     // Older saves took hometowns from randomuser.me, which pairs real city

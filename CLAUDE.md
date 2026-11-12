@@ -166,7 +166,13 @@ D3 Dynasty is a Division III cross country coaching game in plain HTML, CSS and 
   - **Fatigue:** mileage changes weekly recovery against the old fixed recovery, which assumed 75% of capacity. `T.weeklyRecovery = recoveryPerWeek − 14 × (share^2.2 − 0.75^2.2)`, so more miles mean less net recovery, and it can go negative. Every block uses it: `T.dayFatigue`, the preview, `T.runDay` and `T.restBlock`. Injured runners count as usual (cross-training).
   - **Fitness:** `T.mileageShare` is 0 below 40% of capacity, 1 at 75% and about 1.44 at 100%, with diminishing returns. Each block it moves form by `share − 1` and adds XP per week: END 0.07, DUR 0.03, scaled by share, potential and day fatigue.
   - **Injury:** overuse risk per week is `0.03 × max(0, share − 0.85)^1.5 × (1 + (fatigue/40)²) × (1.45 − DUR/100)`, compounded over the block's weeks. It's added to the preview's injury risk.
-  - **Auto:** about 0.79 of capacity, ±0.003 per DUR point from 70 (clamped 0.70–0.86). It's cut by a quarter in a 1-week block and lowered above 35 fatigue.
+  - **Conditioning:** `a.base` is the miles a week a runner has recently run. It's saved and migrated, and `T.baseOf` defaults to 75% of capacity.
+    - Each week it closes 15% of the gap to the miles actually run (`T.condition`). Injured runners drift toward half their base.
+    - `T.startSeason` keeps 60% of the distance from the usual share over the summer.
+    - Trained capacity is `T.trainedCapacity = capacity × (0.775 + 0.3 × min(1.2, base/capacity))`: neutral at 75%, about +10% when built up to capacity, and 22.5% less when fully detrained. Fatigue, fitness and the 85% threshold all use trained capacity.
+  - **Jump risk:** above 110% of conditioning, weekly risk adds `0.04 × (miles/base − 1.1)^1.5`, under the same fatigue and DUR factors. It applies even under capacity.
+  - **Auto:** about 0.79 of trained capacity, ±0.003 per DUR point from 70 (clamped 0.70–0.86). It's cut by a quarter in a 1-week block, lowered above 35 fatigue, and never above `base × 1.15 + 5`.
+  - **Conditioning sim** (100 seasons): ramping +10% a block up to 105% of capacity scored 0.305, the best; auto 0.307. Jumping straight to 105% scored 0.346 with twice the injuries. Doubling recent miles each block scored 0.634.
   - **Balance** (`t-mileage` sim, 100 seasons of auto workouts, place percentile, lower is better):
     - auto 0.307, 65% 0.320, 75% 0.309, 85% 0.304, 90% 0.312.
     - 50% and 100% of capacity both 0.361, 120% 0.478, zero miles 0.377.
@@ -179,6 +185,11 @@ D3 Dynasty is a Division III cross country coaching game in plain HTML, CSS and 
 - `CHANGELOG` at the top of `js/ui/title.js` is newest first. The first entry shows in the title screen's bottom-right corner, or below the menu on narrow or short screens. The next five sit under a "Past updates" `<details>` toggle.
 - With every user-facing release on `main`, add a new entry at the top (date plus one or two plain sentences) and keep the list to six.
 - The title screen's `onKey` ignores Enter on the toggle's `<summary>`, so Enter opens it instead of starting a game.
+
+## GroupMe announcements
+- `node scripts/announce.js` prints the newest `CHANGELOG` entry as a GroupMe message (a dry run). Add `--send` to post it through the team's GroupMe bot.
+- The bot ID is a secret. It lives in `~/.config/d3dynasty/groupme_bot_id` (mode 600) or the `GROUPME_BOT_ID` environment variable, never in the repo. `scripts/` is in `.assetsignore`, so the script isn't served.
+- After deploying a user-facing change, show the user the dry-run message and post only once they approve it, unless they've said to post automatically. Notes-only commits get no announcement.
 
 ## Mobile
 - At 600px wide or less, and on touch screens, the legend bar becomes a row of real buttons. It holds the only Back control on several screens, so it must never be hidden.

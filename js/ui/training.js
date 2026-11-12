@@ -253,7 +253,8 @@
       const sel = h('select', { class: 'select', id, on: { change: (e) => this.setMiles(a, e.target.value) } }, options);
       return h('div', { class: 'plan-row__miles' },
         h('label', { for: id }, 'Weekly miles'),
-        sel);
+        sel,
+        h('span', { class: 'plan-row__recent' }, `Recent ${Math.round(T.baseOf(a))} mi/wk`));
     },
 
     setMiles(a, value) {

@@ -16,6 +16,10 @@
   const CHANGELOG = [
     {
       date: 'Nov 12, 2026',
+      text: 'Runners now build up to higher mileage. Ramp someone up gradually and they can handle more each week, but jump their miles too fast and injury risk climbs, even under their limit.'
+    },
+    {
+      date: 'Nov 12, 2026',
       text: 'Plan each runner\u2019s weekly mileage on the workout screen, or leave it on auto. More miles build fitness, but every runner has a limit before fatigue and injuries catch up.'
     },
     {
@@ -33,10 +37,6 @@
     {
       date: 'Nov 12, 2026',
       text: 'Athletes now come from real hometowns, mostly near their school, with the occasional international.'
-    },
-    {
-      date: 'Nov 11, 2026',
-      text: 'Real athletics logos appear for 71 schools, on your crest and beside opponents in previews, races and results.'
     }
   ];
 

@@ -363,11 +363,27 @@
     floor: 0.4, // below this share of capacity, no base building
     risk: 0.03,
     form: 1, // race form per block for each 'standard' of base above or below usual
+    adapt: 0.15, // share of the gap between conditioning and miles closed each week
+    spikeFree: 1.1, // miles up to 10% over conditioning carry no jump risk
+    spikeRisk: 0.04,
+    ramp: 1.15, // auto never asks for more than 15% (+5 mi) over conditioning
     max: 130,
     step: 5
   };
   const M = T.MILEAGE;
-  const mileShare = (a, miles) => miles / T.mileageCapacity(a);
+
+  // Conditioning: the miles a week a runner has recently been running.
+  // Saved as a.base; a runner without one starts at the usual share.
+  T.baseOf = (a) => (typeof a.base === 'number' ? a.base : Math.round(T.mileageCapacity(a) * M.standard));
+  // Capacity after conditioning: built-up runners handle more than their
+  // ratings alone say, detrained ones less. Neutral at the usual share.
+  T.trainedCapacity = (a) => {
+    const cap = T.mileageCapacity(a);
+    return cap * (0.775 + 0.3 * Math.min(1.2, T.baseOf(a) / cap));
+  };
+  const mileShare = (a, miles) => miles / T.trainedCapacity(a);
+  // How far this block's miles jump past what the runner is used to.
+  const spikeOf = (a, miles) => miles / Math.max(10, T.baseOf(a));
   const roundMiles = (m) => U.clamp(Math.round(m / M.step) * M.step, 0, M.max);
 
   // The auto plan: about the best share of capacity found in the balance
@@ -377,7 +393,9 @@
     let share = U.clamp(0.79 + (a.stats.dur - 70) * 0.003, 0.7, 0.86);
     if (T.gapWeeks(state.meetIndex) <= 1) share *= 0.75;
     share *= 1 - Math.max(0, T.fatigueOf(a) - 35) / 120;
-    return roundMiles(T.mileageCapacity(a) * share);
+    // Build up gradually rather than jumping.
+    const target = Math.min(T.trainedCapacity(a) * share, T.baseOf(a) * M.ramp + 5);
+    return roundMiles(target);
   };
   T.isAutoMileage = (a) => typeof a.miles !== 'number';
   T.milesFor = (state, a) => (T.isAutoMileage(a) ? T.autoMileage(state, a) : a.miles);
@@ -401,15 +419,29 @@
   // Race fitness from the block's mileage, compared with the usual amount.
   const mileageForm = (a, miles) => (a.injury > 0 ? 0 : M.form * (T.mileageShare(a, miles) - 1));
 
-  // Overuse injury chance per week, from about 85% of capacity up.
-  T.mileageRisk = (a, miles, fatigue) => M.risk * Math.max(0, mileShare(a, miles) - 0.85) ** 1.5
+  // Overuse injury chance per week: from about 85% of trained capacity
+  // up, plus a jump well past what the runner is used to.
+  T.mileageRisk = (a, miles, fatigue) => (M.risk * Math.max(0, mileShare(a, miles) - 0.85) ** 1.5
+    + M.spikeRisk * Math.max(0, spikeOf(a, miles) - M.spikeFree) ** 1.5)
     * (1 + (fatigue / 40) ** 2) * (1.45 - a.stats.dur / 100);
+
+  // Conditioning after a block: it closes part of the gap to the miles run
+  // each week. Injured runners lose some.
+  T.condition = (a, miles, weeks) => {
+    const target = a.injury > 0 ? T.baseOf(a) * 0.5 : miles;
+    return U.round(target + (T.baseOf(a) - target) * (1 - M.adapt) ** weeks, 1);
+  };
 
   // A block of weekly mileage: base-building XP and overuse risk.
   function mileageBlock(state, a, fatigue, rng) {
     const out = { miles: T.milesFor(state, a), gains: [], injury: null };
-    if (a.injury > 0) return out;
     const weeks = T.gapWeeks(state.meetIndex);
+    const nextBase = T.condition(a, out.miles, weeks);
+    out.form = mileageForm(a, out.miles);
+    if (a.injury > 0) {
+      a.base = nextBase;
+      return out;
+    }
     const per = T.mileageBenefit(a, out.miles, fatigue) * (POT_MULT[a.pot] || 1);
     a.xp = a.xp || {};
     Object.entries(M.xp).forEach(([k, base]) => {
@@ -429,6 +461,9 @@
       a.injury = Math.max(a.injury, outFor);
       out.injury = { what, out: outFor };
     }
+    // Conditioning updates after the risk is judged against the old level.
+    a.base = nextBase;
+    out.base = nextBase;
     return out;
   }
   const OVERUSE = [['stress reaction from the mileage', 2], ['overuse shin splints', 2], ['achy Achilles from the volume', 1], ['plantar fasciitis', 1]];
@@ -660,12 +695,15 @@
     return state.training.plans;
   };
 
-  // Fresh legs to start a season.
+  // Fresh legs to start a season. Summer running keeps most of last
+  // season's conditioning but settles it back toward the usual share.
   T.startSeason = function (state) {
     state.programs.forEach((sq) => {
       state.squads[sq].roster.forEach((a) => {
         a.fatigue = U.randInt(5, 20);
         a.form = 0;
+        const usual = T.mileageCapacity(a) * M.standard;
+        a.base = U.round(usual + (T.baseOf(a) - usual) * 0.6, 1);
       });
     });
     T.openBlock(state);
@@ -756,7 +794,7 @@
           if (w.source === 'staff' && (row.injury || dnf || zone.key === 'danger')) row.note += ' This was the staff’s suggestion.';
         }
         a.fatigue = U.round(U.clamp(day - half, 0, 100), 1);
-        a.form = U.clamp(T.formOf(a) + mileageForm(a, base.miles), -3, 4.5);
+        a.form = U.clamp(T.formOf(a) + base.form, -3, 4.5);
         row.after = a.fatigue;
         row.miles = base.miles;
         row.baseGains = base.gains;
@@ -778,7 +816,7 @@
         const full = T.weeklyRecovery(state, a) * T.gapWeeks(state.meetIndex);
         const base = mileageBlock(state, a, T.dayFatigue(state, a), rng);
         a.fatigue = U.round(U.clamp(T.fatigueOf(a) - full - 10, 0, 100), 1);
-        a.form = U.clamp(0.5 * T.formOf(a) - 0.35 + mileageForm(a, base.miles), -3, 4.5);
+        a.form = U.clamp(0.5 * T.formOf(a) - 0.35 + base.form, -3, 4.5);
       });
     });
     if (state.training) {
