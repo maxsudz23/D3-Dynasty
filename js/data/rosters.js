@@ -42,6 +42,8 @@
         ['Gavin', 'O\'Connor', 2, 'Evergreen Park, IL', '25:01.6'],
         ['Bankson', 'Roach', 2, 'Fayetteville, GA', '27:23.1'],
         ['Will', 'Ruszkowski', 3, 'Michigan City, IN', '25:09.4'],
+        // Freshman (2025) 8K PR from TFRRS; he starts the game injured.
+        ['Rishi', 'Shadaksharappa', 2, 'Scarsdale, NY', '25:23.7'],
         ['Ilan', 'Sherman-Kadish', 3, 'Newton, MA', '26:28.0'],
         ['Max', 'Sudrzynski', 2, 'Algonquin, IL', '24:17.7'],
         ['Brandon', 'Sun', 1, 'San Diego, CA', '26:42.8'],
@@ -49,6 +51,13 @@
         ['Riley', 'Wold', 1, 'Arlington Heights, IL', '26:11.1'],
         ['Toby', 'Wong', 1, 'Boulder, CO', '24:44.9']
       ],
+      // Runners who start a new save injured: out this many meets (a season
+      // is six), so they're back for the next season.
+      injuries: {
+        M: {
+          'Rishi Shadaksharappa': 6
+        }
+      },
       // Hand-set ratings that replace the generated ones (OVR is then
       // recomputed from all seven). Applied to new saves, and once to
       // existing ones.
@@ -81,6 +90,7 @@
         'Gavin O\'Connor': 'img/roster/washu/m/gavin-oconnor.webp',
         'Bankson Roach': 'img/roster/washu/m/bankson-roach.webp',
         'Will Ruszkowski': 'img/roster/washu/m/will-ruszkowski.webp',
+        'Rishi Shadaksharappa': 'img/roster/washu/m/rishi-shadaksharappa.webp',
         'Ilan Sherman-Kadish': 'img/roster/washu/m/ilan-sherman-kadish.webp',
         'Max Sudrzynski': 'img/roster/washu/m/max-sudrzynski.webp',
         'Brandon Sun': 'img/roster/washu/m/brandon-sun.webp',
@@ -124,6 +134,12 @@
     const team = XC.rosters[schoolId];
     const set = team && team.ratings && team.ratings[squad];
     return (set && set[`${first} ${last}`]) || null;
+  };
+
+  XC.rosters.injuryFor = (schoolId, squad, first, last) => {
+    const team = XC.rosters[schoolId];
+    const set = team && team.injuries && team.injuries[squad];
+    return (set && set[`${first} ${last}`]) || 0;
   };
 
   XC.rosters.forSchool = (schoolId, squad) => {

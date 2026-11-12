@@ -118,6 +118,7 @@
       const a = A.create({ person: { first, last, hometown, photo }, year, ovr, pot, rng, usedNumbers: used });
       a.real = true;
       applyRatings(a, school.id, squad);
+      a.injury = XC.rosters.injuryFor(school.id, squad, first, last);
       return a;
     });
     return roster.sort((a, b) => b.ovr - a.ovr);
