@@ -15,15 +15,19 @@
     // https://washubears.com/sports/mens-cross-country/roster (2026)
     // https://washubears.com/sports/womens-cross-country/roster (2026)
     // Marks: 2026 season bests supplied by the team (men 8K, women 6K).
-    // At the team's request, only each squad's top 20 by season best is
-    // included; nobody else from the roster is in the game or this file.
+    // At the team's request, each squad includes its top 20 by season best
+    // plus anyone outside it who asked to be in the game. The rest are in
+    // HIDDEN_ROSTER.md (not served).
     washu: {
       season: 2026,
       M: [
         ['Ryan', 'Brinker', 3, 'Grand Rapids, MI', '25:23.7'],
         ['Caleb', 'Brox', 3, 'Princeton, NJ', '26:10.0'],
+        ['Dominic', 'Buckman', 2, 'Webster Groves, MO', '26:45.4'],
         ['Brayden', 'Bunt', 1, 'Charleston, SC', '25:05.9'],
         ['Brody', 'Cushing', 1, 'Mount Prospect, IL', '25:51.1'],
+        ['Grey', 'Donner', 1, 'Alpharetta, GA', '27:02.8'],
+        ['Paul', 'Fleck', 2, 'Baldwin, NY', '27:06.7'],
         ['Charlie', 'Glatz', 2, 'Ladue, MO', '26:14.0'],
         ['Sean', 'Green', 3, 'San Francisco, CA', '24:43.2'],
         ['Mateo', 'Gros-Slovinsky', 2, 'Bethesda, MD', '26:17.7'],
@@ -33,10 +37,13 @@
         ['Ryan', 'Lien', 1, 'Shorewood, WI', '25:50.9'],
         ['Will', 'Liu', 4, 'Acton, MA', '25:52.1'],
         ['Ben', 'Lorenz', 3, 'Westport, CT', '24:45.8'],
+        ['William', 'Newkirk', 2, 'Colorado Springs, CO', '26:52.6'],
         ['Gavin', 'O\'Connor', 2, 'Evergreen Park, IL', '25:01.6'],
+        ['Bankson', 'Roach', 2, 'Fayetteville, GA', '27:23.1'],
         ['Will', 'Ruszkowski', 3, 'Michigan City, IN', '25:09.4'],
         ['Ilan', 'Sherman-Kadish', 3, 'Newton, MA', '26:28.0'],
         ['Max', 'Sudrzynski', 2, 'Algonquin, IL', '24:17.7'],
+        ['Brandon', 'Sun', 1, 'San Diego, CA', '26:42.8'],
         ['Freddie', 'van der Velden', 1, 'Natick, MA', '26:18.7'],
         ['Riley', 'Wold', 1, 'Arlington Heights, IL', '26:11.1'],
         ['Toby', 'Wong', 1, 'Boulder, CO', '24:44.9']
