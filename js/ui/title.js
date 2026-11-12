@@ -16,6 +16,10 @@
   const CHANGELOG = [
     {
       date: 'Nov 12, 2026',
+      text: 'Start a new dynasty as WashU and you coach the real 2026 Bears: all 30 men and 24 women, with their real hometowns and class years.'
+    },
+    {
+      date: 'Nov 12, 2026',
       text: 'Runners now build up to higher mileage. Ramp someone up gradually and they can handle more each week, but jump their miles too fast and injury risk climbs, even under their limit.'
     },
     {
@@ -33,10 +37,6 @@
     {
       date: 'Nov 12, 2026',
       text: 'UAA schools race on their real home courses, traced from the published course maps, with separate men\u2019s and women\u2019s routes.'
-    },
-    {
-      date: 'Nov 12, 2026',
-      text: 'Athletes now come from real hometowns, mostly near their school, with the occasional international.'
     }
   ];
 
@@ -423,7 +423,10 @@
       XC.audio.select();
       const programs = programList();
       ui.loading(this.root, 'Scouting your returning roster…');
-      const results = await Promise.all(programs.map((sq) => XC.api.fetchPeople(12, sq, school)));
+      // A school with a real roster (js/data/rosters.js) needs no generated people.
+      const results = await Promise.all(programs.map((sq) => (XC.rosters.forSchool(school.id, sq)
+        ? { people: [], live: true }
+        : XC.api.fetchPeople(12, sq, school))));
       const people = {};
       programs.forEach((sq, i) => { people[sq] = results[i].people; });
       XC.state = XC.season.newGame({ coachName: name, school: Object.assign({}, school), programs, people });

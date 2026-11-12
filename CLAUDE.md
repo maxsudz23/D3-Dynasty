@@ -45,6 +45,12 @@ D3 Dynasty is a Division III cross country coaching game in plain HTML, CSS and 
 ## Game rules (in `season.js`, `athletes.js`, `race.js`)
 - Ratings are SPD, END, HIL, KCK, IQ, DUR and MNT. OVR weights END at 0.3, SPD at 0.2 and the others at 0.1 each, capped at 99. Potential grades A–D set offseason growth.
 - The starting roster is 12 runners per squad, rated 50–90. The roster cap is 20 and the cut minimum is 5. Seniors graduate automatically.
+- **Real rosters (`js/data/rosters.js`):** WashU's 2026 men's (30) and women's (24) rosters, used with the team's permission. A new save as WashU starts with the real roster for each squad it fields, instead of a generated one, and skips the randomuser download.
+  - Names, class years and hometowns come from washubears.com. Ratings and potential are generated, seeded by name, so every save gets the same team. Mean OVR by year is 62/66/70/73 with an SD of 6, clamped 50–90.
+  - No photos: real athletes get the sketch portrait.
+  - Real athletes carry `a.real = true`, and `S.migrate` leaves their hometowns alone (it would otherwise swap any town missing from `data/places.js`).
+  - The limit is `S.rosterCap(state, sq)`: the real roster size plus `S.REAL_ROSTER_ROOM` (5), stored in `state.rosterCap`. That makes 35 men and 29 women, so year one still has a recruiting class. Use `S.rosterCap`, never `S.ROSTER_CAP`, anywhere a limit is checked or shown.
+  - To update the rosters, re-pull both roster pages, convert hometowns to "City, ST", and keep any site typos fixed (the site lists "Inclince Village" for Incline Village, NV).
 - Reputation starts at 30 and is capped at 100. Recruit OVR tops out at `62 + 0.37 × rep` (min = max − 20). Each offseason, rep drops by 3, or by 5 above 80.
 - The wheel has 10 segments: prospect ×4, walk-on ×2, transfer ×2, hidden gem and blue chip. Each squad gets 7 spins.
   - Spin and Spin all lock each other out through the `spinning` and `spinningAll` flags, however they're triggered.

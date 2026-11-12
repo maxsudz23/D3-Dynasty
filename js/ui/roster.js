@@ -134,9 +134,9 @@
       const injuredInTop = roster.slice(0, 7).filter((a) => a.injury > 0).length;
       wrap.appendChild(h('div', { class: 'depth__footer' },
         h('div', null,
-          ui.meter(count / S.ROSTER_CAP, `Roster spots used: ${count} of ${S.ROSTER_CAP}`),
+          ui.meter(Math.min(1, count / S.rosterCap(state, XC.activeSquad)), `Roster spots used: ${count} of ${S.rosterCap(state, XC.activeSquad)}`),
           h('p', { class: 'meter-label' },
-            h('span', null, `Roster spots ${count} / ${S.ROSTER_CAP}`),
+            h('span', null, `Roster spots ${count} / ${S.rosterCap(state, XC.activeSquad)}`),
             h('span', null, `Team OVR ${A.teamOvr(roster)}`))),
         actions,
         h('p', { class: 'depth__tip' },

@@ -56,7 +56,7 @@
       case 'progression':
         return { kicker: 'Offseason', headline: 'Training report', facts: ['See who grew over the summer'], action: 'Open report', go: () => XC.go('progression') };
       case 'cut':
-        return { kicker: 'Offseason', headline: 'Roster cuts', facts: [`Roster limit ${S.ROSTER_CAP} per squad`], action: 'Manage roster', go: () => XC.go('roster', { mode: 'cut' }) };
+        return { kicker: 'Offseason', headline: 'Roster cuts', facts: [`Roster limit ${state.programs.map((sq) => S.rosterCap(state, sq)).join(' / ')} per squad`], action: 'Manage roster', go: () => XC.go('roster', { mode: 'cut' }) };
       default:
         return { kicker: '', headline: '', facts: [], action: 'Continue', go: () => {} };
     }

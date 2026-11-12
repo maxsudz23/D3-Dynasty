@@ -269,7 +269,7 @@
       board.appendChild(h('div', { class: 'board__head' },
         h('div', null,
           h('h2', { class: 'section-title' }, `${S.squadLabel(sq)} prospect board`),
-          h('p', { class: 'muted' }, `${open} open roster spot${open === 1 ? '' : 's'} of ${S.ROSTER_CAP}. Signed: ${S.signedCount(state, sq)}`)),
+          h('p', { class: 'muted' }, `${open} open roster spot${open === 1 ? '' : 's'} of ${S.rosterCap(state, sq)}. Signed: ${S.signedCount(state, sq)}`)),
         h('div', { class: 'actions' },
           ui.button('Manage roster', () => XC.go('roster', { mode: 'cut', from: 'wheel' }), { variant: 'ghost', size: 'small' }),
           ui.button('Finish recruiting', () => this.finish(), { variant: 'primary', size: 'small', disabled: !allDone }))));

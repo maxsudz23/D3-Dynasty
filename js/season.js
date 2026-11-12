@@ -9,6 +9,9 @@
   const S = {};
 
   S.ROSTER_CAP = 20;
+  // Extra roster spots a real team (js/data/rosters.js) gets on top of its
+  // actual roster, so year one still has a recruiting class.
+  S.REAL_ROSTER_ROOM = 5;
   S.START_REP = 30;
   S.START_YEAR = 2027;
   S.SPINS = 7;
@@ -74,6 +77,29 @@
     return roster.sort((a, b) => b.ovr - a.ovr);
   }
 
+  // A real team's roster (js/data/rosters.js). Ratings and potential are
+  // seeded by name, so every save gets the same team; class year shapes
+  // the rating.
+  const REAL_MEAN = { 1: 62, 2: 66, 3: 70, 4: 73 };
+  function realRoster(squad, rows, school) {
+    const used = new Set();
+    const roster = rows.map(([first, last, year, hometown]) => {
+      const rng = U.mulberry32(U.hash(`real|${school.id}|${squad}|${first} ${last}`));
+      const ovr = U.clamp(Math.round(REAL_MEAN[year] + U.gauss(0, 6, rng)), 50, 90);
+      const pot = year <= 2
+        ? A.randomPot({ A: 15, B: 35, C: 35, D: 15 }, rng)
+        : A.randomPot({ A: 5, B: 25, C: 45, D: 25 }, rng);
+      const a = A.create({ person: { first, last, hometown, photo: null }, year, ovr, pot, rng, usedNumbers: used });
+      a.real = true;
+      return a;
+    });
+    return roster.sort((a, b) => b.ovr - a.ovr);
+  }
+
+  // Roster limit for a squad. A real team keeps room for its whole roster
+  // plus a recruiting class; everyone else gets the standard limit.
+  S.rosterCap = (state, sq) => Math.max(S.ROSTER_CAP, (state.rosterCap && state.rosterCap[sq]) || 0);
+
   S.newGame = function ({ coachName, school, programs, people }) {
     const state = {
       version: 1,
@@ -96,8 +122,14 @@
       homeCourse: S.newHomeCourse(Math.random, school)
     };
     programs.forEach((sq) => {
+      const real = XC.rosters && XC.rosters.forSchool(school.id, sq);
+      if (real) {
+        // Room for the whole real roster plus a first recruiting class.
+        state.rosterCap = state.rosterCap || {};
+        state.rosterCap[sq] = real.length + S.REAL_ROSTER_ROOM;
+      }
       state.squads[sq] = {
-        roster: startingRoster(sq, people[sq] || [], school),
+        roster: real ? realRoster(sq, real, school) : startingRoster(sq, people[sq] || [], school),
         strategy: 'even',
         plans: {},
         inviteWins: 0,
@@ -686,7 +718,7 @@
   };
 
   S.signedCount = (state, sq) => state.recruiting[sq].prospects.filter((p) => p.status === 'signed').length;
-  S.openSpots = (state, sq) => S.ROSTER_CAP - state.squads[sq].roster.length - S.signedCount(state, sq);
+  S.openSpots = (state, sq) => S.rosterCap(state, sq) - state.squads[sq].roster.length - S.signedCount(state, sq);
 
   S.finishRecruiting = function (state) {
     state.programs.forEach((sq) => {
@@ -732,7 +764,8 @@
     // Older saves took hometowns from randomuser.me, which pairs real city
     // names with random states. Swap any that aren't real for a seeded pick.
     const fixHometown = (p) => {
-      if (!p || XC.places.isReal(p.hometown)) return;
+      // Real roster athletes keep their hometowns as listed.
+      if (!p || p.real || XC.places.isReal(p.hometown)) return;
       const seed = `${p.id || ''}|${p.first || ''}|${p.last || ''}|${p.hometown || ''}`;
       p.hometown = XC.places.hometown(U.mulberry32(U.hash(seed)), state.school);
     };

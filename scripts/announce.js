@@ -15,8 +15,6 @@ const os = require('os');
 const path = require('path');
 const https = require('https');
 
-const SITE = 'https://d3dynasty.com';
-
 function latestChange() {
   const src = fs.readFileSync(path.join(__dirname, '..', 'js', 'ui', 'title.js'), 'utf8');
   const start = src.indexOf('const CHANGELOG = [');
@@ -50,7 +48,7 @@ function post(id, text) {
 
 (async () => {
   const change = latestChange();
-  const text = `D3 Dynasty update (${change.date}): ${change.text}\nPlay: ${SITE}`;
+  const text = `D3 Dynasty update (${change.date}): ${change.text}`;
   console.log(text);
   if (!process.argv.includes('--send')) {
     console.log('\n(dry run: add --send to post)');
