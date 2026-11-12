@@ -48,19 +48,51 @@ A phone-style inbox screen (`XC.screens.texts`) where runners message the coach 
 
 ## Real home courses
 
-**Status (Nov 2026): the engine is built, and the UAA pilot is traced.** `js/data/courses.js`, `C.fromTrace`, the season wiring and save migration are done (see CLAUDE.md, Courses).
-- **Traced so far:** six UAA courses: WashU (SIUE), Chicago (St. James Farm), Case (Squire Valleevue Farm), CMU (Youthtowne Fields), Rochester (Genesee Valley Park) and Brandeis (Highland Park, Attleboro).
+### Progress report (2026-11-12)
+
+**Shipped:** the engine plus the UAA pilot. It went to `main` in commit `64be998` and is live on d3dynasty.com. Browser checks against the live site passed for all eight UAA schools at 1440×900, 390×844 and 844×390, with no console errors and no overflow.
+
+**Built:**
+- **Data:** `js/data/courses.js` holds courses keyed by course id, with `homeOf[schoolId]`. Each course has sources, a confidence level and notes.
+- **Engine:** `C.fromTrace` builds a course from hand-traced legs, and each race strings its own path through them. Generated courses use the same shape and are unchanged: 300 seeds gave the same routes, hills and climb before and after.
+- **Wiring:** `S.venueFor`, new games and `S.migrate` use a school's real course. An old save moves onto it from the next season's schedule, unless `homeCourse.custom` is set.
+- **UI:** the meet preview map and the race canvas draw every leg, separate starts and finishes, and arrows in running direction. The preview gives each race's route its own row.
+
+**Courses traced:**
+
+| School | Course | Confidence | Source map | M/W length vs 8K/6K |
+|---|---|---|---|---|
+| WashU | SIUE Cross Country Course, Edwardsville IL | high | WashU's 2025 UAA 8K/6K maps (same as SIUE's) | −0.3% |
+| Rochester | Genesee Valley Park, Rochester NY | high | UR's 2021 UAA map | 0.0% |
+| Case | Squire Valleevue Farm, Hunting Valley OH | high | CWRU's 2023 UAA 8K/6K maps | 0.0% |
+| CMU | Youthtowne Fields, Clinton PA | medium | 2026 Horizon League 8K/6K maps | +2.0% |
+| Brandeis | Highland Park, Attleboro MA | medium | Brandeis's 2024 UAA lap-by-lap maps | −0.1% |
+| Chicago | St. James Farm, Warrenville IL | medium | 2012 CCIW men's map (same loop as the 2026 UAA map) | −0.7% |
+
+- **Why medium:**
+  - CMU moved its invitational to Robert Morris's course in 2025, and CMU's own layout there isn't published.
+  - Brandeis and Chicago each hosted only a UAA Championships, 30–35 miles from campus.
+  - Chicago's running direction and lap count are read from mile markers.
+- **Climb:** only Youthtowne publishes one (about 9 m/km, from its elevation profile). The others use their terrain's range.
+- **Hills:** none are traced yet. They're generated around the route, except at Genesee Valley Park, a floodplain with none.
 - **Left generated:**
   - **NYU:** no home meet in 2022–2026. It ran an invitational at Van Cortlandt Park until about 2008, but there's no college 8K/6K map.
   - **Emory:** no regular home meet. It hosted the 2022 UAA Championships at Nash Farm Battlefield in Hampton, GA, but that map is gone (Emory's old site is in maintenance mode, and the web archive has only error pages).
   - Revisit both if a map turns up.
-- **What the pilot taught:**
-  - Most D3 "home" courses are off campus, and several schools only ever hosted a conference meet. Record the honest situation in `notes` and use medium confidence.
-  - Conference championship pages, especially "UAA Championships" host pages, are the best source of official 8K/6K maps.
-  - Read the route order from arrows, lap colors and mile or km markers, and check it against the marker spacing before tracing.
-  - CMU's women race 5K at their own invitational, and WashU's home opener is a 5K. The game races 8K/6K everywhere, so traces follow the championship maps.
-- **Next:** one conference at a time, in the same steps: research agents, view and trace each map, the data check, the contact sheet, and a browser season. Real nationals and regional venues are still to do.
 
+**What the pilot taught:**
+- Most D3 "home" courses are off campus, and several schools only ever hosted a conference meet. Record the honest situation in `notes` and use medium confidence.
+- Conference championship pages, especially "UAA Championships" host pages, are the best source of official 8K/6K maps.
+- Read the route order from arrows, lap colors and mile or km markers, and check it against the marker spacing before tracing. Zoom in on junctions, since crops at double resolution settled every ambiguous one.
+- The men's/women's length check catches misread lap counts: a wrong lap count shows up as 15% or more off.
+- CMU's women race 5K at their own invitational, and WashU's home opener is a 5K. The game races 8K/6K everywhere, so traces follow the championship maps.
+- **Cost:** one research agent covered four schools in about 20 minutes and 230K tokens. Tracing took a few map crops per course.
+
+**What's left:**
+- The other 135 programs, one conference at a time, in the same steps: research agents, view and trace each map, the data check, the contact sheet, and a browser season.
+- Real regional and nationals venues to replace `XC.names.nationalVenues`.
+- Traced hill positions where maps have elevation profiles.
+- Set `homeCourse.custom` once the home course editor exists.
 
 Replace the invented venue names with the real courses each school races on, so a meet at a school's home course carries that course's real name, terrain and character.
 
