@@ -229,14 +229,6 @@
         XC.save();
         draw();
       }, { variant: 'ghost', size: 'small' });
-      const warn = h('p', { class: 'notice notice--warn' });
-
-      const tagFor = (plan, packSize) => {
-        if (plan === 'pack') return packSize >= 2 ? `pack of ${packSize}` : 'no pack to run with';
-        if (plan === 'hills') return 'more fatigue';
-        if (plan === 'easy') return 'less fatigue and injury risk';
-        return '';
-      };
 
       const draw = () => {
         U.clear(list);
@@ -258,7 +250,6 @@
           });
           const st = a.stats;
           const edge = R.planEdge(a, plan, ctx, pack);
-          const tag = tagFor(plan, pack.length);
           list.appendChild(h('div', { class: `runner-plan${own === 'team' ? '' : ' runner-plan--own'}` },
             h('div', { class: 'runner-plan__who' },
               h('p', { class: 'runner-plan__name' }, `${i + 1}. ${A.fullName(a)}`),
@@ -268,11 +259,8 @@
             select,
             h('p', { class: 'runner-plan__edge' },
               ui.delta(edge),
-              h('span', { class: 'runner-plan__tag' }, tag || 'expected vs even pace'))));
+              h('span', { class: 'runner-plan__tag' }, 'expected vs even pace'))));
         });
-        const lone = pack.length === 1;
-        warn.hidden = !lone;
-        warn.textContent = lone ? `${A.shortName(pack[0])} is the only runner set to Pack up and will run even pace. Put at least one more runner in the pack.` : '';
         reset.hidden = !runners.some((a) => squad.plans[a.id]);
       };
       this.drawPlans = draw;
@@ -283,7 +271,6 @@
           h('h3', { class: 'runner-plans__title' }, 'Individual plans'),
           reset),
         h('p', { class: 'muted' }, 'Give any of your seven their own plan. The number is the expected change in their race-day rating compared with even pace on this course. Luck still swings every race.'),
-        warn,
         list,
         h('details', { class: 'runner-plans__help' },
           h('summary', null, 'What each plan does'),

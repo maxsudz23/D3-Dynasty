@@ -20,15 +20,15 @@
   R.STRATEGIES = {
     hard: {
       label: 'Go out hard',
-      note: 'Grab position early. Strong-endurance teams gain; others risk a late fade.'
+      note: 'Grab position early and hold on.'
     },
     even: {
       label: 'Even pace',
-      note: 'Run within yourselves. Steady and predictable.'
+      note: 'Run within yourselves, an even effort the whole way.'
     },
     neg: {
       label: 'Negative split',
-      note: 'Sit in the pack, then reel runners in. Rewards kick and race IQ.'
+      note: 'Sit in the pack, then reel runners in.'
     }
   };
 
@@ -50,13 +50,13 @@
   // team's pace plan; the rest override it for that runner.
   R.PLANS = {
     team: { label: 'Team plan', short: 'Team', note: 'Race the team’s pace plan.' },
-    hard: { label: 'Go out hard', short: 'Hard', note: 'Grab position early. Strong endurance pays; others fade.' },
-    even: { label: 'Even pace', short: 'Even', note: 'Run within yourself. Steady and predictable.' },
-    neg: { label: 'Negative split', short: 'Neg split', note: 'Start controlled and reel runners in. Rewards kick and race IQ.' },
-    pack: { label: 'Pack up', short: 'Pack', note: 'Run with the other pack runners. The pack pulls its back end up and holds its front back, and evens out bad days. Needs at least two.' },
-    kick: { label: 'Sit and kick', short: 'Kick', note: 'Stay tucked in, then everything in the last kilometer. Great with a big kick, costly without one.' },
-    hills: { label: 'Attack the hills', short: 'Hills', note: 'Push every climb. Pays on hilly courses, wasted on flat ones, and adds fatigue.' },
-    easy: { label: 'Hold back', short: 'Hold back', note: 'A controlled effort: slower, but much less fatigue and injury risk. For tired or returning runners.' }
+    hard: { label: 'Go out hard', short: 'Hard', note: 'Grab position early and hold on.' },
+    even: { label: 'Even pace', short: 'Even', note: 'Run an even effort the whole way.' },
+    neg: { label: 'Negative split', short: 'Neg split', note: 'Start controlled, then reel runners in.' },
+    pack: { label: 'Pack up', short: 'Pack', note: 'Run together with the other runners set to Pack up.' },
+    kick: { label: 'Sit and kick', short: 'Kick', note: 'Stay tucked in, then go all out in the last kilometer.' },
+    hills: { label: 'Attack the hills', short: 'Hills', note: 'Push hard on every climb.' },
+    easy: { label: 'Hold back', short: 'Hold back', note: 'Run a controlled effort to spare the legs.' }
   };
 
   // How each plan changes fatigue and injury risk from the race.
