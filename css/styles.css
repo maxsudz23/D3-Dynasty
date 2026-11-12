@@ -766,6 +766,8 @@ body.is-title .ticker {
   width: 96px;
   height: 96px;
   object-fit: cover;
+  /* Roster headshots are taller than square; keep the face in frame. */
+  object-position: 50% 12%;
   background: var(--ink-3);
 }
 

@@ -102,7 +102,8 @@
       const pot = year <= 2
         ? A.randomPot({ A: 15, B: 35, C: 35, D: 15 }, rng)
         : A.randomPot({ A: 5, B: 25, C: 45, D: 25 }, rng);
-      const a = A.create({ person: { first, last, hometown, photo: null }, year, ovr, pot, rng, usedNumbers: used });
+      const photo = XC.rosters.photoFor(school.id, squad, first, last);
+      const a = A.create({ person: { first, last, hometown, photo }, year, ovr, pot, rng, usedNumbers: used });
       a.real = true;
       return a;
     });
@@ -784,6 +785,10 @@
     };
     state.programs.forEach((sq) => {
       state.squads[sq].roster.forEach(fixHometown);
+      // Real athletes pick up roster headshots added after their save began.
+      state.squads[sq].roster.forEach((a) => {
+        if (a.real && !a.photo && XC.rosters) a.photo = XC.rosters.photoFor(state.school.id, sq, a.first, a.last);
+      });
       const rec = state.recruiting && state.recruiting[sq];
       if (rec) {
         (rec.people || []).forEach(fixHometown);

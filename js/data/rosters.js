@@ -1,7 +1,8 @@
 /* Real rosters, used with the team's permission. A new save as one of these
    schools starts with this exact roster for each squad it fields, instead of
    a generated one. Names, class years (1 = first-year … 4 = senior) and
-   hometowns come from the school's roster page. OVR comes from each
+   hometowns (and headshots, where listed in photos) come from the
+   school's roster page. OVR comes from each
    runner's season-best time (men 8K, women 6K) through S.ovrFromMark; the
    individual ratings are shaped around it, seeded by name so every save
    gets the same team. A runner with no mark gets a seeded rating a little
@@ -48,6 +49,37 @@
         ['Riley', 'Wold', 1, 'Arlington Heights, IL', '26:11.1'],
         ['Toby', 'Wong', 1, 'Boulder, CO', '24:44.9']
       ],
+      // Roster headshots from washubears.com, hosted here. Runners without
+      // one (Lukas Keane has none on the site) get the sketch portrait.
+      photos: {
+        M: {
+        'Ryan Brinker': 'img/roster/washu/m/ryan-brinker.webp',
+        'Caleb Brox': 'img/roster/washu/m/caleb-brox.webp',
+        'Dominic Buckman': 'img/roster/washu/m/dominic-buckman.webp',
+        'Brayden Bunt': 'img/roster/washu/m/brayden-bunt.webp',
+        'Brody Cushing': 'img/roster/washu/m/brody-cushing.webp',
+        'Grey Donner': 'img/roster/washu/m/grey-donner.webp',
+        'Paul Fleck': 'img/roster/washu/m/paul-fleck.webp',
+        'Charlie Glatz': 'img/roster/washu/m/charlie-glatz.webp',
+        'Sean Green': 'img/roster/washu/m/sean-green.webp',
+        'Mateo Gros-Slovinsky': 'img/roster/washu/m/mateo-gros-slovinsky.webp',
+        'Charlie Houck': 'img/roster/washu/m/charlie-houck.webp',
+        'Russell Kramer': 'img/roster/washu/m/russell-kramer.webp',
+        'Ryan Lien': 'img/roster/washu/m/ryan-lien.webp',
+        'Will Liu': 'img/roster/washu/m/will-liu.webp',
+        'Ben Lorenz': 'img/roster/washu/m/ben-lorenz.webp',
+        'William Newkirk': 'img/roster/washu/m/william-newkirk.webp',
+        'Gavin O\'Connor': 'img/roster/washu/m/gavin-oconnor.webp',
+        'Bankson Roach': 'img/roster/washu/m/bankson-roach.webp',
+        'Will Ruszkowski': 'img/roster/washu/m/will-ruszkowski.webp',
+        'Ilan Sherman-Kadish': 'img/roster/washu/m/ilan-sherman-kadish.webp',
+        'Max Sudrzynski': 'img/roster/washu/m/max-sudrzynski.webp',
+        'Brandon Sun': 'img/roster/washu/m/brandon-sun.webp',
+        'Freddie van der Velden': 'img/roster/washu/m/freddie-van-der-velden.webp',
+        'Riley Wold': 'img/roster/washu/m/riley-wold.webp',
+        'Toby Wong': 'img/roster/washu/m/toby-wong.webp'
+        }
+      },
       W: [
         ['Emily', 'Anand', 1, 'New Braunfels, TX', '23:24.3'],
         ['Taylor', 'Buese', 2, 'Denver, CO', '22:20.1'],
@@ -71,6 +103,12 @@
         ['Grace', 'Todd', 3, 'Denver, CO', '22:24.3']
       ]
     }
+  };
+
+  XC.rosters.photoFor = (schoolId, squad, first, last) => {
+    const team = XC.rosters[schoolId];
+    const set = team && team.photos && team.photos[squad];
+    return (set && set[`${first} ${last}`]) || null;
   };
 
   XC.rosters.forSchool = (schoolId, squad) => {

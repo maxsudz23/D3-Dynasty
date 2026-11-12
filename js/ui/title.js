@@ -16,6 +16,10 @@
   const CHANGELOG = [
     {
       date: 'Nov 12, 2026',
+      text: 'The WashU men now have their real roster headshots in the game.'
+    },
+    {
+      date: 'Nov 12, 2026',
       text: 'WashU\u2019s ratings now come from the team\u2019s real 2026 season-best times, so the Bears start as one of the top programs in the country.'
     },
     {
@@ -33,10 +37,6 @@
     {
       date: 'Nov 12, 2026',
       text: 'NESCAC schools race on their real home courses, from Middlebury\u2019s golf course to Trinity\u2019s Green Monster Hill. Wheaton and North Central share St. James Farm with Chicago.'
-    },
-    {
-      date: 'Nov 12, 2026',
-      text: 'Give any of your top seven their own race plan, from sitting and kicking to packing up or holding back. Reading who suits which plan is up to you.'
     }
   ];
 

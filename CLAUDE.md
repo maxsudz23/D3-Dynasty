@@ -52,7 +52,10 @@ D3 Dynasty is a Division III cross country coaching game in plain HTML, CSS and 
   - The individual ratings around the OVR, and potential, are seeded by name, so every save gets the same team.
   - `realRoster` still supports rows with no mark (a seeded rating a little below the class average, 58/62/66/69, SD 4), but the current top-20 rows all have marks.
   - Real PRs aren't copied into `a.pr`, because the game's race times run on their own scale.
-  - No photos: real athletes get the sketch portrait.
+  - **Photos:** the men's headshots come from the washubears.com roster page and are hosted in `img/roster/washu/m/*.webp` (400×600, about 1.3 MB in all). They're mapped by name in `XC.rosters.washu.photos.M`.
+    - Only runners in the game get one. Lukas Keane has no roster photo, so he keeps the sketch, and so do the women for now.
+    - `S.migrate` fills in photos for real athletes in older saves.
+    - `.portrait` uses `object-position: 50% 12%`, so the taller headshots crop to the face.
   - Real athletes carry `a.real = true`, and `S.migrate` leaves their hometowns alone (it would otherwise swap any town missing from `data/places.js`).
   - The limit is `S.rosterCap(state, sq)`: the real roster size plus `S.REAL_ROSTER_ROOM` (5), stored in `state.rosterCap`. That makes 31 men and 25 women, so year one still has a recruiting class. Use `S.rosterCap`, never `S.ROSTER_CAP`, anywhere a limit is checked or shown.
   - To update the rosters, re-pull both roster pages, convert hometowns to "City, ST", and keep any site typos fixed (the site lists "Inclince Village" for Incline Village, NV).
