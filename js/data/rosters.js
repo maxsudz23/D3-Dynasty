@@ -38,6 +38,9 @@
         ['Lukas', 'Keane', 1, 'Naperville, IL', '26:10.4'],
         ['Russell', 'Kramer', 4, 'Penn Laird, VA', '26:22.2'],
         ['Ryan', 'Lien', 1, 'Shorewood, WI', '25:50.9'],
+        // No college mark yet: his high school 5K (15:28.4) as an 8K by
+        // Riegel's formula (t8 = t5 x 1.6^1.06). Starts the game injured.
+        ['Jackson', 'Proffitt', 1, 'Lexington, KY', '25:27.9'],
         ['Will', 'Liu', 4, 'Acton, MA', '25:52.1'],
         ['Ben', 'Lorenz', 3, 'Westport, CT', '24:45.8'],
         ['William', 'Newkirk', 2, 'Colorado Springs, CO', '26:52.6'],
@@ -57,7 +60,8 @@
       // is six), so they're back for the next season.
       injuries: {
         M: {
-          'Rishi Shadaksharappa': 6
+          'Rishi Shadaksharappa': 6,
+          'Jackson Proffitt': 6
         }
       },
       // Hand-set ratings that replace the generated ones (OVR is then
@@ -94,6 +98,7 @@
         'Ben Lorenz': 'img/roster/washu/m/ben-lorenz.webp',
         'William Newkirk': 'img/roster/washu/m/william-newkirk.webp',
         'Gavin O\'Connor': 'img/roster/washu/m/gavin-oconnor.webp',
+        'Jackson Proffitt': 'img/roster/washu/m/jackson-proffitt.webp',
         'Bankson Roach': 'img/roster/washu/m/bankson-roach.webp',
         'Will Ruszkowski': 'img/roster/washu/m/will-ruszkowski.webp',
         'Rishi Shadaksharappa': 'img/roster/washu/m/rishi-shadaksharappa.webp',
