@@ -24,7 +24,7 @@ D3 Dynasty is a Division III cross country coaching game in plain HTML, CSS and 
 - APIs need graceful failure handling, and browser APIs need handling for denied permissions.
 
 ## Architecture
-- **Engine** (pure, testable in node with `global.window = global`): `util.js`, `data/schools.js`, `data/logos.js`, `data/names.js`, `data/places.js`, `athletes.js`, `race.js`, `course.js`, `training.js`, `api.js`, `season.js`.
+- **Engine** (pure, testable in node with `global.window = global`): `util.js`, `data/schools.js`, `data/logos.js`, `data/names.js`, `data/places.js`, `data/courses.js`, `athletes.js`, `race.js`, `course.js`, `training.js`, `api.js`, `season.js`.
 - **UI:** `ui/common.js` holds the theme, crest, portraits, chrome, toasts and confirm dialog.
   - `ui.crest(school)` draws the school's athletics logo on a white shield edged in its primary color when `XC.logos.pathFor(school)` has one, and the generated monogram otherwise. Custom schools (id `custom`) and any logo that fails to load get the monogram.
   - `ui.teamMark(team)` is the small mark beside a team name in the meet preview field, the live race panel, and both results tables. Teams with a logo get a 22×25 logo shield, and the rest get the two-color chip. Both take 28px, so names line up. `team.id` is the school id, or `'user'` for the player's school.
@@ -68,12 +68,21 @@ D3 Dynasty is a Division III cross country coaching game in plain HTML, CSS and 
   - Clear routes are then scaled up to fill the frame, which only widens the gaps.
   - 600 generated courses had 0 crossings, at about 2 ms each.
 - **Hills:** Gaussian bumps in an elevation field, scaled so `climbPerKm` lands in the terrain's range: flat 1–3, rolling 4.5–8, hilly 10–16, mud 1.5–4.5.
-- **Race mapping helpers:** `C.span(layout, sq)`, `C.routeAt(layout, sq, progress)`, `C.pointAt(layout, frac)` and `C.lapsText`.
-- **Where courses come from:** every school has a fixed home course from `S.venueFor`, seeded by school id: the same name, terrain and layout on every visit.
-  - The user's own course is `state.homeCourse = { name, type, seed }`.
+- **Layout shape (generated and traced alike):** `layout.legs` holds stretches of trail (`{ id, pts, closed }`), drawn once each. `layout.race[sq]` is that squad's own path (`{ pts, at }`) strung through the legs in running order.
+  - `C.racePoint(layout, sq, progress)` places runners, start and finish lines, and split markers.
+  - A generated course has one leg, and its race paths come from `C.span`.
+  - `C.lapsText`, `C.loopLabel` and `C.describe` read a traced course's labels from its data.
+- **Real home courses (`data/courses.js`):** courses keyed by course id, with `homeOf[schoolId]`.
+  - `C.layoutFor` builds a course with a `trace` through `C.fromTrace`. A course without one is generated, steered by its `kind` and `climbPerKm`.
+  - **Traces:** points in the source map's pixel coordinates, drawn in running direction, with optional `rotate`. Each race is a list of leg segments `{ leg, from?, to?, laps?, reverse? }`, where from/to are leg fractions or `[x, y]` points on the leg. Traced routes may cross themselves; `C.isClear` only applies to generated ones.
+  - Distances come from scaling each race's path to its race length, so a good trace has men's/women's path lengths near 8:6. The data check flags anything more than 12% off.
+  - **The UAA pilot is done:** WashU (SIUE), Chicago (St. James Farm), Case (Squire Valleevue Farm), CMU (Youthtowne Fields), Rochester (Genesee Valley Park) and Brandeis (Highland Park, Attleboro). Emory and NYU have no verifiable home course, so they keep generated venues. `ROADMAP.md` has the research notes and the plan for the other conferences.
+  - Only names, facts, sources and our traced points ship. Never ship map images.
+- **Where courses come from:** every school has a fixed home course from `S.venueFor`: its real course when `XC.courses.forSchool` has one, otherwise one seeded by school id, with the same name, terrain and layout on every visit.
+  - The user's own course is `state.homeCourse = { name, type, seed, courseId? }`. New games start on the school's real course. `S.migrate` moves an old save's random home course onto the real one unless `homeCourse.custom` is set, which the planned course editor should set. Meets already on the schedule keep their stored course.
   - The nationals venue is seeded by its venue name.
   - Old saves' meets without `course.seed` derive one from the name and terrain.
-- **Drawing:** the race canvas draws the generated route with direction arrows, hill shading and contours, separate start and finish lines, and split markers that merge when laps put them in the same spot. The meet preview shows the SVG map, layout, laps and climbing.
+- **Drawing:** the race canvas draws every leg with direction arrows, hill shading and contours, separate start and finish lines, and split markers that merge when laps put them in the same spot. The meet preview shows the SVG map, layout, laps and climbing. Traced courses get a separate route row per squad.
 
 ## Training (`training.js`, `ui/training.js`)
 - **When:** one workout day before each meet. `T.GAP_WEEKS = [3, 2, 2, 4, 2, 1]` is the weeks before each meet.
@@ -132,6 +141,9 @@ No test files are in the repo. Re-create scripts like these in the scratchpad ra
 - **Engine (node):**
   - A 20-season headless run checks scoring, caps and graduation.
   - A course stress test generates 600 courses, checks crossings and clearance, climb ranges and spans, and renders a contact sheet.
+  - A course data check: every `homeOf` entry points to a real school and course, every course has source URLs and a confidence level, traces reference real legs, stay in frame and have men's/women's lengths near 8:6. Generated courses still pass `C.isClear`.
+  - A traced-course contact sheet renders `ui.courseMap` for each traced course in headless Chrome. Compare it by eye against the source map: shape, start and finish, laps, arrow direction.
+  - After changing `course.js`, snapshot 300 generated layouts before and after. Seeds must still give the same routes, hills and climb, since saves rely on them.
   - A training balance sim plays many seasons under different coaching styles: auto plan, never train, 1.25×, 1.5× and 2× volume, and max for everyone. Last results:
     - Auto was best or tied.
     - Never training was worse.

@@ -72,12 +72,19 @@
       const laps = layout.closed
         ? state.programs.map((sq) => `${state.programs.length > 1 ? `${S.squadNoun(sq)}: ` : ''}${XC.course.lapsText(layout, sq).toLowerCase()}`).join(', ')
         : state.programs.length > 1 ? 'shared finish, women start 2K in' : 'one trip across the grounds';
+      // Traced courses describe each race's route in a row of its own.
+      const layoutRows = layout.traced
+        ? [h('dt', null, 'Layout'), h('dd', null, XC.course.loopLabel(layout))].concat(state.programs.flatMap((sq) => [
+          h('dt', null, state.programs.length > 1 ? `${S.squadNoun(sq)}'s route` : 'Route'),
+          h('dd', null, XC.course.lapsText(layout, sq))
+        ]))
+        : [h('dt', null, 'Layout'), h('dd', null, `${XC.course.loopLabel(layout)}, ${laps}`)];
       const climbs = state.programs.map((sq) => `${state.programs.length > 1 ? `${S.squadNoun(sq)} ` : ''}${Math.round(layout.climbPerKm * R.DIST[sq].meters / 1000)} m`).join(', ');
       const coursePanel = ui.panel('Course', h('div', { class: 'stack' },
         ui.courseMap(meet.course, state.programs),
         h('dl', { class: 'info-list' },
           h('dt', null, 'Profile'), h('dd', null, course.label),
-          h('dt', null, 'Layout'), h('dd', null, `${XC.course.loopLabel(layout)}, ${laps}`),
+          ...layoutRows,
           h('dt', null, 'Climbing'), h('dd', null, `${climbs} total (${U.round(layout.climbPerKm, 1)} m per km)`),
           h('dt', null, 'What wins'), h('dd', null, hillNote(course, layout)),
           h('dt', null, 'Field'), h('dd', null, `${S.fieldSchools(state, meet, XC.activeSquad).length + 1} teams`))),

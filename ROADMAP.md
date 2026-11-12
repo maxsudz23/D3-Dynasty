@@ -48,6 +48,20 @@ A phone-style inbox screen (`XC.screens.texts`) where runners message the coach 
 
 ## Real home courses
 
+**Status (Nov 2026): the engine is built, and the UAA pilot is traced.** `js/data/courses.js`, `C.fromTrace`, the season wiring and save migration are done (see CLAUDE.md, Courses).
+- **Traced so far:** six UAA courses: WashU (SIUE), Chicago (St. James Farm), Case (Squire Valleevue Farm), CMU (Youthtowne Fields), Rochester (Genesee Valley Park) and Brandeis (Highland Park, Attleboro).
+- **Left generated:**
+  - **NYU:** no home meet in 2022–2026. It ran an invitational at Van Cortlandt Park until about 2008, but there's no college 8K/6K map.
+  - **Emory:** no regular home meet. It hosted the 2022 UAA Championships at Nash Farm Battlefield in Hampton, GA, but that map is gone (Emory's old site is in maintenance mode, and the web archive has only error pages).
+  - Revisit both if a map turns up.
+- **What the pilot taught:**
+  - Most D3 "home" courses are off campus, and several schools only ever hosted a conference meet. Record the honest situation in `notes` and use medium confidence.
+  - Conference championship pages, especially "UAA Championships" host pages, are the best source of official 8K/6K maps.
+  - Read the route order from arrows, lap colors and mile or km markers, and check it against the marker spacing before tracing.
+  - CMU's women race 5K at their own invitational, and WashU's home opener is a 5K. The game races 8K/6K everywhere, so traces follow the championship maps.
+- **Next:** one conference at a time, in the same steps: research agents, view and trace each map, the data check, the contact sheet, and a browser season. Real nationals and regional venues are still to do.
+
+
 Replace the invented venue names with the real courses each school races on, so a meet at a school's home course carries that course's real name, terrain and character.
 
 - **Research first (most of the work):** For each of the 143 programs, find the course it actually hosts on. Do the most thorough search possible when this starts, and record a source for every entry.

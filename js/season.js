@@ -93,7 +93,7 @@
       recruiting: null,
       offseason: null,
       training: null,
-      homeCourse: S.newHomeCourse()
+      homeCourse: S.newHomeCourse(Math.random, school)
     };
     programs.forEach((sq) => {
       state.squads[sq] = {
@@ -174,8 +174,17 @@
     return `${U.pick(XC.names.coursePrefix, rng)} ${U.pick(XC.names.courseSuffix, rng)}`;
   }
 
-  // Your own course. Kept in the save so facilities can upgrade it later.
-  S.newHomeCourse = function (rng = Math.random) {
+  // A school's real course as a venue, or null if none is verified.
+  function realVenue(schoolId) {
+    const real = XC.courses && XC.courses.forSchool(schoolId);
+    return real ? { name: real.name, type: real.type, seed: U.hash(`course|${real.id}`), courseId: real.id } : null;
+  }
+
+  // Your own course: the school's real one when we know it, otherwise a
+  // random one. Kept in the save so facilities can upgrade it later.
+  S.newHomeCourse = function (rng = Math.random, school = null) {
+    const real = school && realVenue(school.id);
+    if (real) return real;
     return {
       name: courseName(rng),
       type: U.weightedKey(XC.course.TERRAIN_WEIGHTS, rng),
@@ -187,6 +196,8 @@
   // time you visit.
   S.venueFor = function (state, school) {
     if (school.id === state.school.id) return Object.assign({}, state.homeCourse);
+    const real = realVenue(school.id);
+    if (real) return real;
     const rng = U.mulberry32(U.hash(`venue|${school.id}`));
     return {
       name: courseName(rng),
@@ -694,7 +705,12 @@
 
   // Fill in fields that older saves don't have. Safe to run on every load.
   S.migrate = function (state) {
-    if (!state.homeCourse) state.homeCourse = S.newHomeCourse();
+    if (!state.homeCourse) state.homeCourse = S.newHomeCourse(Math.random, state.school);
+    // Saves from before real courses got a random home course. Nothing can
+    // customize it yet, so move them onto the school's real one. Meets
+    // already on the schedule keep their stored course.
+    const real = realVenue(state.school.id);
+    if (real && state.homeCourse.courseId !== real.courseId && !state.homeCourse.custom) state.homeCourse = real;
     state.programs.forEach((sq) => {
       state.squads[sq].roster.forEach((a) => {
         if (typeof a.fatigue !== 'number') a.fatigue = 10;

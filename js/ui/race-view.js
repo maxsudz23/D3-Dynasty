@@ -71,7 +71,7 @@
         h('div', { class: 'race__head' },
           h('div', { class: 'race__heading' },
             h('h2', { class: 'race__title' }, `${S.squadLabel(sq)} ${R.DIST[sq].label}`),
-            h('p', { class: 'race__sub' }, `${meet.name}, ${meet.course.name}. ${R.COURSES[meet.course.type].label}, ${C.lapsText(this.layout, sq).toLowerCase()}${meet.weather ? `, ${XC.api.toF(meet.weather.tempC)}° and ${meet.weather.label.toLowerCase()}` : ''}`)),
+            h('p', { class: 'race__sub' }, `${meet.name}, ${meet.course.name}. ${R.COURSES[meet.course.type].label}, ${U.lowerFirst(C.lapsText(this.layout, sq))}${meet.weather ? `, ${XC.api.toF(meet.weather.tempC)}° and ${meet.weather.label.toLowerCase()}` : ''}`)),
           h('div', { class: 'actions race__controls' },
             h('div', { class: 'speed', role: 'group', 'aria-label': 'Playback speed' }, this.speedBtns),
             this.skipBtn,
@@ -145,28 +145,30 @@
       this.draw();
     },
 
-    // The generated route in canvas pixels. Loops repeat their first point
-    // so arc length covers the whole circuit.
+    // The course's legs and this squad's race path in canvas pixels. Loops
+    // repeat their first point so arc length covers the whole circuit.
     buildPath() {
-      const samples = this.layout.pts.map(([x, y]) => [x * this.W, y * this.H]);
-      if (this.layout.closed) samples.push(samples[0]);
-      const cum = [0];
-      for (let i = 1; i < samples.length; i++) {
-        cum.push(cum[i - 1] + Math.hypot(samples[i][0] - samples[i - 1][0], samples[i][1] - samples[i - 1][1]));
-      }
-      this.path = samples;
-      this.cum = cum;
-      this.total = cum[cum.length - 1];
+      const toCanvas = (pts, closed) => {
+        const samples = pts.map(([x, y]) => [x * this.W, y * this.H]);
+        if (closed) samples.push(samples[0]);
+        const cum = [0];
+        for (let i = 1; i < samples.length; i++) {
+          cum.push(cum[i - 1] + Math.hypot(samples[i][0] - samples[i - 1][0], samples[i][1] - samples[i - 1][1]));
+        }
+        return { pts: samples, cum, total: cum[cum.length - 1], closed };
+      };
+      this.legPaths = this.layout.legs.map((leg) => toCanvas(leg.pts, leg.closed));
+      this.racePath = toCanvas(this.layout.race[this.race.squad].pts, false);
     },
 
     // Position for race progress p (0..1), following laps on loop courses.
     runnerAt(p) {
-      return this.pointAt(C.routeAt(this.layout, this.race.squad, p));
+      return this.pointAt(this.racePath, p);
     },
 
-    pointAt(frac) {
-      const target = U.clamp(frac, 0, 1) * this.total;
-      const cum = this.cum;
+    pointAt(path, frac) {
+      const target = U.clamp(frac, 0, 1) * path.total;
+      const cum = path.cum;
       let lo = 0;
       let hi = cum.length - 1;
       while (lo < hi - 1) {
@@ -174,8 +176,8 @@
         if (cum[mid] <= target) lo = mid;
         else hi = mid;
       }
-      const a = this.path[lo];
-      const b = this.path[hi];
+      const a = path.pts[lo];
+      const b = path.pts[hi];
       const seg = cum[hi] - cum[lo] || 1;
       const t = (target - cum[lo]) / seg;
       const dx = b[0] - a[0];
@@ -238,7 +240,7 @@
       });
 
       // Trees, kept off the trail
-      const nearPath = (x, y, d) => this.path.some((p) => Math.hypot(p[0] - x, p[1] - y) < d);
+      const nearPath = (x, y, d) => this.legPaths.some((lp) => lp.pts.some((p) => Math.hypot(p[0] - x, p[1] - y) < d));
       for (let i = 0; i < 90; i++) {
         const x = rng() * W;
         const y = rng() * H;
@@ -261,23 +263,29 @@
       // Trail
       ctx.lineJoin = 'round';
       ctx.lineCap = 'round';
-      const trace = () => {
+      // Every leg's edge goes down before any trail, so junctions and
+      // crossings join cleanly.
+      const trace = (lp) => {
         ctx.beginPath();
-        this.path.forEach((p, i) => (i ? ctx.lineTo(p[0], p[1]) : ctx.moveTo(p[0], p[1])));
-        if (this.layout.closed) ctx.closePath();
+        lp.pts.forEach((p, i) => (i ? ctx.lineTo(p[0], p[1]) : ctx.moveTo(p[0], p[1])));
+        if (lp.closed) ctx.closePath();
       };
-      trace();
-      ctx.strokeStyle = 'rgba(255,255,255,0.6)';
-      ctx.lineWidth = 22 * k;
-      ctx.stroke();
-      trace();
-      ctx.strokeStyle = TRAIL[type];
-      ctx.lineWidth = 17 * k;
-      ctx.stroke();
+      this.legPaths.forEach((lp) => {
+        trace(lp);
+        ctx.strokeStyle = 'rgba(255,255,255,0.6)';
+        ctx.lineWidth = 22 * k;
+        ctx.stroke();
+      });
+      this.legPaths.forEach((lp) => {
+        trace(lp);
+        ctx.strokeStyle = TRAIL[type];
+        ctx.lineWidth = 17 * k;
+        ctx.stroke();
+      });
       if (type === 'mud') {
         ctx.fillStyle = 'rgba(70,45,25,0.35)';
         for (let i = 0; i < 40; i++) {
-          const p = this.pointAt(rng());
+          const p = this.pointAt(this.legPaths[Math.floor(rng() * this.legPaths.length)], rng());
           ctx.beginPath();
           ctx.ellipse(p.x, p.y, (4 + rng() * 6) * k, (3 + rng() * 4) * k, rng() * 3, 0, Math.PI * 2);
           ctx.fill();
@@ -286,8 +294,11 @@
 
       // Arrows showing which way the course runs
       ctx.fillStyle = 'rgba(26,36,49,0.35)';
-      for (let f = 0.04; f < 1; f += 0.07) {
-        const p = this.pointAt(f);
+      const arrowAt = [];
+      this.legPaths.forEach((lp) => {
+        for (let d = 50 * k; d < lp.total; d += 130 * k) arrowAt.push(this.pointAt(lp, d / lp.total));
+      });
+      arrowAt.forEach((p) => {
         const tx = p.ny;
         const ty = -p.nx;
         const s = 4.5 * k;
@@ -297,12 +308,12 @@
         ctx.lineTo(p.x - tx * s - p.nx * s, p.y - ty * s - p.ny * s);
         ctx.closePath();
         ctx.fill();
-      }
+      });
 
       // Start and finish lines
       const sq = this.race.squad;
       const line = (frac, checkered) => {
-        const p = this.pointAt(frac);
+        const p = this.pointAt(this.racePath, frac);
         const half = 14 * k;
         const steps = 6;
         for (let s = 0; s < steps; s++) {
@@ -316,14 +327,12 @@
           ctx.stroke();
         }
       };
-      const startAt = C.routeAt(this.layout, sq, 0);
-      const finishAt = C.routeAt(this.layout, sq, 1);
-      line(this.layout.closed ? startAt : Math.max(startAt, 0.002), false);
-      line(this.layout.closed ? finishAt : 0.998, true);
+      line(0, false);
+      line(1, true);
 
       // Labels
       const tag = (frac, text, dy) => {
-        const p = this.pointAt(frac);
+        const p = this.pointAt(this.racePath, frac);
         ctx.font = `700 ${12 * k}px 'Saira Condensed', sans-serif`;
         const w = ctx.measureText(text).width + 12 * k;
         const x = U.clamp(p.x - w / 2, 4, W - w - 4);
@@ -334,13 +343,13 @@
         ctx.textBaseline = 'middle';
         ctx.fillText(text, x + 6 * k, y + 9 * k);
       };
-      tag(startAt, 'Start', 14);
-      tag(finishAt, 'Finish', -34);
+      tag(0, 'Start', 14);
+      tag(1, 'Finish', -34);
       // On lapped courses several splits can share a spot; label them together.
       const marks = [];
       R.DIST[sq].checkpoints.forEach((label, i) => {
-        const at = C.routeAt(this.layout, sq, (i + 1) / 4);
-        const p = this.pointAt(at);
+        const at = (i + 1) / 4;
+        const p = this.pointAt(this.racePath, at);
         const near = marks.find((m) => Math.hypot(m.p.x - p.x, m.p.y - p.y) < 40 * k);
         if (near) near.labels.push(label);
         else marks.push({ at, p, labels: [label] });

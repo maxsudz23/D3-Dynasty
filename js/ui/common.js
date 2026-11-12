@@ -183,8 +183,6 @@
     const VW = 160;
     const VH = 90;
     const pt = ([x, y]) => [U.round(x * VW, 2), U.round(y * VH, 2)];
-    const points = layout.pts.map((p) => pt(p).join(',')).join(' ');
-    const trailTag = layout.closed ? 'polygon' : 'polyline';
     const tallest = Math.max(1, ...layout.hills.map((hl) => hl.h));
     const svgKids = [U.svg('rect', { class: 'course-map__grass', x: 0, y: 0, width: VW, height: VH })];
     layout.hills.forEach((hl) => {
@@ -198,14 +196,25 @@
         }));
       }
     });
-    svgKids.push(U.svg(trailTag, { class: 'course-map__edge', points }));
-    svgKids.push(U.svg(trailTag, { class: 'course-map__trail', points }));
-    for (let f = 0.05; f < 1; f += 0.1) {
-      const [x, y] = pt(C.pointAt(layout, f));
-      const [x2, y2] = pt(C.pointAt(layout, f + 0.004));
-      const ang = U.round((Math.atan2(y2 - y, x2 - x) * 180) / Math.PI, 1);
-      svgKids.push(U.svg('path', { class: 'course-map__arrow', d: 'M2.2,0 L-1.6,-1.8 L-1.6,1.8 Z', transform: `translate(${x},${y}) rotate(${ang})` }));
-    }
+    // Each leg is drawn once, edges first so crossings and junctions join.
+    const legTag = (leg) => (leg.closed ? 'polygon' : 'polyline');
+    const legPoints = (leg) => leg.pts.map((p) => pt(p).join(',')).join(' ');
+    layout.legs.forEach((leg) => svgKids.push(U.svg(legTag(leg), { class: 'course-map__edge', points: legPoints(leg) })));
+    layout.legs.forEach((leg) => svgKids.push(U.svg(legTag(leg), { class: 'course-map__trail', points: legPoints(leg) })));
+    // Arrows every so often along each leg, in running direction.
+    layout.legs.forEach((leg) => {
+      const pts = leg.pts.map(pt);
+      let run = 0;
+      for (let i = 1; i < pts.length; i++) {
+        const [x, y] = pts[i - 1];
+        const [x2, y2] = pts[i];
+        run += Math.hypot(x2 - x, y2 - y);
+        if (run < 22) continue;
+        run = 0;
+        const ang = U.round((Math.atan2(y2 - y, x2 - x) * 180) / Math.PI, 1);
+        svgKids.push(U.svg('path', { class: 'course-map__arrow', d: 'M2.2,0 L-1.6,-1.8 L-1.6,1.8 Z', transform: `translate(${x},${y}) rotate(${ang})` }));
+      }
+    });
     // Place each label beside its marker, on whichever side is clear of
     // other markers and labels.
     const markers = [];
@@ -224,23 +233,25 @@
       placed.push({ x: x + dx, y: y + dy - 1.8, halfW });
       return U.svg('text', { class: 'course-map__label', x: U.round(x + dx, 2), y: U.round(y + dy, 2), 'text-anchor': 'middle' }, text);
     };
-    const starts = [];
-    programs.forEach((sq) => {
-      const [x, y] = pt(C.pointAt(layout, C.routeAt(layout, sq, 0)));
-      const same = starts.find((s) => Math.hypot(s.x - x, s.y - y) < 6);
-      if (same) same.names.push(sq);
-      else starts.push({ x, y, names: [sq] });
-    });
-    const [fx, fy] = pt(C.pointAt(layout, C.routeAt(layout, programs[0], 1)));
-    starts.forEach((s) => markers.push({ x: s.x, y: s.y }));
-    markers.push({ x: fx, y: fy });
+    // Squads that start (or finish) in the same spot share one marker.
+    const spots = (p) => {
+      const list = [];
+      programs.forEach((sq) => {
+        const [x, y] = pt(C.racePoint(layout, sq, p));
+        const same = list.find((s) => Math.hypot(s.x - x, s.y - y) < 6);
+        if (same) same.names.push(sq);
+        else list.push({ x, y, names: [sq] });
+      });
+      return list;
+    };
+    const starts = spots(0);
+    const finishes = spots(1);
+    const text = (s, word) => (programs.length > 1 && s.names.length === 1 ? `${XC.season.squadNoun(s.names[0])}'s ${word.toLowerCase()}` : word);
+    starts.concat(finishes).forEach((s) => markers.push({ x: s.x, y: s.y }));
     starts.forEach((s) => svgKids.push(U.svg('circle', { class: 'course-map__start', cx: s.x, cy: s.y, r: 2.6 })));
-    svgKids.push(U.svg('rect', { class: 'course-map__finish', x: U.round(fx - 2.6, 2), y: U.round(fy - 2.6, 2), width: 5.2, height: 5.2 }));
-    svgKids.push(label(fx, fy, 'Finish'));
-    starts.forEach((s) => {
-      const text = programs.length > 1 && s.names.length === 1 ? `${XC.season.squadNoun(s.names[0])}'s start` : 'Start';
-      svgKids.push(label(s.x, s.y, text));
-    });
+    finishes.forEach((s) => svgKids.push(U.svg('rect', { class: 'course-map__finish', x: U.round(s.x - 2.6, 2), y: U.round(s.y - 2.6, 2), width: 5.2, height: 5.2 })));
+    finishes.forEach((s) => svgKids.push(label(s.x, s.y, text(s, 'Finish'))));
+    starts.forEach((s) => svgKids.push(label(s.x, s.y, text(s, 'Start'))));
     const svg = U.svg('svg', {
       class: `course-map course-map--${course.type}`, viewBox: `0 0 ${VW} ${VH}`, role: 'img',
       'aria-label': `${course.name}: ${C.describe(layout)}`

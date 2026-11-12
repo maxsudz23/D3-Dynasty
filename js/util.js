@@ -31,6 +31,8 @@
   U.randFloat = (min, max, rng = Math.random) => min + rng() * (max - min);
   U.pick = (arr, rng = Math.random) => arr[Math.floor(rng() * arr.length)];
   U.chance = (p, rng = Math.random) => rng() < p;
+  // Lowercase only the first letter, so "2K" stays "2K" mid-sentence.
+  U.lowerFirst = (s) => (s ? s.charAt(0).toLowerCase() + s.slice(1) : s);
 
   U.shuffle = function (arr, rng = Math.random) {
     const a = arr.slice();

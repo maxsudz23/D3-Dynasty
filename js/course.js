@@ -347,9 +347,12 @@
 
   /* ---------- Build ---------- */
 
-  C.generate = function (seed, terrain = 'rolling') {
+  // opts.kind ('loop' or 'point') and opts.climbPerKm steer a venue whose
+  // real layout we know something about but haven't traced.
+  C.generate = function (seed, terrain = 'rolling', opts = {}) {
     const rng = U.mulberry32(seed >>> 0);
-    const closed = rng() < 0.65;
+    const coin = rng();
+    const closed = opts.kind === 'loop' || opts.kind === 'point' ? opts.kind === 'loop' : coin < 0.65;
     let pts = null;
     for (let attempt = 0; attempt < 40 && !pts; attempt++) {
       const raw = closed ? blobLoop(rng) : walkPath(rng);
@@ -368,7 +371,8 @@
 
     // Scale hill heights so the climb lands in the terrain's range.
     const range = (C.TERRAIN[terrain] || C.TERRAIN.rolling).climbPerKm;
-    const targetPerKm = U.randFloat(range[0], range[1], rng);
+    const drawnPerKm = U.randFloat(range[0], range[1], rng);
+    const targetPerKm = opts.climbPerKm || drawnPerKm;
     const hills = buildHills(pts, terrain, rng);
     const rawElev = pts.map(([x, y]) => elevAt(hills, x, y));
     const rawClimb = climbOf(rawElev, isClosed) || 1;
@@ -377,7 +381,7 @@
     const elev = rawElev.map((e) => U.round(e * scale, 2));
     const climbM = climbOf(elev, isClosed);
 
-    return {
+    const layout = {
       seed,
       terrain,
       kind: isClosed ? 'loop' : 'point',
@@ -393,54 +397,205 @@
       climbM: U.round(climbM, 1),
       climbPerKm: U.round(climbM / (lenM / 1000), 1)
     };
+    // The same shape a traced course has: one leg, and each race's path
+    // along it from C.span.
+    const leg = makeLeg('main', pts, isClosed);
+    layout.legs = [publicLeg(leg)];
+    layout.race = {};
+    Object.keys(XC.race.DIST).forEach((sq) => {
+      const s = C.span(layout, sq);
+      layout.race[sq] = publicPath(walk(leg, s.start, isClosed ? s.length : 1 - s.start));
+    });
+    return layout;
+  };
+
+  /* ---------- Legs and race paths ---------- */
+
+  // A leg is one stretch of trail, open or a closed loop, in generation
+  // space. A race path strings pieces of legs together in running order.
+  function makeLeg(id, pts, closed) {
+    const { cum, total } = arcLengths(pts, closed);
+    return { id, pts, closed, cum, total };
+  }
+
+  const publicLeg = (leg) => ({ id: leg.id, closed: leg.closed, pts: leg.pts.map(([x, y]) => [x / W, y / H]) });
+
+  function publicPath(pts) {
+    const { cum, total } = arcLengths(pts, false);
+    return { pts: pts.map(([x, y]) => [x / W, y / H]), at: cum.map((c) => c / (total || 1)) };
+  }
+
+  // Point at fraction f of a leg. Loops wrap.
+  function legPoint(leg, f) {
+    const { pts, cum, total } = leg;
+    const n = pts.length;
+    const target = (leg.closed ? ((f % 1) + 1) % 1 : U.clamp(f, 0, 1)) * total;
+    if (target >= cum[n - 1]) {
+      if (!leg.closed) return pts[n - 1];
+      const t = (target - cum[n - 1]) / (total - cum[n - 1] || 1);
+      return [pts[n - 1][0] + (pts[0][0] - pts[n - 1][0]) * t, pts[n - 1][1] + (pts[0][1] - pts[n - 1][1]) * t];
+    }
+    let lo = 0;
+    let hi = n - 1;
+    while (lo < hi - 1) {
+      const mid = (lo + hi) >> 1;
+      if (cum[mid] <= target) lo = mid;
+      else hi = mid;
+    }
+    const t = (target - cum[lo]) / (cum[hi] - cum[lo] || 1);
+    return [pts[lo][0] + (pts[hi][0] - pts[lo][0]) * t, pts[lo][1] + (pts[hi][1] - pts[lo][1]) * t];
+  }
+
+  // Run d of a leg's length (negative runs it backward) from fraction f0.
+  function walk(leg, f0, d) {
+    const n = Math.max(1, Math.ceil((Math.abs(d) * leg.total) / STEP));
+    const out = [];
+    for (let i = 0; i <= n; i++) out.push(legPoint(leg, f0 + (d * i) / n));
+    return out;
+  }
+
+  function nearestFrac(leg, p) {
+    let best = 0;
+    let bestD = Infinity;
+    leg.pts.forEach((q, i) => {
+      const d = dist(p, q);
+      if (d < bestD) { bestD = d; best = i; }
+    });
+    return leg.cum[best] / leg.total;
+  }
+
+  // One piece of a race path: { leg, from?, to?, laps?, reverse? }. from and
+  // to are leg fractions or [x, y] points on the leg. On a loop, laps adds
+  // whole laps, and from === to with no laps means one full lap.
+  function segmentPts(leg, seg, toLeg) {
+    const frac = (v, dflt) => (v === undefined ? dflt : Array.isArray(v) ? nearestFrac(leg, toLeg(v)) : v);
+    const dir = seg.reverse ? -1 : 1;
+    if (!leg.closed) {
+      const f0 = frac(seg.from, seg.reverse ? 1 : 0);
+      return walk(leg, f0, frac(seg.to, seg.reverse ? 0 : 1) - f0);
+    }
+    const f0 = frac(seg.from, 0);
+    const f1 = frac(seg.to, f0);
+    let d = (((dir * (f1 - f0)) % 1) + 1) % 1;
+    if (d > 0.995) d = 0;
+    d += seg.laps !== undefined ? seg.laps : d < 0.005 ? 1 : 0;
+    return walk(leg, f0, dir * d);
+  }
+
+  /* ---------- Traced courses ---------- */
+
+  // Build a layout from a course traced off its published map (see
+  // js/data/courses.js). Points are in the tracer's own coordinates, y down;
+  // they're rotated, centered and scaled to fill the frame.
+  C.fromTrace = function (def, seed = 1) {
+    const tr = def.trace;
+    const rng = U.mulberry32(seed >>> 0);
+    const rot = ((tr.rotate || 0) * Math.PI) / 180;
+    const spin = ([x, y]) => [x * Math.cos(rot) - y * Math.sin(rot), x * Math.sin(rot) + y * Math.cos(rot)];
+    const legDefs = Object.entries(tr.legs);
+    const all = legDefs.flatMap(([, l]) => l.pts.map(spin));
+    const xs = all.map((p) => p[0]);
+    const ys = all.map((p) => p[1]);
+    const minX = Math.min(...xs);
+    const minY = Math.min(...ys);
+    const w = Math.max(...xs) - minX || 1;
+    const hgt = Math.max(...ys) - minY || 1;
+    const s = Math.min((W - 2 * MARGIN) / w, (H - 2 * MARGIN) / hgt);
+    const toLeg = (p) => {
+      const [x, y] = spin(p);
+      return [W / 2 + (x - minX - w / 2) * s, H / 2 + (y - minY - hgt / 2) * s];
+    };
+
+    const legs = {};
+    legDefs.forEach(([id, l]) => {
+      const raw = l.pts.map(toLeg);
+      const smooth = l.smooth === false ? raw : chaikin(raw, !!l.closed, 2);
+      legs[id] = makeLeg(id, resample(smooth, !!l.closed, STEP), !!l.closed);
+    });
+
+    const paths = {};
+    Object.keys(XC.race.DIST).forEach((sq) => {
+      const r = tr.races[sq];
+      if (!r) return;
+      const pts = [];
+      r.path.forEach((seg) => {
+        const piece = segmentPts(legs[seg.leg], seg, toLeg);
+        pts.push(...(pts.length ? piece.slice(1) : piece));
+      });
+      paths[sq] = pts;
+    });
+
+    // Hills: traced positions where the map shows them, otherwise drawn
+    // around the route. Heights scale so the climb matches the course.
+    const legPts = Object.values(legs).flatMap((l) => l.pts);
+    const hills = tr.hills
+      ? tr.hills.map((hl) => {
+        const [x, y] = toLeg([hl.x, hl.y]);
+        return { x, y, rx: (hl.rx || hl.r) * s, ry: (hl.ry || hl.r) * s, h: hl.h || 1 };
+      })
+      : buildHills(legPts, def.type, rng);
+    const range = (C.TERRAIN[def.type] || C.TERRAIN.rolling).climbPerKm;
+    const targetPerKm = def.climbPerKm || U.randFloat(range[0], range[1], rng);
+    const main = paths.M ? 'M' : Object.keys(paths)[0];
+    const mainM = XC.race.DIST[main].meters;
+    const rawClimb = climbOf(paths[main].map(([x, y]) => elevAt(hills, x, y)), false) || 1;
+    const scale = (targetPerKm * (mainM / 1000)) / rawClimb;
+    hills.forEach((hl) => { hl.h *= scale; });
+    const climbM = targetPerKm * (mainM / 1000);
+
+    const race = {};
+    Object.keys(paths).forEach((sq) => { race[sq] = publicPath(paths[sq]); });
+    return {
+      seed,
+      terrain: def.type,
+      traced: true,
+      kind: def.kind || 'loop',
+      closed: def.kind !== 'point',
+      legs: Object.values(legs).map(publicLeg),
+      race,
+      hills: hills.map((hl) => ({ x: hl.x / W, y: hl.y / H, rx: hl.rx / W, ry: hl.ry / H, h: hl.h })),
+      climbM: U.round(climbM, 1),
+      climbPerKm: U.round(targetPerKm, 1),
+      labels: {
+        layout: tr.layoutLabel || (def.kind === 'point' ? 'Point to point' : 'Lapped loop'),
+        describe: tr.describe || null,
+        races: Object.fromEntries(Object.keys(paths).map((sq) => [sq, tr.races[sq].label || null]))
+      },
+      // Each race path's length in frame units, to check a trace against
+      // the real distances.
+      pathUnits: Object.fromEntries(Object.keys(paths).map((sq) => [sq, arcLengths(paths[sq], false).total]))
+    };
   };
 
   const cache = new Map();
 
-  // course: { name, type, seed? }. Old saves have no seed, so derive one.
+  // course: { name, type, seed?, courseId? }. Old saves have no seed, so
+  // derive one. A courseId with a trace in XC.courses builds the real route;
+  // one without a trace is generated but steered by what's known about it.
   C.layoutFor = function (course) {
     const seed = course.seed !== undefined ? course.seed : U.hash(`${course.name}|${course.type}`);
-    const key = `${seed}|${course.type}`;
+    const def = course.courseId && XC.courses ? XC.courses.byId(course.courseId) : null;
+    const key = def ? `${course.courseId}|${seed}` : `${seed}|${course.type}`;
     if (!cache.has(key)) {
       if (cache.size > 40) cache.clear();
-      cache.set(key, C.generate(seed, course.type));
+      let layout;
+      if (def && def.trace) layout = C.fromTrace(def, seed);
+      else if (def) layout = C.generate(seed, def.type, { kind: def.kind, climbPerKm: def.climbPerKm });
+      else layout = C.generate(seed, course.type);
+      cache.set(key, layout);
     }
     return cache.get(key);
   };
 
   /* ---------- Race mapping ---------- */
 
-  // Where a squad's race starts and how much of the route it covers. Loops
-  // share one finish line; point-to-point routes share the finish and the
-  // shorter race starts further along.
-  C.span = function (layout, sq) {
-    const D = XC.race.DIST[sq].meters;
-    if (layout.closed) {
-      const start = (((layout.finishAt * layout.lenM - D) % layout.lenM) + layout.lenM) % layout.lenM;
-      return { start: start / layout.lenM, length: D / layout.lenM, laps: D / layout.lenM };
-    }
-    return { start: (layout.lenM - D) / layout.lenM, length: D / layout.lenM, laps: null };
-  };
-
-  // Route fraction for race progress p (0..1).
-  C.routeAt = function (layout, sq, p) {
-    const s = C.span(layout, sq);
-    const f = s.start + U.clamp(p, 0, 1) * s.length;
-    return layout.closed ? f % 1 : Math.min(1, f);
-  };
-
-  // Normalized [x, y] at a route fraction.
-  C.pointAt = function (layout, frac) {
-    const at = layout.at;
-    const pts = layout.pts;
-    const f = layout.closed ? ((frac % 1) + 1) % 1 : U.clamp(frac, 0, 1);
+  // Normalized [x, y] for race progress p (0..1) of a squad's race.
+  C.racePoint = function (layout, sq, p) {
+    const { pts, at } = layout.race[sq];
+    const f = U.clamp(p, 0, 1);
     let lo = 0;
     let hi = at.length - 1;
-    if (f >= at[hi]) {
-      if (!layout.closed) return pts[hi];
-      const t = (f - at[hi]) / (1 - at[hi] || 1);
-      return [pts[hi][0] + (pts[0][0] - pts[hi][0]) * t, pts[hi][1] + (pts[0][1] - pts[hi][1]) * t];
-    }
+    if (f >= at[hi]) return pts[hi];
     while (lo < hi - 1) {
       const mid = (lo + hi) >> 1;
       if (at[mid] <= f) lo = mid;
@@ -450,19 +605,37 @@
     return [pts[lo][0] + (pts[hi][0] - pts[lo][0]) * t, pts[lo][1] + (pts[hi][1] - pts[lo][1]) * t];
   };
 
+  // Generated courses only: where a squad's race starts and how much of the
+  // route it covers. Loops share one finish line; point-to-point routes
+  // share the finish and the shorter race starts further along.
+  C.span = function (layout, sq) {
+    const D = XC.race.DIST[sq].meters;
+    if (layout.closed) {
+      const start = (((layout.finishAt * layout.lenM - D) % layout.lenM) + layout.lenM) % layout.lenM;
+      return { start: start / layout.lenM, length: D / layout.lenM, laps: D / layout.lenM };
+    }
+    return { start: (layout.lenM - D) / layout.lenM, length: D / layout.lenM, laps: null };
+  };
+
   C.lapsText = function (layout, sq) {
+    if (layout.traced) return layout.labels.races[sq] || 'Traced from the course map';
     const s = C.span(layout, sq);
     if (!layout.closed) return 'Point to point';
     if (s.laps <= 1.05) return s.laps >= 0.95 ? 'One lap' : `${Math.round(s.laps * 100)}% of one lap`;
     return `${U.round(s.laps, 1)} laps`;
   };
 
-  C.loopLabel = (layout) => (layout.closed ? `${U.round(layout.lenM / 1000, 2)} km loop` : 'Point to point');
+  C.loopLabel = function (layout) {
+    if (layout.traced) return layout.labels.layout;
+    return layout.closed ? `${U.round(layout.lenM / 1000, 2)} km loop` : 'Point to point';
+  };
 
   C.describe = function (layout) {
-    const shape = layout.closed
-      ? layout.lenM >= 8000 ? 'One big loop through the grounds' : 'A lapped loop. Spectators see you every lap'
-      : 'Point to point. Every stretch is new ground';
+    const shape = layout.traced
+      ? layout.labels.describe || layout.labels.layout
+      : layout.closed
+        ? layout.lenM >= 8000 ? 'One big loop through the grounds' : 'A lapped loop. Spectators see you every lap'
+        : 'Point to point. Every stretch is new ground';
     return `${shape}, about ${Math.round(layout.climbPerKm)} m of climbing per kilometer.`;
   };
 
