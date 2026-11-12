@@ -212,16 +212,12 @@
     },
 
     // Individual plans for the starting seven. Each runner follows the team
-    // plan unless given one of their own; the edge column shows what the
-    // plan should do for them on this course.
+    // plan unless given one of their own. Only ratings and fatigue are
+    // shown; working out which plan suits whom is up to the coach.
     runnerPlans(sq, runners) {
       const state = XC.state;
       const squad = state.squads[sq];
-      const meet = this.meet;
       if (!squad.plans) squad.plans = {};
-      const layout = XC.course.layoutFor(meet.course);
-      const ctx = { squad: sq, course: meet.course.type, climbPerKm: layout.climbPerKm, weather: meet.weather, meters: R.DIST[sq].meters };
-      const planOf = (a) => R.resolvePlan(squad.plans[a.id], squad.strategy);
       const list = h('div', { class: 'runner-plans__list' });
       const reset = ui.button('Put everyone on the team plan', () => {
         runners.forEach((a) => { delete squad.plans[a.id]; });
@@ -232,10 +228,8 @@
 
       const draw = () => {
         U.clear(list);
-        const pack = runners.filter((a) => planOf(a) === 'pack');
         runners.forEach((a, i) => {
           const own = squad.plans[a.id] || 'team';
-          const plan = planOf(a);
           const select = h('select', { class: 'select', id: `plan-${sq}-${a.id}`, 'aria-label': `Race plan for ${A.fullName(a)}` },
             Object.entries(R.PLANS).map(([key, p]) => h('option', { value: key, selected: key === own },
               key === 'team' ? `Team (${R.PLANS[squad.strategy].short})` : p.label)));
@@ -249,17 +243,14 @@
             if (again) again.focus();
           });
           const st = a.stats;
-          const edge = R.planEdge(a, plan, ctx, pack);
           list.appendChild(h('div', { class: `runner-plan${own === 'team' ? '' : ' runner-plan--own'}` },
             h('div', { class: 'runner-plan__who' },
               h('p', { class: 'runner-plan__name' }, `${i + 1}. ${A.fullName(a)}`),
               h('p', { class: 'runner-plan__meta' },
-                h('span', null, `OVR ${a.ovr}`), h('span', null, `END ${st.end}`), h('span', null, `KCK ${st.kck}`),
-                h('span', null, `HIL ${st.hil}`), h('span', null, `IQ ${st.iq}`), h('span', null, `Fatigue ${Math.round(a.fatigue || 0)}`))),
-            select,
-            h('p', { class: 'runner-plan__edge' },
-              ui.delta(edge),
-              h('span', { class: 'runner-plan__tag' }, 'expected vs even pace'))));
+                h('span', null, `OVR ${a.ovr}`),
+                ['spd', 'end', 'hil', 'kck', 'iq', 'dur', 'mnt'].map((k) => h('span', null, `${k.toUpperCase()} ${st[k]}`)),
+                h('span', null, `Fatigue ${Math.round(a.fatigue || 0)}`))),
+            select));
         });
         reset.hidden = !runners.some((a) => squad.plans[a.id]);
       };
@@ -270,7 +261,7 @@
         h('div', { class: 'runner-plans__head' },
           h('h3', { class: 'runner-plans__title' }, 'Individual plans'),
           reset),
-        h('p', { class: 'muted' }, 'Give any of your seven their own plan. The number is the expected change in their race-day rating compared with even pace on this course. Luck still swings every race.'),
+        h('p', { class: 'muted' }, 'Give any of your seven their own plan, or leave them on the team plan.'),
         list,
         h('details', { class: 'runner-plans__help' },
           h('summary', null, 'What each plan does'),

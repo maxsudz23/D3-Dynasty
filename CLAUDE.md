@@ -66,7 +66,7 @@ D3 Dynasty is a Division III cross country coaching game in plain HTML, CSS and 
     - easy (hold back): −3.
   - **Pack** (`R.PACK`, `R.packAdjust`): with two or more pack runners, each one's rating moves 30% toward the pack average and gains `max(0, 1.8 − 0.12 × spread)`, where spread is the pack's rating range. Pack runners also share 60% of their race-day luck and their pace wobble, cut luck to ×0.8, and have a 40% lower bad-day chance. A lone pack runner runs even.
   - **Race costs** (`R.PLAN_COST`): hills give fatigue ×1.3 and injury ×1.15, hard gives fatigue ×1.1, and easy gives fatigue ×0.55 and injury ×0.5. `applyToRoster` applies these through `T.afterRace(a, mult)`.
-  - **Preview:** each runner's row shows `R.planEdge`, the expected rating change against even pace on this course, pack included. That number is the only hint, by the user's choice. There are no risk, fatigue or pack warnings, and the plan notes only describe the tactic, so players work out the tradeoffs themselves.
+  - **Preview:** each runner's row shows only their name, OVR, all seven ratings, fatigue and the plan dropdown. This is the user's choice: there's no expected-edge number and no risk, fatigue or pack warnings, and the plan notes only describe the tactic, so players work out the tradeoffs themselves. `R.planEdge` (the expected rating change against even pace) is still in `race.js` for the balance sim, but no screen shows it.
   - **Balance** (3,000 races per setup, 14 teams, flat, rolling and hilly):
     - The best plan per runner beat any single team plan by 0.6–1.5 team places.
     - A tight pack of three beat even pace, and packing all seven lost.
