@@ -88,6 +88,18 @@
     return U.clamp(Math.round(90 + (k.anchor - t) / k.perPoint), 40, 95);
   };
 
+  // Hand-set ratings from js/data/rosters.js. Each set is applied once
+  // (remembered in a.setRatings), so later training gains aren't undone.
+  function applyRatings(a, schoolId, squad) {
+    const set = XC.rosters && XC.rosters.ratingsFor(schoolId, squad, a.first, a.last);
+    if (!set) return;
+    const key = JSON.stringify(set);
+    if (a.setRatings === key) return;
+    Object.entries(set).forEach(([k, v]) => { if (k in a.stats) a.stats[k] = v; });
+    a.setRatings = key;
+    A.refresh(a);
+  }
+
   // A real team's roster (js/data/rosters.js). OVR comes from each
   // runner's best mark; the ratings around it and potential are seeded by
   // name, so every save gets the same team. No mark: a seeded rating a
@@ -105,6 +117,7 @@
       const photo = XC.rosters.photoFor(school.id, squad, first, last);
       const a = A.create({ person: { first, last, hometown, photo }, year, ovr, pot, rng, usedNumbers: used });
       a.real = true;
+      applyRatings(a, school.id, squad);
       return a;
     });
     return roster.sort((a, b) => b.ovr - a.ovr);
@@ -788,6 +801,7 @@
       // Real athletes pick up roster headshots added after their save began.
       state.squads[sq].roster.forEach((a) => {
         if (a.real && !a.photo && XC.rosters) a.photo = XC.rosters.photoFor(state.school.id, sq, a.first, a.last);
+        if (a.real) applyRatings(a, state.school.id, sq);
       });
       const rec = state.recruiting && state.recruiting[sq];
       if (rec) {

@@ -52,6 +52,7 @@ D3 Dynasty is a Division III cross country coaching game in plain HTML, CSS and 
   - The individual ratings around the OVR, and potential, are seeded by name, so every save gets the same team.
   - `realRoster` still supports rows with no mark (a seeded rating a little below the class average, 58/62/66/69, SD 4), but the current top-20 rows all have marks.
   - Real PRs aren't copied into `a.pr`, because the game's race times run on their own scale.
+  - **Hand-set ratings:** `XC.rosters.washu.ratings` overrides generated ratings by name. For now that's Freddie van der Velden at SPD 85 and KCK 90, which makes him 78 OVR. Mateo Gros-Slovinsky is at SPD 85 and KCK 93. OVR is recomputed afterward. Each set is applied once per athlete, remembered in `a.setRatings`, at creation and in `S.migrate`, so existing saves get it and later training isn't undone.
   - **Photos:** the men's headshots come from the washubears.com roster page and are hosted in `img/roster/washu/m/*.webp` (400×600, about 1.3 MB in all). They're mapped by name in `XC.rosters.washu.photos.M`.
     - Only runners in the game get one. Lukas Keane has no roster photo, so he keeps the sketch, and so do the women for now.
     - `S.migrate` fills in photos for real athletes in older saves.

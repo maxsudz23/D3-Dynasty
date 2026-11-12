@@ -49,6 +49,15 @@
         ['Riley', 'Wold', 1, 'Arlington Heights, IL', '26:11.1'],
         ['Toby', 'Wong', 1, 'Boulder, CO', '24:44.9']
       ],
+      // Hand-set ratings that replace the generated ones (OVR is then
+      // recomputed from all seven). Applied to new saves, and once to
+      // existing ones.
+      ratings: {
+        M: {
+          'Freddie van der Velden': { spd: 85, kck: 90 },
+          'Mateo Gros-Slovinsky': { spd: 85, kck: 93 }
+        }
+      },
       // Roster headshots from washubears.com, hosted here. Runners without
       // one (Lukas Keane has none on the site) get the sketch portrait.
       photos: {
@@ -108,6 +117,12 @@
   XC.rosters.photoFor = (schoolId, squad, first, last) => {
     const team = XC.rosters[schoolId];
     const set = team && team.photos && team.photos[squad];
+    return (set && set[`${first} ${last}`]) || null;
+  };
+
+  XC.rosters.ratingsFor = (schoolId, squad, first, last) => {
+    const team = XC.rosters[schoolId];
+    const set = team && team.ratings && team.ratings[squad];
     return (set && set[`${first} ${last}`]) || null;
   };
 
