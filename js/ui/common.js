@@ -19,8 +19,14 @@
     return '#5C6B7E';
   }
 
-  ui.setTheme = function (primary = '#2E4A6B', accent = '#E0A526') {
+  // school (optional) puts its athletics logo faintly over the background
+  // stripes; schools without one, and custom schools, get none.
+  ui.setTheme = function (primary = '#2E4A6B', accent = '#E0A526', school = null) {
     const root = document.documentElement.style;
+    const logo = school && XC.logos ? XC.logos.pathFor(school) : null;
+    // Absolute, since a url() in a custom property resolves against the
+    // stylesheet that uses it (css/), not the page.
+    root.setProperty('--team-logo', logo ? `url("${new URL(logo, document.baseURI).href}")` : 'none');
     const hi = highlightFor(primary, accent);
     const ink = U.luminance(primary) > 0.3 ? U.mixHex(primary, '#000000', 0.45) : primary;
     root.setProperty('--team-primary', primary);

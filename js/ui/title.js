@@ -58,7 +58,7 @@
     XC.audio.select();
     XC.state = XC.season.migrate(saved);
     XC.activeSquad = saved.programs[0];
-    ui.setTheme(saved.school.primary, saved.school.accent);
+    ui.setTheme(saved.school.primary, saved.school.accent, saved.school);
     XC.go('hub');
   }
 
@@ -157,7 +157,7 @@
     render(root) {
       this.root = root;
       const school = selectedSchool();
-      if (school) ui.setTheme(school.primary, school.accent);
+      if (school) ui.setTheme(school.primary, school.accent, school);
 
       const nameInput = h('input', {
         class: 'input', id: 'coach-name', type: 'text', maxlength: '24', autocomplete: 'name',
@@ -346,7 +346,7 @@
     pick(id) {
       form.schoolId = id;
       const s = XC.schools.byId(id);
-      ui.setTheme(s.primary, s.accent);
+      ui.setTheme(s.primary, s.accent, s);
       XC.audio.select();
       this.error.textContent = '';
       Array.from(this.list.querySelectorAll('.school-option')).forEach((b) => b.setAttribute('aria-pressed', 'false'));

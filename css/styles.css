@@ -78,6 +78,21 @@ body {
   font-variant-numeric: tabular-nums;
 }
 
+/* The team's athletics logo, faint over the background stripes. Set by
+   ui.setTheme as --team-logo; none for schools without a logo. */
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background-image: var(--team-logo, none);
+  background-repeat: no-repeat;
+  background-position: 63% 55%;
+  background-size: auto min(46vh, 34vw);
+  opacity: 0.1;
+}
+
 [hidden] {
   display: none !important;
 }

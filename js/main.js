@@ -163,7 +163,7 @@
     document.addEventListener('keydown', onKeyDown);
 
     const saved = XC.storage.loadGame();
-    if (saved) XC.ui.setTheme(saved.school.primary, saved.school.accent);
+    if (saved) XC.ui.setTheme(saved.school.primary, saved.school.accent, saved.school);
     else XC.ui.setTheme();
     XC.go('title');
   }
