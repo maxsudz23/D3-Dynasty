@@ -81,7 +81,7 @@
       const rec = XC.state.recruiting[sq];
       if (rec.people || loading[sq]) return;
       loading[sq] = true;
-      const result = await XC.api.fetchPeople(S.SPINS, sq);
+      const result = await XC.api.fetchPeople(S.SPINS, sq, XC.state.school);
       loading[sq] = false;
       if (!XC.state || !XC.state.recruiting || XC.state.recruiting[sq] !== rec) return;
       rec.people = result.people;

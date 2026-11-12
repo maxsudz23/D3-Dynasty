@@ -375,7 +375,7 @@
       XC.audio.select();
       const programs = programList();
       ui.loading(this.root, 'Scouting your returning roster…');
-      const results = await Promise.all(programs.map((sq) => XC.api.fetchPeople(12, sq)));
+      const results = await Promise.all(programs.map((sq) => XC.api.fetchPeople(12, sq, school)));
       const people = {};
       programs.forEach((sq, i) => { people[sq] = results[i].people; });
       XC.state = XC.season.newGame({ coachName: name, school: Object.assign({}, school), programs, people });

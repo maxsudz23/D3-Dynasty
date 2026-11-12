@@ -21,7 +21,7 @@ D3 Dynasty is a Division III cross country coaching game in plain HTML, CSS and 
 - APIs need graceful failure handling, and browser APIs need handling for denied permissions.
 
 ## Architecture
-- **Engine** (pure, testable in node with `global.window = global`): `util.js`, `data/schools.js`, `data/logos.js`, `data/names.js`, `athletes.js`, `race.js`, `course.js`, `training.js`, `api.js`, `season.js`.
+- **Engine** (pure, testable in node with `global.window = global`): `util.js`, `data/schools.js`, `data/logos.js`, `data/names.js`, `data/places.js`, `athletes.js`, `race.js`, `course.js`, `training.js`, `api.js`, `season.js`.
 - **UI:** `ui/common.js` holds the theme, crest, portraits, chrome, toasts and confirm dialog.
   - `ui.crest(school)` draws the school's athletics logo on a white shield edged in its primary color when `XC.logos.pathFor(school)` has one, and the generated monogram otherwise. Custom schools (id `custom`) and any logo that fails to load get the monogram.
   - `ui.teamMark(team)` is the small mark beside a team name in the meet preview field, the live race panel, and both results tables. Teams with a logo get a 22×25 logo shield, and the rest get the two-color chip. Both take 28px, so names line up. `team.id` is the school id, or `'user'` for the player's school.
@@ -148,6 +148,7 @@ No test files are in the repo. Re-create scripts like these in the scratchpad ra
 
 ## Known judgment calls
 - 143 real D3 programs plus a custom-school builder. Colors are approximate.
+- **Hometowns (`data/places.js`):** randomuser.me pairs real city names with random states, so only names and photos come from it. `XC.places.hometown(rng, school)` picks a real town: 4% international (mostly Canada and the British Isles), otherwise a state weighted by population × `0.06 + exp(−km/450)` from the school. `S.migrate` swaps any hometown that fails `XC.places.isReal` for a seeded pick.
 - **Logos:** 71 programs use a real athletics logo from Wikimedia Commons in `img/logos/` (listed in `js/data/logos.js`, sources in `img/logos/SOURCES.md`). The other 72 keep generated monograms.
   - Every file is public domain on Commons (a logo too simple for copyright) but is still the school's trademark. The user accepted that risk for `main`; keep logos off `grading`.
   - Only athletics marks and bold athletic wordmarks were used. Thin university text logos, seals, and wordmarks wider than about 3:1 were skipped because they're unreadable in the 34px context-bar crest.

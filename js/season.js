@@ -61,7 +61,7 @@
 
   /* ---------- New game ---------- */
 
-  function startingRoster(squad, people) {
+  function startingRoster(squad, people, school) {
     const years = U.shuffle([1, 1, 1, 2, 2, 2, 3, 3, 3, 4, 4, 4]);
     const used = new Set();
     const roster = years.map((year, i) => {
@@ -69,7 +69,7 @@
       const pot = year <= 2
         ? A.randomPot({ A: 15, B: 35, C: 35, D: 15 })
         : A.randomPot({ A: 5, B: 25, C: 45, D: 25 });
-      return A.create({ person: people[i] || XC.api.localPerson(squad), year, ovr: U.clamp(ovr, 50, 90), pot, usedNumbers: used });
+      return A.create({ person: people[i] || XC.api.localPerson(squad, Math.random, school), year, ovr: U.clamp(ovr, 50, 90), pot, usedNumbers: used });
     });
     return roster.sort((a, b) => b.ovr - a.ovr);
   }
@@ -97,7 +97,7 @@
     };
     programs.forEach((sq) => {
       state.squads[sq] = {
-        roster: startingRoster(sq, people[sq] || []),
+        roster: startingRoster(sq, people[sq] || [], school),
         strategy: 'even',
         inviteWins: 0,
         natQual: null
@@ -154,7 +154,7 @@
     const used = new Set();
     const offsets = [7, 4, 2, 0, -2, -4, -7];
     const runners = offsets.map((off, i) => A.create({
-      person: XC.api.localPerson(sq, rng),
+      person: XC.api.localPerson(sq, rng, school),
       ovr: U.clamp(Math.round(str + off + U.gauss(0, 2.5, rng)), 40, 97),
       year: U.randInt(1, 4, rng),
       rng,
@@ -631,7 +631,7 @@
     const rec = state.recruiting[sq];
     const seg = S.WHEEL[segIndex];
     const win = S.repWindow(state.rep);
-    const person = (rec.people && rec.people[rec.spins]) || XC.api.localPerson(sq);
+    const person = (rec.people && rec.people[rec.spins]) || XC.api.localPerson(sq, Math.random, state.school);
     const used = new Set(state.squads[sq].roster.map((a) => a.num).concat(rec.prospects.map((p) => p.num)));
     let ovr;
     let pot;
@@ -700,6 +700,23 @@
         if (typeof a.fatigue !== 'number') a.fatigue = 10;
         if (typeof a.form !== 'number') a.form = 0;
       });
+    });
+    // Older saves took hometowns from randomuser.me, which pairs real city
+    // names with random states. Swap any that aren't real for a seeded pick.
+    const fixHometown = (p) => {
+      if (!p || XC.places.isReal(p.hometown)) return;
+      const seed = `${p.id || ''}|${p.first || ''}|${p.last || ''}|${p.hometown || ''}`;
+      p.hometown = XC.places.hometown(U.mulberry32(U.hash(seed)), state.school);
+    };
+    state.programs.forEach((sq) => {
+      state.squads[sq].roster.forEach(fixHometown);
+      const rec = state.recruiting && state.recruiting[sq];
+      if (rec) {
+        (rec.people || []).forEach(fixHometown);
+        (rec.prospects || []).forEach(fixHometown);
+      }
+      const grads = state.offseason && state.offseason.graduates && state.offseason.graduates[sq];
+      (grads || []).forEach(fixHometown);
     });
     if (state.phase === 'season' && (!state.training || state.training.meetIndex !== state.meetIndex)) XC.training.openBlock(state);
     if (state.phase !== 'season' && state.training === undefined) state.training = null;

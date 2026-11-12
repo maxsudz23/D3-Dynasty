@@ -1,5 +1,6 @@
 /* Data APIs with graceful fallbacks.
-   - randomuser.me: recruit names, hometowns and portraits.
+   - randomuser.me: recruit names and portraits. Hometowns come from
+     XC.places, since the API pairs real city names with random states.
    - Open-Meteo: live conditions at the meet host's campus.
    Every call has a timeout and returns usable data even when offline. */
 (function (XC) {
@@ -22,12 +23,13 @@
 
   /* ---------- People (randomuser.me) ---------- */
 
-  API.localPerson = function (squad, rng = Math.random) {
+  // `near` is the school recruiting the runner, which biases the hometown.
+  API.localPerson = function (squad, rng = Math.random, near = null) {
     const pool = squad === 'W' ? XC.names.female : XC.names.male;
     return {
       first: U.pick(pool, rng),
       last: U.pick(XC.names.last, rng),
-      hometown: U.pick(XC.names.hometowns, rng),
+      hometown: XC.places.hometown(rng, near),
       photo: null
     };
   };
@@ -74,27 +76,23 @@
     });
   }
 
-  API.fetchPeople = async function (count, squad) {
+  API.fetchPeople = async function (count, squad, near = null) {
     const gender = squad === 'W' ? 'female' : 'male';
-    const url = `https://randomuser.me/api/?results=${count}&nat=us&gender=${gender}&inc=name,location,picture&noinfo`;
+    const url = `https://randomuser.me/api/?results=${count}&nat=us&gender=${gender}&inc=name,picture&noinfo`;
     try {
       const data = await fetchJson(url);
       if (!data || !Array.isArray(data.results) || data.results.length === 0) throw new Error('No people returned');
       const photos = youngPortraits(data.results.map((r) => r.picture && r.picture.large));
-      const people = data.results.map((r, i) => {
-        const state = XC.names.stateAbbr[r.location && r.location.state] || (r.location && r.location.state) || '';
-        const city = r.location && r.location.city ? r.location.city : U.pick(XC.names.hometowns).split(',')[0];
-        return {
-          first: cleanName(r.name && r.name.first) || API.localPerson(squad).first,
-          last: cleanName(r.name && r.name.last) || U.pick(XC.names.last),
-          hometown: state ? `${city}, ${state}` : city,
-          photo: photos[i]
-        };
-      });
-      while (people.length < count) people.push(API.localPerson(squad));
+      const people = data.results.map((r, i) => ({
+        first: cleanName(r.name && r.name.first) || API.localPerson(squad).first,
+        last: cleanName(r.name && r.name.last) || U.pick(XC.names.last),
+        hometown: XC.places.hometown(Math.random, near),
+        photo: photos[i]
+      }));
+      while (people.length < count) people.push(API.localPerson(squad, Math.random, near));
       return { people, live: true };
     } catch (err) {
-      const people = Array.from({ length: count }, () => API.localPerson(squad));
+      const people = Array.from({ length: count }, () => API.localPerson(squad, Math.random, near));
       return { people, live: false };
     }
   };
