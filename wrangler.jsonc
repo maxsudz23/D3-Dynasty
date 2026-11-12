@@ -5,6 +5,12 @@
   // Must match the Worker's name in the Cloudflare dashboard.
   "name": "d3-dynasty",
   "compatibility_date": "2026-11-01",
+  // d3dynasty.com is the public URL. Keep the workers.dev address too.
+  "workers_dev": true,
+  "routes": [
+    { "pattern": "d3dynasty.com", "custom_domain": true },
+    { "pattern": "www.d3dynasty.com", "custom_domain": true }
+  ],
   "assets": {
     "directory": "."
   }

@@ -6,7 +6,10 @@ D3 Dynasty is a Division III cross country coaching game in plain HTML, CSS and 
 - **`grading`:** a frozen snapshot for the grader, served by GitHub Pages at https://maxsudz23.github.io/D3-Dynasty/. Commit to it only when the user explicitly asks for a specific fix there. Apply that fix alone (for example, check out `grading` in a separate git worktree and apply a patch), keep it within the rubric, and update the `GRADING.md` line numbers it shifts.
   - So far `grading` has two fixes on top of the original game: the favicon and the wheel freeze fix.
   - The user chose to leave the race-score leak fix off `grading`.
-- **`main`:** all ongoing work. It deploys to a Cloudflare Worker named `d3-dynasty` at https://d3-dynasty.maxsudrzynski.workers.dev.
+- **`main`:** all ongoing work. It deploys to a Cloudflare Worker named `d3-dynasty`.
+  - The public URL is https://d3dynasty.com, and https://www.d3dynasty.com serves the same site. The domain's DNS is on Cloudflare.
+  - Both are attached as custom domains in the `routes` of `wrangler.jsonc`, so `npx wrangler deploy` keeps them attached. Don't remove those entries.
+  - https://d3-dynasty.maxsudrzynski.workers.dev stays on (`workers_dev: true`). Wrangler turns it off by default when routes are set.
   - `wrangler.jsonc` serves the repo root as static assets with no build step.
   - `.assetsignore` keeps `.git`, the `.md` notes and the config files off the site.
   - The `name` in `wrangler.jsonc` must match the Worker's name in the dashboard.
@@ -143,7 +146,7 @@ No test files are in the repo. Re-create scripts like these in the scratchpad ra
   - The race panel before and after the gun.
   - Old-save migration: strip the new fields, then load and play a season.
   - The earlier checks: a run with both APIs blocked and geolocation denied, and overflow at 375px.
-- Run the same checks against the live URLs after deploying. Add a `?v=` cache-buster to the URL; Cloudflare can briefly serve stale HTML right after a deploy.
+- Run the same checks against the live URLs after deploying, mainly https://d3dynasty.com. Add a `?v=` cache-buster to the URL; Cloudflare can briefly serve stale HTML right after a deploy.
 - macOS has no `timeout`. Use `perl -e 'alarm N; exec @ARGV' node script.js` to cap a run that might hang.
 
 ## Known judgment calls
