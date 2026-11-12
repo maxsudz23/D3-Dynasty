@@ -24,6 +24,8 @@
 
   const pct = (x) => `${Math.round(x * 100)}%`;
   const riskText = (r) => (r < 0.01 ? 'under 1%' : `${U.round(r * 100, 1)}%`);
+  // Rating points from the workout plus base building from the mileage.
+  const gainsOf = (r) => (r.gains || []).concat(r.baseGains || []);
 
   XC.screens.training = {
     title: 'Workout day',
@@ -86,6 +88,7 @@
       const toolbar = h('div', { class: 'actions training-toolbar' },
         ui.button('Auto plan', () => this.autoPlan(), { variant: 'ghost', size: 'small', key: 'A', attrs: { 'data-nav': '' } }),
         ui.button('Everyone rests', () => this.allRest(), { variant: 'ghost', size: 'small', attrs: { 'data-nav': '' } }),
+        ui.button('Auto mileage', () => this.autoMileage(), { variant: 'ghost', size: 'small', attrs: { 'data-nav': '' } }),
         ui.button('Add group', () => this.addGroup(), { variant: 'ghost', size: 'small', attrs: { 'data-nav': '' } }),
         ui.button('Run workout day', () => this.runDay(), { variant: 'primary', key: 'Enter', attrs: { 'data-nav': '', 'data-autofocus': '' } }));
 
@@ -213,10 +216,12 @@
           plan.groups.map((g) => h('option', { value: `g:${g.id}`, selected: current === `g:${g.id}` }, g.name)),
           h('option', { value: 'custom', selected: current === 'custom' }, 'Own workout'),
           h('option', { value: 'rest', selected: current === 'rest' }, 'Recovery run (rest)'));
-        control = h('div', { class: 'plan-row__assign' },
-          h('label', { class: 'visually-hidden', for: id }, `Assignment for ${A.fullName(a)}`),
-          sel,
-          ui.button('Suggest', () => this.suggestRunner(a), { variant: 'ghost', size: 'small' }));
+        control = h('div', { class: 'plan-row__controls' },
+          h('div', { class: 'plan-row__assign' },
+            h('label', { class: 'visually-hidden', for: id }, `Assignment for ${A.fullName(a)}`),
+            sel,
+            ui.button('Suggest', () => this.suggestRunner(a), { variant: 'ghost', size: 'small' })),
+          this.milesPicker(a));
       }
 
       const form = T.formOf(a);
@@ -235,6 +240,40 @@
         res.mode === 'custom' ? h('div', { class: 'plan-row__custom' }, this.editor(res.workout, `r-${a.id}`)) : null);
     },
 
+    // Weekly mileage for the block: auto, or a fixed number of miles.
+    milesPicker(a) {
+      const state = XC.state;
+      const id = `miles-${a.id}`;
+      const auto = T.autoMileage(state, a);
+      const current = T.isAutoMileage(a) ? 'auto' : String(a.miles);
+      const options = [h('option', { value: 'auto', selected: current === 'auto' }, `Auto (${auto} mi)`)];
+      for (let m = 0; m <= T.MILEAGE.max; m += T.MILEAGE.step) {
+        options.push(h('option', { value: String(m), selected: current === String(m) }, `${m} mi`));
+      }
+      const sel = h('select', { class: 'select', id, on: { change: (e) => this.setMiles(a, e.target.value) } }, options);
+      return h('div', { class: 'plan-row__miles' },
+        h('label', { for: id }, 'Weekly miles'),
+        sel);
+    },
+
+    setMiles(a, value) {
+      if (value === 'auto') delete a.miles;
+      else a.miles = Number(value);
+      XC.audio.nav();
+      this.save();
+      this.draw();
+      const again = document.getElementById(`miles-${a.id}`);
+      if (again) again.focus();
+    },
+
+    autoMileage() {
+      XC.state.squads[XC.activeSquad].roster.forEach((a) => { delete a.miles; });
+      XC.audio.select();
+      this.save();
+      ui.toast('Every runner is on auto mileage, set from their capacity, fatigue and the weeks to the meet.');
+      this.draw();
+    },
+
     // Recompute every runner's projection and each group's member summary.
     refresh() {
       const state = XC.state;
@@ -246,6 +285,7 @@
         U.clear(el);
         if (!res.workout) {
           el.appendChild(h('p', null, zoneBadge(null), ` Race-day fatigue ${Math.round(p.race)}`));
+          if (p.risk > 0.0005) el.appendChild(h('p', { class: 'plan-row__meta' }, `Injury risk ${riskText(p.risk)}`));
           return;
         }
         el.classList.toggle('plan-row__proj--warn', p.dnf || p.zone.key === 'over' || p.zone.key === 'danger');
@@ -400,7 +440,7 @@
       const rows = report.squads[sq];
       const worked = rows.filter((r) => r.zone);
       const dropped = rows.filter((r) => r.dnf);
-      const gains = rows.reduce((n, r) => n + r.gains.length, 0);
+      const gains = rows.reduce((n, r) => n + gainsOf(r).length, 0);
       const hurt = rows.filter((r) => r.injury);
       const cooked = rows.filter((r) => r.dnf || r.zone === 'over' || r.zone === 'danger');
 
@@ -413,15 +453,16 @@
 
       const table = h('div', { class: 'table-wrap' }, h('table', { class: 'grid' },
         h('caption', { class: 'visually-hidden' }, 'Workout report'),
-        h('thead', null, h('tr', null, ['Runner', 'Session', 'Dose', 'Fatigue', 'Form', 'Gains', 'Notes']
-          .map((c, i) => h('th', { scope: 'col', class: i <= 1 || i === 6 ? 'cell-left' : '' }, c)))),
+        h('thead', null, h('tr', null, ['Runner', 'Session', 'Miles/wk', 'Dose', 'Fatigue', 'Form', 'Gains', 'Notes']
+          .map((c, i) => h('th', { scope: 'col', class: i <= 1 || i === 7 ? 'cell-left' : '' }, c)))),
         h('tbody', null, rows.map((r) => h('tr', { class: r.injury ? 'is-reserve' : '' },
           h('td', { class: 'cell-left' }, r.name),
           h('td', { class: 'cell-left' }, r.group ? `${r.group}: ${r.desc}` : r.desc),
+          h('td', null, typeof r.miles === 'number' && r.mode !== 'injured' ? String(r.miles) : '—'),
           h('td', null, r.dnf ? dnfBadge('Dropped out') : r.zone ? zoneBadge(T.ZONES.find((z) => z.key === r.zone)) : '—', r.zone ? ` ${pct(r.x)}` : ''),
           h('td', null, `${Math.round(r.before)} → ${Math.round(r.after)}`),
           h('td', null, ui.delta(r.form)),
-          h('td', null, r.gains.length ? h('span', { class: 'badge badge--good' }, `+${r.gains.join(' +')}`) : '—'),
+          h('td', null, gainsOf(r).length ? h('span', { class: 'badge badge--good' }, `+${gainsOf(r).join(' +')}`) : '—'),
           h('td', { class: 'cell-left' }, r.injury
             ? h('span', { class: 'workout-group__warn' }, `${r.injury.what}, out ${r.injury.out} meet${r.injury.out > 1 ? 's' : ''}. `)
             : null, r.note))))));

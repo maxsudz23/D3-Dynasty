@@ -350,6 +350,89 @@
 
   const POT_MULT = { A: 1.35, B: 1.15, C: 0.95, D: 0.75 };
 
+  /* ---------- Weekly mileage ---------- */
+
+  // Miles a week a runner can absorb long term. Durable, aerobically strong
+  // upperclassmen handle far more than a fast but fragile first-year.
+  T.mileageCapacity = (a) => U.clamp(Math.round(30 + (a.stats.dur - 50) * 1.0 + (a.stats.end - 50) * 0.55 + (a.year - 1) * 5), 30, 120);
+  T.MILEAGE = {
+    standard: 0.75, // share of capacity the old fixed recovery assumed
+    fatigue: 14, // weekly fatigue at full capacity
+    exp: 2.2,
+    xp: { end: 0.07, dur: 0.03 }, // rating XP per week at standard mileage
+    floor: 0.4, // below this share of capacity, no base building
+    risk: 0.03,
+    form: 1, // race form per block for each 'standard' of base above or below usual
+    max: 130,
+    step: 5
+  };
+  const M = T.MILEAGE;
+  const mileShare = (a, miles) => miles / T.mileageCapacity(a);
+  const roundMiles = (m) => U.clamp(Math.round(m / M.step) * M.step, 0, M.max);
+
+  // The auto plan: about the best share of capacity found in the balance
+  // sim, less when tired, and a cut in the final week before a meet.
+  T.autoMileage = function (state, a) {
+    // Durable runners recover faster, so they can carry a bit more.
+    let share = U.clamp(0.79 + (a.stats.dur - 70) * 0.003, 0.7, 0.86);
+    if (T.gapWeeks(state.meetIndex) <= 1) share *= 0.75;
+    share *= 1 - Math.max(0, T.fatigueOf(a) - 35) / 120;
+    return roundMiles(T.mileageCapacity(a) * share);
+  };
+  T.isAutoMileage = (a) => typeof a.miles !== 'number';
+  T.milesFor = (state, a) => (T.isAutoMileage(a) ? T.autoMileage(state, a) : a.miles);
+
+  // Extra fatigue per week compared with the usual mileage (negative means
+  // faster recovery). Injured runners cross-train at the usual load.
+  T.mileageFatigue = function (state, a, miles = T.milesFor(state, a)) {
+    if (a.injury > 0) return 0;
+    return M.fatigue * (mileShare(a, miles) ** M.exp - M.standard ** M.exp);
+  };
+
+  // Net fatigue shed per week: recovery minus what the mileage costs.
+  T.weeklyRecovery = (state, a, miles) => T.recoveryPerWeek(state, a) - T.mileageFatigue(state, a, miles);
+  const halfBlock = (state, a, miles) => (T.weeklyRecovery(state, a, miles) * T.gapWeeks(state.meetIndex)) / 2;
+
+  // Base building per week as a share of standard: nothing below the
+  // floor, diminishing returns above, and tired legs absorb less.
+  const curve = (r) => 1 - Math.exp(-1.6 * r);
+  T.mileageShare = (a, miles) => Math.max(0, (curve(mileShare(a, miles)) - curve(M.floor)) / (curve(M.standard) - curve(M.floor)));
+  T.mileageBenefit = (a, miles, fatigue) => T.mileageShare(a, miles) * (0.35 + 0.65 * (1 - fatigue / 100));
+  // Race fitness from the block's mileage, compared with the usual amount.
+  const mileageForm = (a, miles) => (a.injury > 0 ? 0 : M.form * (T.mileageShare(a, miles) - 1));
+
+  // Overuse injury chance per week, from about 85% of capacity up.
+  T.mileageRisk = (a, miles, fatigue) => M.risk * Math.max(0, mileShare(a, miles) - 0.85) ** 1.5
+    * (1 + (fatigue / 40) ** 2) * (1.45 - a.stats.dur / 100);
+
+  // A block of weekly mileage: base-building XP and overuse risk.
+  function mileageBlock(state, a, fatigue, rng) {
+    const out = { miles: T.milesFor(state, a), gains: [], injury: null };
+    if (a.injury > 0) return out;
+    const weeks = T.gapWeeks(state.meetIndex);
+    const per = T.mileageBenefit(a, out.miles, fatigue) * (POT_MULT[a.pot] || 1);
+    a.xp = a.xp || {};
+    Object.entries(M.xp).forEach(([k, base]) => {
+      const cur = a.stats[k];
+      const slow = cur >= 90 ? 0.4 : cur >= 80 ? 0.7 : 1;
+      a.xp[k] = (a.xp[k] || 0) + per * base * weeks * slow;
+      while (a.xp[k] >= 1 && a.stats[k] < 99) {
+        a.xp[k] -= 1;
+        a.stats[k] += 1;
+        out.gains.push(A.LABELS[k]);
+      }
+    });
+    if (out.gains.length) A.refresh(a);
+    const blockRisk = 1 - (1 - T.mileageRisk(a, out.miles, fatigue)) ** weeks;
+    if (rng() < blockRisk) {
+      const [what, outFor] = U.pick(OVERUSE, rng);
+      a.injury = Math.max(a.injury, outFor);
+      out.injury = { what, out: outFor };
+    }
+    return out;
+  }
+  const OVERUSE = [['stress reaction from the mileage', 2], ['overuse shin splints', 2], ['achy Achilles from the volume', 1], ['plantar fasciitis', 1]];
+
   function stimulus(x, fatigue) {
     const raw = x <= 1 ? x : 1 + 0.3 * (1 - Math.exp(-2.5 * (x - 1)));
     return raw * (0.35 + 0.65 * (1 - fatigue / 100));
@@ -360,8 +443,7 @@
 
   // Fatigue on the workout day itself: half the block's recovery has passed.
   T.dayFatigue = function (state, a) {
-    const half = (T.recoveryPerWeek(state, a) * T.gapWeeks(state.meetIndex)) / 2;
-    return Math.max(0, T.fatigueOf(a) - half);
+    return U.clamp(T.fatigueOf(a) - halfBlock(state, a), 0, 100);
   };
 
   /* ---------- Plans ---------- */
@@ -384,10 +466,13 @@
   // Projected outcome, without changing anything.
   T.preview = function (state, sq, a, res) {
     const day = T.dayFatigue(state, a);
-    const half = (T.recoveryPerWeek(state, a) * T.gapWeeks(state.meetIndex)) / 2;
+    const half = halfBlock(state, a);
+    const miles = T.milesFor(state, a);
+    const mileRisk = a.injury > 0 ? 0 : 1 - (1 - T.mileageRisk(a, miles, day)) ** T.gapWeeks(state.meetIndex);
+    const race = (after) => U.clamp(after - half, 0, 100);
     if (!res.workout) {
       const after = Math.max(0, day - 10);
-      return { x: 0, zone: null, day, after, race: Math.max(0, after - half), risk: 0, stim: 0 };
+      return { x: 0, zone: null, day, after, race: race(after), risk: mileRisk, stim: 0, miles };
     }
     const att = T.attempt(res.workout, a, sq, day);
     const x = att.x;
@@ -403,8 +488,9 @@
       zone: T.zone(x),
       day,
       after,
-      race: Math.max(0, after - half),
-      risk: Math.min(0.5, workoutRisk(x, day, a) * (dnf ? dnf.risk : 1)),
+      race: race(after),
+      miles,
+      risk: Math.min(0.5, 1 - (1 - workoutRisk(x, day, a) * (dnf ? dnf.risk : 1)) * (1 - mileRisk)),
       stim: stimulus(x, day) * trackBonus(state, res.workout) * (dnf ? dnf.stim : 1)
     };
   };
@@ -629,9 +715,10 @@
       const rows = [];
       state.squads[sq].roster.forEach((a) => {
         const res = T.resolve(plan, a);
-        const half = (T.recoveryPerWeek(state, a) * T.gapWeeks(state.meetIndex)) / 2;
+        const half = halfBlock(state, a);
         const before = T.fatigueOf(a);
         let day = T.dayFatigue(state, a);
+        const base = mileageBlock(state, a, day, rng);
         const row = { id: a.id, name: A.fullName(a), mode: res.mode, group: res.group ? res.group.name : null, desc: '', zone: null, x: 0, gains: [], injury: null, note: '', before };
         if (res.mode === 'injured') {
           day = Math.max(0, day - 10);
@@ -668,8 +755,12 @@
           day = Math.min(100, day + workoutFatigue(x) + (dnf ? dnf.fatigue : 0));
           if (w.source === 'staff' && (row.injury || dnf || zone.key === 'danger')) row.note += ' This was the staff’s suggestion.';
         }
-        a.fatigue = U.round(Math.max(0, day - half), 1);
+        a.fatigue = U.round(U.clamp(day - half, 0, 100), 1);
+        a.form = U.clamp(T.formOf(a) + mileageForm(a, base.miles), -3, 4.5);
         row.after = a.fatigue;
+        row.miles = base.miles;
+        row.baseGains = base.gains;
+        if (base.injury && !row.injury) row.injury = base.injury;
         row.form = U.round(T.formOf(a), 1);
         rows.push(row);
       });
@@ -681,12 +772,13 @@
   };
 
   // The meet came before any workout: everyone rested through the block.
-  T.restBlock = function (state) {
+  T.restBlock = function (state, rng = Math.random) {
     state.programs.forEach((sq) => {
       state.squads[sq].roster.forEach((a) => {
-        const full = T.recoveryPerWeek(state, a) * T.gapWeeks(state.meetIndex);
-        a.fatigue = U.round(Math.max(0, T.fatigueOf(a) - full - 10), 1);
-        a.form = U.clamp(0.5 * T.formOf(a) - 0.35, -3, 4.5);
+        const full = T.weeklyRecovery(state, a) * T.gapWeeks(state.meetIndex);
+        const base = mileageBlock(state, a, T.dayFatigue(state, a), rng);
+        a.fatigue = U.round(U.clamp(T.fatigueOf(a) - full - 10, 0, 100), 1);
+        a.form = U.clamp(0.5 * T.formOf(a) - 0.35 + mileageForm(a, base.miles), -3, 4.5);
       });
     });
     if (state.training) {

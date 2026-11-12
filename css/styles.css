@@ -1077,6 +1077,48 @@ body.is-title .ticker {
   gap: 18px;
 }
 
+/* The latest change, tucked into the bottom-right corner. On narrow or
+   short screens it sits below the menu instead. */
+.title-screen {
+  position: relative;
+}
+
+.title-news {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  max-width: 300px;
+  padding: 12px 14px;
+  border-left: 4px solid var(--team-hi);
+  background: rgba(255, 255, 255, 0.72);
+  text-align: left;
+}
+
+.title-news__label {
+  margin: 0 0 4px;
+  font-size: var(--step--1);
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--ink-3);
+}
+
+.title-news__text {
+  margin: 0;
+  font-size: var(--step--1);
+  font-weight: 600;
+  line-height: 1.4;
+  color: var(--ink);
+}
+
+@media (max-width: 1100px), (max-height: 760px) {
+  .title-news {
+    position: static;
+    max-width: 520px;
+    margin-top: 24px;
+  }
+}
+
 .logo {
   position: relative;
   display: flex;
@@ -2771,6 +2813,32 @@ body.is-title .ticker {
   font-size: var(--step--1);
   font-weight: 600;
   color: var(--ink-3);
+}
+
+.plan-row__controls {
+  display: grid;
+  gap: 8px;
+  min-width: 0;
+}
+
+.plan-row__miles {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: var(--step--1);
+  font-weight: 700;
+  color: var(--ink-3);
+}
+
+.plan-row__miles label {
+  white-space: nowrap;
+}
+
+.plan-row__miles .select {
+  flex: 1;
+  min-width: 0;
+  min-height: 40px;
+  font-size: var(--step-0);
 }
 
 .plan-row__assign {

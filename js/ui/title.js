@@ -9,6 +9,13 @@
 
   /* ======================= Title ======================= */
 
+  // The latest change, shown in a corner of the title screen. Update it
+  // with every release: one or two plain sentences.
+  const LATEST_CHANGE = {
+    date: 'Nov 12, 2026',
+    text: 'Plan each runner\u2019s weekly mileage on the workout screen, or leave it on auto. More miles build fitness, but every runner has a limit before fatigue and injuries catch up.'
+  };
+
   function continueGame(saved) {
     XC.audio.select();
     XC.state = XC.season.migrate(saved);
@@ -55,7 +62,10 @@
           menu,
           h('p', { class: 'press-start', 'aria-hidden': 'true' }, 'Press Enter'),
           h('p', { class: 'title-credit' },
-            'Recruit names and photos from randomuser.me. Race-day weather from Open-Meteo. Programs are real; every athlete is fictional.'))));
+            'Recruit names and photos from randomuser.me. Race-day weather from Open-Meteo. Programs are real; every athlete is fictional.')),
+        h('aside', { class: 'title-news', 'aria-label': 'Latest change' },
+          h('p', { class: 'title-news__label' }, `What\u2019s new \u00b7 ${LATEST_CHANGE.date}`),
+          h('p', { class: 'title-news__text' }, LATEST_CHANGE.text))));
     },
     legend() {
       return [{ key: 'Enter', label: 'Start', keyboardOnly: true, action: () => document.activeElement && document.activeElement.click() }];

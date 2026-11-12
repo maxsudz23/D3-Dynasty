@@ -160,8 +160,24 @@ D3 Dynasty is a Division III cross country coaching game in plain HTML, CSS and 
   - It picks a workout type from the course's climb, the runners' weakest stats, taper and variety.
   - It then fits the volume so the middle runner hits the target without pushing anyone into overreach.
 - **Auto plan:** `T.autoPlan` rests anyone at 65+ workout-day fatigue and splits the rest into up to three groups by readiness.
+- **Weekly mileage** (`T.MILEAGE`, set per runner on the workout screen):
+  - **Storage:** each athlete's `a.miles` is a number, or missing for auto (`T.autoMileage`). It's saved with the roster and persists across blocks, so no migration is needed.
+  - **Capacity:** `T.mileageCapacity(a) = 30 + (DUR−50) + (END−50)×0.55 + (year−1)×5`, clamped 30–120. Starting rosters land around 50–90, and a durable, fit senior can pass 100.
+  - **Fatigue:** mileage changes weekly recovery against the old fixed recovery, which assumed 75% of capacity. `T.weeklyRecovery = recoveryPerWeek − 14 × (share^2.2 − 0.75^2.2)`, so more miles mean less net recovery, and it can go negative. Every block uses it: `T.dayFatigue`, the preview, `T.runDay` and `T.restBlock`. Injured runners count as usual (cross-training).
+  - **Fitness:** `T.mileageShare` is 0 below 40% of capacity, 1 at 75% and about 1.44 at 100%, with diminishing returns. Each block it moves form by `share − 1` and adds XP per week: END 0.07, DUR 0.03, scaled by share, potential and day fatigue.
+  - **Injury:** overuse risk per week is `0.03 × max(0, share − 0.85)^1.5 × (1 + (fatigue/40)²) × (1.45 − DUR/100)`, compounded over the block's weeks. It's added to the preview's injury risk.
+  - **Auto:** about 0.79 of capacity, ±0.003 per DUR point from 70 (clamped 0.70–0.86). It's cut by a quarter in a 1-week block and lowered above 35 fatigue.
+  - **Balance** (`t-mileage` sim, 100 seasons of auto workouts, place percentile, lower is better):
+    - auto 0.307, 65% 0.320, 75% 0.309, 85% 0.304, 90% 0.312.
+    - 50% and 100% of capacity both 0.361, 120% 0.478, zero miles 0.377.
+    - 100 miles for everyone 0.547, with about 11 injuries a season.
+    - Re-run this after changing mileage numbers.
 - **Plan state:** `state.training = { meetIndex, done, plans: { [sq]: { groups, assign } }, report }`. `assign[id]` is `{ mode: 'group', group }`, `{ mode: 'custom', workout }` or `{ mode: 'rest' }`.
 - **Future hooks:** `T.advisorQuality(state)` reads `state.staff.trainingQuality` (assistant coaches), and staff suggestions carry `source: 'staff'`. `state.facilities.trainingRoom` and `state.facilities.track` add bonuses. `ROADMAP.md` covers the planned texts, assistant coaches, facilities and real home courses.
+
+## Title-screen "What's new" note
+- `LATEST_CHANGE` at the top of `js/ui/title.js` is shown in the title screen's bottom-right corner, or below the menu on narrow or short screens.
+- Update its date and its one or two plain sentences with every user-facing release on `main`.
 
 ## Mobile
 - At 600px wide or less, and on touch screens, the legend bar becomes a row of real buttons. It holds the only Back control on several screens, so it must never be hidden.
