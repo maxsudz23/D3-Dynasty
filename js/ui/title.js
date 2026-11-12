@@ -20,7 +20,7 @@
     },
     {
       date: 'Nov 12, 2026',
-      text: 'Start a new dynasty as WashU and you coach the real 2026 Bears: all 30 men and 24 women, with their real hometowns and class years.'
+      text: 'Start a new dynasty as WashU and you coach the real 2026 Bears, with their real hometowns and class years.'
     },
     {
       date: 'Nov 12, 2026',

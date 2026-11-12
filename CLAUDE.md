@@ -45,16 +45,16 @@ D3 Dynasty is a Division III cross country coaching game in plain HTML, CSS and 
 ## Game rules (in `season.js`, `athletes.js`, `race.js`)
 - Ratings are SPD, END, HIL, KCK, IQ, DUR and MNT. OVR weights END at 0.3, SPD at 0.2 and the others at 0.1 each, capped at 99. Potential grades A–D set offseason growth.
 - The starting roster is 12 runners per squad, rated 50–90. The roster cap is 20 and the cut minimum is 5. Seniors graduate automatically.
-- **Real rosters (`js/data/rosters.js`):** WashU's 2026 men's (30) and women's (24) rosters, used with the team's permission. A new save as WashU starts with the real roster for each squad it fields, instead of a generated one, and skips the randomuser download.
+- **Real rosters (`js/data/rosters.js`):** WashU's 2026 men's and women's rosters, used with the team's permission. At the team's request, only each squad's top 20 by season best is included. The rest of the roster isn't in the game or the file, which is public on the site. They're listed in `HIDDEN_ROSTER.md` (not served), with a ready-made row each. Add someone back only if they want to be in the game. A new save as WashU starts with the real roster for each squad it fields, instead of a generated one, and skips the randomuser download.
   - Names, class years and hometowns come from washubears.com.
   - OVR comes from each runner's 2026 season-best mark, supplied by the team (men 8K, women 6K), through `S.ovrFromMark`. It uses the race model's seconds per point (6.73 for 8K, 5.2 for 6K), anchored so 24:20 (men) and 21:25 (women) are a 90, clamped 40–95.
-  - That gives team OVRs of 86 (men) and 84 (women), against tier-1 opponents' average of 83.
+  - That gives team OVRs of 86 (men) and 84 (women), against tier-1 opponents' average of 83. The 20th-best marks are 26:28.0 (men) and 23:46.7 (women).
   - The individual ratings around the OVR, and potential, are seeded by name, so every save gets the same team.
-  - Runners with no mark get a seeded rating a little below their class average (58/62/66/69, SD 4): Proffitt, Ezekwe, Larson and Megan Raue.
+  - `realRoster` still supports rows with no mark (a seeded rating a little below the class average, 58/62/66/69, SD 4), but the current top-20 rows all have marks.
   - Real PRs aren't copied into `a.pr`, because the game's race times run on their own scale.
   - No photos: real athletes get the sketch portrait.
   - Real athletes carry `a.real = true`, and `S.migrate` leaves their hometowns alone (it would otherwise swap any town missing from `data/places.js`).
-  - The limit is `S.rosterCap(state, sq)`: the real roster size plus `S.REAL_ROSTER_ROOM` (5), stored in `state.rosterCap`. That makes 35 men and 29 women, so year one still has a recruiting class. Use `S.rosterCap`, never `S.ROSTER_CAP`, anywhere a limit is checked or shown.
+  - The limit is `S.rosterCap(state, sq)`: the real roster size plus `S.REAL_ROSTER_ROOM` (5), stored in `state.rosterCap`. That makes 25 per squad, so year one still has a recruiting class. Use `S.rosterCap`, never `S.ROSTER_CAP`, anywhere a limit is checked or shown.
   - To update the rosters, re-pull both roster pages, convert hometowns to "City, ST", and keep any site typos fixed (the site lists "Inclince Village" for Incline Village, NV).
 - Reputation starts at 30 and is capped at 100. Recruit OVR tops out at `62 + 0.37 × rep` (min = max − 20). Each offseason, rep drops by 3, or by 5 above 80.
 - The wheel has 10 segments: prospect ×4, walk-on ×2, transfer ×2, hidden gem and blue chip. Each squad gets 7 spins.
