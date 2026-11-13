@@ -100,6 +100,63 @@
     A.refresh(a);
   }
 
+  // TFRRS-based ratings for real runners past their first year.
+  const toSec = (mark) => mark.split(':').reduce((t, part) => t * 60 + Number(part), 0);
+  // Track race to an XC race equivalent: Riegel's formula plus 3% for
+  // grass and hills.
+  const xcFromTrack = (t, from, to) => t * (to / from) ** 1.06 * 1.03;
+  S.REAL_TRACK = {
+    // 1500 equivalent (s) that rates a 90 in speed, and seconds per point.
+    M: { spd: [234, 0.8], kck: [116, 1.5], xc: 8000 },
+    W: { spd: [292, 1.15], kck: [138, 1.3], xc: 6000 }
+  };
+
+  // OVR target: 50% season best, 30% career XC PR, 20% best track
+  // 5000/10,000 as an XC equivalent; missing parts are left out.
+  S.realOvr = function (squad, mark, tf) {
+    const k = S.REAL_TRACK[squad];
+    const parts = [];
+    if (mark) parts.push([toSec(mark), 0.5]);
+    if (tf.xc) parts.push([toSec(tf.xc), 0.3]);
+    const track = [['m5000', 5000], ['m10000', 10000]].filter(([key]) => tf[key]).map(([key, d]) => xcFromTrack(toSec(tf[key]), d, k.xc));
+    if (track.length) parts.push([Math.min(...track), 0.2]);
+    if (!parts.length) return null;
+    const t = parts.reduce((sum, [v, w]) => sum + v * w, 0) / parts.reduce((sum, [, w]) => sum + w, 0);
+    const m = Math.floor(t / 60);
+    return S.ovrFromMark(squad, `${m}:${(t - m * 60).toFixed(1)}`);
+  };
+
+  // Speed from the 800/1500/mile (as 1500 equivalents), kick from the 800,
+  // then endurance (and if needed the other ratings) set so OVR lands on
+  // the target.
+  S.shapeFromTrack = function (a, squad, tf, target) {
+    const k = S.REAL_TRACK[squad];
+    const eqs = [];
+    if (tf.m1500) eqs.push(toSec(tf.m1500));
+    if (tf.mile) eqs.push(toSec(tf.mile) * 0.928);
+    if (tf.m800) eqs.push(toSec(tf.m800) * 2.05);
+    const fixed = new Set();
+    if (eqs.length) {
+      a.stats.spd = U.clamp(Math.round(90 - (U.avg(eqs) - k.spd[0]) / k.spd[1]), 45, 97);
+      fixed.add('spd');
+    }
+    if (tf.m800) {
+      a.stats.kck = U.clamp(Math.round(88 - (toSec(tf.m800) - k.kck[0]) * k.kck[1]), 45, 97);
+      fixed.add('kck');
+    }
+    const free = ['end', 'hil', 'dur', 'mnt', 'iq'].filter((key) => !fixed.has(key));
+    // Endurance moves first; once it's pinned at 40 or 99, the others take
+    // turns.
+    for (let i = 0; i < 400 && A.calcOvr(a.stats) !== target; i++) {
+      const up = A.calcOvr(a.stats) < target;
+      const movable = free.filter((x) => (up ? a.stats[x] < 99 : a.stats[x] > 40));
+      if (!movable.length) break;
+      const key = movable.includes('end') ? 'end' : movable[i % movable.length];
+      a.stats[key] += up ? 1 : -1;
+    }
+    A.refresh(a);
+  };
+
   // A real team's roster (js/data/rosters.js). OVR comes from each
   // runner's best mark; the ratings around it and potential are seeded by
   // name, so every save gets the same team. No mark: a seeded rating a
@@ -110,13 +167,17 @@
     const roster = rows.map(([first, last, year, hometown, mark]) => {
       const rng = U.mulberry32(U.hash(`real|${school.id}|${squad}|${first} ${last}`));
       const seeded = U.clamp(Math.round(REAL_MEAN[year] + U.gauss(0, 4, rng)), 50, 80);
-      const ovr = mark ? S.ovrFromMark(squad, mark) : seeded;
+      // Past their first year, TFRRS college bests sharpen the rating.
+      const tf = year >= 2 ? XC.rosters.tfrrsFor(school.id, squad, first, last) : null;
+      const fromTf = tf ? S.realOvr(squad, mark, tf) : null;
+      const ovr = fromTf || (mark ? S.ovrFromMark(squad, mark) : seeded);
       const pot = year <= 2
         ? A.randomPot({ A: 15, B: 35, C: 35, D: 15 }, rng)
         : A.randomPot({ A: 5, B: 25, C: 45, D: 25 }, rng);
       const photo = XC.rosters.photoFor(school.id, squad, first, last);
       const a = A.create({ person: { first, last, hometown, photo }, year, ovr, pot, rng, usedNumbers: used });
       a.real = true;
+      if (tf) S.shapeFromTrack(a, squad, tf, ovr);
       applyRatings(a, school.id, squad);
       a.injury = XC.rosters.injuryFor(school.id, squad, first, last);
       return a;

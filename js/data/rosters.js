@@ -56,6 +56,51 @@
         ['Riley', 'Wold', 1, 'Arlington Heights, IL', '26:11.1'],
         ['Toby', 'Wong', 1, 'Boulder, CO', '24:44.9']
       ],
+      // TFRRS college bests for everyone but first-years (who haven't run
+      // college track yet), from tfrrs.org/teams/MO_college_m_Washington_U
+      // and ..._f_Washington_U. xc is the 8K (men) or 6K (women) XC PR;
+      // m800, m1500, mile, m5000, m10000 are track PRs. S.realRating blends
+      // these with the season best to set OVR, speed and kick.
+      tfrrs: {
+        M: {
+          'Ryan Brinker': { xc: '25:23.6', m800: '1:59.48', m1500: '4:05.79', mile: '4:28.60' },
+          'Caleb Brox': { xc: '25:56.9', m800: '1:57.69', m1500: '3:54.52', mile: '4:16.08' },
+          'Dominic Buckman': { xc: '26:45.4' },
+          'Calvin Crossland': { xc: '27:02.9', m800: '1:57.40', m1500: '3:59.45', mile: '4:25.99' },
+          'Paul Fleck': { xc: '27:06.7' },
+          'Charlie Glatz': { xc: '26:14.0' },
+          'Sean Green': { xc: '24:43.2', mile: '4:21.63', m5000: '14:46.08' },
+          'Mateo Gros-Slovinsky': { xc: '25:58.3' },
+          'Charlie Houck': { xc: '24:48.8', m800: '2:00.96', mile: '4:19.65', m5000: '14:34.64', m10000: '31:13.50' },
+          'Russell Kramer': { xc: '26:22.2', m800: '2:07.73', m1500: '4:09.01', mile: '4:30.01', m5000: '15:17.19', m10000: '32:11.55' },
+          'Will Liu': { xc: '25:25.0', m800: '2:00.59', mile: '4:15.32', m5000: '14:40.89' },
+          'Ben Lorenz': { xc: '24:45.8', m800: '2:05.54', m1500: '4:03.10', mile: '4:22.15', m5000: '14:57.30' },
+          'William Newkirk': { xc: '26:52.6', m800: '1:53.96', mile: '4:27.25' },
+          'Gavin O\'Connor': { xc: '25:01.6' },
+          'Bankson Roach': { xc: '27:23.1' },
+          'Will Ruszkowski': { xc: '25:09.4', m800: '2:03.17', mile: '4:27.48', m5000: '14:52.11' },
+          'Rishi Shadaksharappa': { xc: '25:23.7' },
+          'Ilan Sherman-Kadish': { xc: '25:27.2', mile: '4:24.82', m5000: '14:54.70' },
+          'Max Sudrzynski': { xc: '24:17.7' }
+        },
+        W: {
+          'Taylor Buese': { xc: '22:20.1', m800: '2:25.17', mile: '5:09.56' },
+          'Sally Carrington': { xc: '22:00.1', m800: '2:28.37', m1500: '4:53.39', mile: '5:14.98', m5000: '17:41.79' },
+          'Lily Dipple': { xc: '23:00.2', m800: '2:18.24', m1500: '4:56.96', mile: '5:18.97' },
+          'Kira Larner': { xc: '22:50.6', m800: '2:30.39', m1500: '4:53.12', mile: '5:20.39', m5000: '18:29.83' },
+          'Lucinda Laughlin': { xc: '20:41.6' },
+          'Maddy Lee': { xc: '22:10.2' },
+          'Amelie Maltz': { xc: '22:51.9', m1500: '4:52.24', mile: '5:24.51', m5000: '17:59.04' },
+          'Anna McAndrew': { xc: '23:31.2', m800: '2:32.87', m1500: '5:05.73', mile: '5:38.69' },
+          'Avery Nason': { xc: '22:02.4', m800: '2:28.82', m1500: '4:55.26', mile: '5:15.22', m5000: '17:42.86', m10000: '37:17.68' },
+          'Lucy Peterson': { xc: '22:32.5', m800: '2:30.11', m1500: '4:57.83', mile: '5:21.73', m5000: '18:10.66' },
+          'Lauren Raley': { xc: '22:05.7' },
+          'Mackenzie Raue': { xc: '22:41.2' },
+          'Leah Sekulich': { xc: '22:30.9', m800: '2:27.00', mile: '5:13.53', m5000: '17:34.24' },
+          'Sofia Sheldon': { xc: '22:27.4' },
+          'Grace Todd': { xc: '22:24.3' }
+        }
+      },
       // Runners who start a new save injured: out this many meets (a season
       // is six), so they're back for the next season.
       injuries: {
@@ -70,10 +115,7 @@
       ratings: {
         M: {
           'Freddie van der Velden': { spd: 85, kck: 90 },
-          'Mateo Gros-Slovinsky': { spd: 85, kck: 93 },
-          // 1:57.40 800 / 3:59.45 1500 on TFRRS: a fast, kick-heavy runner
-          // whose 8K PR (27:02.9) still makes him a 66 overall.
-          'Calvin Crossland': { spd: 80, kck: 80, end: 52 }
+          'Mateo Gros-Slovinsky': { spd: 85, kck: 93 }
         }
       },
       // Roster headshots from washubears.com, hosted here. Runners without
@@ -151,6 +193,12 @@
     const team = XC.rosters[schoolId];
     const set = team && team.injuries && team.injuries[squad];
     return (set && set[`${first} ${last}`]) || 0;
+  };
+
+  XC.rosters.tfrrsFor = (schoolId, squad, first, last) => {
+    const team = XC.rosters[schoolId];
+    const set = team && team.tfrrs && team.tfrrs[squad];
+    return (set && set[`${first} ${last}`]) || null;
   };
 
   XC.rosters.forSchool = (schoolId, squad) => {
