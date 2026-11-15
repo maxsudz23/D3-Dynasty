@@ -8,3 +8,4 @@ node_modules
 wrangler.jsonc
 *.md
 scripts/
+proto/

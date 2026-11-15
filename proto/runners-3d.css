@@ -1,0 +1,84 @@
+:root {
+  --ink: #14202E;
+  --paper: #F4F1EA;
+  --accent: #E0A526;
+}
+
+* { box-sizing: border-box; }
+
+html, body {
+  margin: 0;
+  height: 100%;
+  background: var(--ink);
+  color: var(--paper);
+  font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+  overflow: hidden;
+}
+
+.stage {
+  position: fixed;
+  inset: 0;
+}
+
+.stage canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+.hud {
+  position: fixed;
+  left: 16px;
+  bottom: 16px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  align-items: center;
+  max-width: calc(100vw - 32px);
+  padding: 8px;
+  background: rgba(20, 32, 46, 0.82);
+  border-radius: 6px;
+}
+
+.hud__title {
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  font-size: 12px;
+  margin-right: 6px;
+}
+
+.hud button {
+  font: inherit;
+  font-size: 13px;
+  padding: 6px 10px;
+  border: 1px solid rgba(244, 241, 234, 0.35);
+  border-radius: 4px;
+  background: transparent;
+  color: var(--paper);
+  cursor: pointer;
+}
+
+.hud button[aria-pressed="true"] {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--ink);
+  font-weight: 700;
+}
+
+.notice {
+  position: fixed;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  padding: 16px;
+  text-align: center;
+}
+
+.hud__credit {
+  flex-basis: 100%;
+  font-size: 11px;
+  opacity: 0.75;
+}
+
+.hud--hidden { display: none; }

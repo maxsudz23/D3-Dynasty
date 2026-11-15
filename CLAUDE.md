@@ -12,7 +12,7 @@ D3 Dynasty is a Division III cross country coaching game in plain HTML, CSS and 
   - https://d3-dynasty.maxsudrzynski.workers.dev stays on (`workers_dev: true`). Wrangler turns it off by default when routes are set.
     - It's also the link that works on WashU eduroam for now. The domain was registered 2026-11-12, and the campus Palo Alto firewall answers DNS for newly registered domains with `sinkhole.paloaltonetworks.com`, which shows as ERR_CONNECTION_RESET. That should lift once the domain is past Palo Alto's ~30-day "newly registered" window (mid-December 2026), or sooner if Palo Alto recategorizes it or WashU IT allowlists it. Nothing in the site causes it.
   - `wrangler.jsonc` serves the repo root as static assets with no build step.
-  - `.assetsignore` keeps `.git`, the `.md` notes and the config files off the site.
+  - `.assetsignore` keeps `.git`, the `.md` notes, the config files, `scripts/` and `proto/` off the site.
   - The `name` in `wrangler.jsonc` must match the Worker's name in the dashboard.
   - Deploy with `npx wrangler deploy` (this machine is logged in). Whether pushes to `main` also auto-build from GitHub is unconfirmed, so deploy after pushing and check the live site.
 - Commit and push only when the user asks.
@@ -234,6 +234,17 @@ D3 Dynasty is a Division III cross country coaching game in plain HTML, CSS and 
 - **"Space then A on the wheel crashes it":** the shortcuts bypassed the disabled buttons, and Spin all looped without yielding a frame. The fix is on both branches.
 - **"8×1K at 3K with 45″ rest should cook my guy more" and "40 min at 10K feels like a lot":** this led to the time-to-exhaustion strain model and the narrower capacity range. Both sessions are now "Too much" even for strong runners.
 - **"The race shows the final score before the gun":** this led to the race-view placeholder. It's fixed on `main` only.
+
+## 3D race view prototype (`proto/`)
+- **What it is:** a standalone page, `proto/runners-3d.html`, testing a 3D race view. It isn't part of the game: nothing in `index.html` or `js/` loads it, and deploys skip it.
+  - Runners are built in code from primitives, with a coded run cycle and real UAA colors.
+  - It races the real SIUE course: USGS lidar terrain, a USGS/NAIP aerial photo, trees planted from the photo, and WashU's trace placed on the ground by three landmarks. A made-up demo loop is also available.
+- **Details:** `PROTOTYPE_3D.md` has the files, controls, data sources, the landmark fit, how to rebuild (`node proto/tools/build-siue.js`) and the known bugs. ROADMAP.md, "3D race view", has the plan for merging it into the game.
+- **Known bugs, noted for later:**
+  - Runners spin in circles at some sharp turns.
+  - Traced legs that share ground draw overlapping trails. The user's fix: merge any stretch run more than once into a single trail.
+- **Rules that still apply:** classic scripts only (Three.js r149 is saved in `proto/vendor/`), works from `file://`, and no Google imagery or tiles.
+  - A real course's photo has to be a data URL, because WebGL won't use a `file://` image as a texture.
 
 ## Testing
 No test files are in the repo. Re-create scripts like these in the scratchpad rather than adding dependencies; `puppeteer-core` drives the installed Chrome at `/Applications/Google Chrome.app`.

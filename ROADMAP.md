@@ -134,3 +134,26 @@ Replace the invented venue names with the real courses each school races on, so 
   - Check that every `homeOf` entry points to an existing course and every course has at least one source.
   - For traced courses, render each one beside its source map for a side-by-side check of shape, start and finish, and laps, and check that the route length matches the race distance.
   - Check that the course stress test still passes for the generated ones.
+
+## 3D race view
+
+An optional 3D view of the race animation, beside the current 2D canvas. A working prototype is in `proto/`. `PROTOTYPE_3D.md` has its full context: files, how it works, data sources and known bugs.
+
+- **Idea:** the race is already decided before the animation plays (`S.runMeet`), so 3D is only a second renderer of the same replay. Results, saves and course seeds don't change.
+- **Runners:** made in code from primitives with a coded run cycle (no model files to license or load), in each school's colors. Your runners get a marker, and the camera follows your top runner.
+- **Courses:**
+  - **Real courses:** USGS 3DEP lidar heights, a USGS/NAIP aerial photo draped over them, trees planted where the photo shows canopy, and the traced route placed on the ground by matching three landmarks between the course map and the photo. All the data is public domain. No Google imagery or tiles: their terms forbid storing them and require a paid key.
+  - **Generated venues:** keep their procedural hills (`C.generate`), drawn as 3D terrain.
+  - SIUE is done in the prototype.
+- **Cameras:** chase, broadcast, aerial, close-up and course overview.
+- **Library:** Three.js r149 saved in the repo, which is the newest release that still ships a classic script build. That fits the no-build, no-modules, `file://` rules.
+- **To fix before merging:**
+  - Runners spin in circles at some sharp turns. Ease their heading instead of snapping it to the route segment, and keep lane offsets inside the turn radius.
+  - Trails overlap where legs share ground. Wherever a stretch is run more than once, merge it into one trail, so ribbons and flags are drawn once and every lap follows the same centerline.
+- **Merging steps:**
+  1. Fix the two bugs above.
+  2. Drive runner positions from the real race results instead of the prototype's own pack sim.
+  3. Add a 2D/3D toggle on the race screen, keeping 2D as the default on phones and the fallback without WebGL.
+  4. Release the WebGL context in `cleanup()`.
+  5. Build terrain data for the other traced courses.
+  6. Measure frame rate on real hardware with a full JV invitational field, and merge meshes or add level of detail if needed.
