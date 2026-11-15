@@ -940,14 +940,17 @@
     });
     // Older saves took hometowns from randomuser.me, which pairs real city
     // names with random states. Swap any that aren't real for a seeded pick.
-    const fixHometown = (p) => {
+    // They also carried randomuser.me photos; generated runners now get the
+    // silhouette, so drop those (real roster headshots are local files).
+    const fixPerson = (p) => {
+      if (p && /randomuser\.me/.test(p.photo || '')) p.photo = null;
       // Real roster athletes keep their hometowns as listed.
       if (!p || p.real || XC.places.isReal(p.hometown)) return;
       const seed = `${p.id || ''}|${p.first || ''}|${p.last || ''}|${p.hometown || ''}`;
       p.hometown = XC.places.hometown(U.mulberry32(U.hash(seed)), state.school);
     };
     state.programs.forEach((sq) => {
-      state.squads[sq].roster.forEach(fixHometown);
+      state.squads[sq].roster.forEach(fixPerson);
       // Real athletes pick up roster headshots added after their save began.
       state.squads[sq].roster.forEach((a) => {
         if (a.real && !a.photo && XC.rosters) a.photo = XC.rosters.photoFor(state.school.id, sq, a.first, a.last);
@@ -955,11 +958,11 @@
       });
       const rec = state.recruiting && state.recruiting[sq];
       if (rec) {
-        (rec.people || []).forEach(fixHometown);
-        (rec.prospects || []).forEach(fixHometown);
+        (rec.people || []).forEach(fixPerson);
+        (rec.prospects || []).forEach(fixPerson);
       }
       const grads = state.offseason && state.offseason.graduates && state.offseason.graduates[sq];
-      (grads || []).forEach(fixHometown);
+      (grads || []).forEach(fixPerson);
     });
     if (state.phase === 'season' && (!state.training || state.training.meetIndex !== state.meetIndex)) XC.training.openBlock(state);
     if (state.phase !== 'season' && state.training === undefined) state.training = null;

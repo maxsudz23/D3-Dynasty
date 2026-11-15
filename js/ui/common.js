@@ -98,29 +98,26 @@
 
   /* ---------- Portraits ---------- */
 
-  function sketch(athlete, sizeClass) {
-    const svg = U.svg('svg', {
-      class: `portrait portrait--sketch ${sizeClass}`, viewBox: '0 0 100 100', role: 'img',
-      'aria-label': `Scouting sketch of ${athlete.first} ${athlete.last}`
+  // Placeholder for anyone without a headshot: every generated runner, and
+  // real ones the roster page has no photo for.
+  function silhouette(athlete, sizeClass) {
+    return U.svg('svg', {
+      class: `portrait portrait--silhouette ${sizeClass}`, viewBox: '0 0 100 100', role: 'img',
+      'aria-label': `${athlete.first} ${athlete.last} (no photo)`
     },
-    U.svg('circle', { cx: '50', cy: '38', r: '18', fill: 'rgba(255,255,255,0.32)' }),
-    U.svg('path', { d: 'M14 100 C16 70 32 60 50 60 C68 60 84 70 86 100 Z', fill: 'rgba(255,255,255,0.32)' }),
-    U.svg('text', {
-      x: '50', y: '88', 'text-anchor': 'middle', 'font-size': '18', 'font-weight': '800',
-      fill: 'rgba(255,255,255,0.85)', class: 'crest__text'
-    }, String(athlete.num || '')));
-    return svg;
+    U.svg('circle', { cx: '50', cy: '39', r: '18', class: 'portrait__figure' }),
+    U.svg('path', { d: 'M13 100 C13 76 30 63 50 63 C70 63 87 76 87 100 Z', class: 'portrait__figure' }));
   }
 
   ui.portrait = function (athlete, size = '') {
     const sizeClass = size ? `portrait--${size}` : '';
-    if (!athlete.photo) return sketch(athlete, sizeClass);
+    if (!athlete.photo) return silhouette(athlete, sizeClass);
     const img = h('img', {
       class: `portrait ${sizeClass}`, src: athlete.photo, alt: `${athlete.first} ${athlete.last}`,
       loading: 'lazy', width: '128', height: '128'
     });
     img.addEventListener('error', () => {
-      img.replaceWith(sketch(athlete, sizeClass));
+      img.replaceWith(silhouette(athlete, sizeClass));
     }, { once: true });
     return img;
   };

@@ -796,8 +796,12 @@ body.is-title .ticker {
   height: 132px;
 }
 
-.portrait--sketch {
+.portrait--silhouette {
   background: linear-gradient(160deg, var(--ink-3), var(--ink));
+}
+
+.portrait__figure {
+  fill: rgba(255, 255, 255, 0.34);
 }
 
 .badge {

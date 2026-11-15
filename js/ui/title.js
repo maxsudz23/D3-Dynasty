@@ -15,6 +15,10 @@
   // sentences) and keep the list to six.
   const CHANGELOG = [
     {
+      date: 'Nov 14, 2026',
+      text: 'Generated runners and recruits now show a plain silhouette instead of a stock photo. Real roster headshots stay.'
+    },
+    {
       date: 'Nov 12, 2026',
       text: 'Invitationals now have JV races for everyone outside your top seven, named after the host\u2019s colors, like the Red Race and the Green Race at WashU.'
     },
@@ -33,10 +37,6 @@
     {
       date: 'Nov 12, 2026',
       text: 'Runners now build up to higher mileage. Ramp someone up gradually and they can handle more each week, but jump their miles too fast and injury risk climbs, even under their limit.'
-    },
-    {
-      date: 'Nov 12, 2026',
-      text: 'Plan each runner\u2019s weekly mileage on the workout screen, or leave it on auto. More miles build fitness, but every runner has a limit before fatigue and injuries catch up.'
     }
   ];
 
@@ -100,7 +100,7 @@
           menu,
           h('p', { class: 'press-start', 'aria-hidden': 'true' }, 'Press Enter'),
           h('p', { class: 'title-credit' },
-            'Recruit names and photos from randomuser.me. Race-day weather from Open-Meteo. Programs are real; every athlete is fictional.')),
+            'Recruit names from randomuser.me. Race-day weather from Open-Meteo. Programs are real; generated athletes are fictional.')),
         newsNote()));
     },
     legend() {
@@ -433,7 +433,7 @@
       XC.activeSquad = programs[0];
       XC.save();
       if (results.some((r) => !r.live)) {
-        ui.toast('Recruit photos are unavailable right now, so your roster uses scouting sketches and local names.', 'warn');
+        ui.toast('Recruit names are unavailable right now, so your roster uses local names.', 'warn');
       }
       XC.go('hub');
     },

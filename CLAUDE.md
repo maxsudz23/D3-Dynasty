@@ -10,6 +10,7 @@ D3 Dynasty is a Division III cross country coaching game in plain HTML, CSS and 
   - The public URL is https://d3dynasty.com, and https://www.d3dynasty.com serves the same site. The domain's DNS is on Cloudflare.
   - Both are attached as custom domains in the `routes` of `wrangler.jsonc`, so `npx wrangler deploy` keeps them attached. Don't remove those entries.
   - https://d3-dynasty.maxsudrzynski.workers.dev stays on (`workers_dev: true`). Wrangler turns it off by default when routes are set.
+    - It's also the link that works on WashU eduroam for now. The domain was registered 2026-11-12, and the campus Palo Alto firewall answers DNS for newly registered domains with `sinkhole.paloaltonetworks.com`, which shows as ERR_CONNECTION_RESET. That should lift once the domain is past Palo Alto's ~30-day "newly registered" window (mid-December 2026), or sooner if Palo Alto recategorizes it or WashU IT allowlists it. Nothing in the site causes it.
   - `wrangler.jsonc` serves the repo root as static assets with no build step.
   - `.assetsignore` keeps `.git`, the `.md` notes and the config files off the site.
   - The `name` in `wrangler.jsonc` must match the Worker's name in the dashboard.
@@ -63,7 +64,7 @@ D3 Dynasty is a Division III cross country coaching game in plain HTML, CSS and 
     - Rishi and Calvin keep the PR-based row marks they were given. Hand-set ratings (Freddie, Mateo) apply on top.
   - **Hand-set ratings:** `XC.rosters.washu.ratings` overrides generated ratings by name. For now that's Freddie van der Velden at SPD 85 and KCK 90, which makes him 78 OVR. Mateo Gros-Slovinsky is at SPD 85 and KCK 93. OVR is recomputed afterward. Each set is applied once per athlete, remembered in `a.setRatings`, at creation and in `S.migrate`, so existing saves get it and later training isn't undone.
   - **Photos:** the men's headshots come from the washubears.com roster page and are hosted in `img/roster/washu/m/*.webp` (400×600, about 1.5 MB in all). They're mapped by name in `XC.rosters.washu.photos.M`.
-    - Only runners in the game get one. Lukas Keane has no roster photo, so he keeps the sketch, and so do the women for now.
+    - Only runners in the game get one. Lukas Keane has no roster photo, so he gets the silhouette, and so do the women for now.
     - `S.migrate` fills in photos for real athletes in older saves.
     - `.portrait` uses `object-position: 50% 12%`, so the taller headshots crop to the face.
   - **Removing a runner:** delete their row, `tfrrs`, `photos` entry and headshot file, list them in `HIDDEN_ROSTER.md`, and add `U.hash('First Last')` to `XC.rosters.washu.removed[sq]`. `S.migrate` drops real athletes on that list from saves already in progress. It holds hashes so the served file doesn't name them.
@@ -261,7 +262,8 @@ No test files are in the repo. Re-create scripts like these in the scratchpad ra
 
 ## Known judgment calls
 - 143 real D3 programs plus a custom-school builder. Colors are approximate.
-- **Hometowns (`data/places.js`):** randomuser.me pairs real city names with random states, so only names and photos come from it. `XC.places.hometown(rng, school)` picks a real town: 4% international (mostly Canada and the British Isles), otherwise a state weighted by population × `0.06 + exp(−km/450)` from the school. `S.migrate` swaps any hometown that fails `XC.places.isReal` for a seeded pick.
+- **Hometowns (`data/places.js`):** randomuser.me pairs real city names with random states, so only names come from it. `XC.places.hometown(rng, school)` picks a real town: 4% international (mostly Canada and the British Isles), otherwise a state weighted by population × `0.06 + exp(−km/450)` from the school. `S.migrate` swaps any hometown that fails `XC.places.isReal` for a seeded pick.
+- **Portraits:** generated runners and recruits have no photo (`photo: null`), and `ui.portrait` draws a plain silhouette (`portrait--silhouette`). randomuser.me is asked for names only (`inc=name`). `S.migrate` clears old randomuser.me photo URLs from rosters, recruiting and graduates. Only real roster headshots are photos.
 - **Logos:** 71 programs use a real athletics logo from Wikimedia Commons in `img/logos/` (listed in `js/data/logos.js`, sources in `img/logos/SOURCES.md`). The other 72 keep generated monograms.
   - Every file is public domain on Commons (a logo too simple for copyright) but is still the school's trademark. The user accepted that risk for `main`; keep logos off `grading`.
   - Only athletics marks and bold athletic wordmarks were used. Thin university text logos, seals, and wordmarks wider than about 3:1 were skipped because they're unreadable in the 34px context-bar crest.

@@ -29,6 +29,6 @@ The mouse and touch work too.
 
 ## Built with
 
-Plain HTML, CSS and JavaScript. Recruit names and portraits come from the [Random User API](https://randomuser.me), and race-day weather comes from [Open-Meteo](https://open-meteo.com). The game falls back to built-in data if either one is unavailable.
+Plain HTML, CSS and JavaScript. Recruit names come from the [Random User API](https://randomuser.me), and race-day weather comes from [Open-Meteo](https://open-meteo.com). The game falls back to built-in data if either one is unavailable.
 
 School colors are approximate, and crests are generated monograms rather than real logos.

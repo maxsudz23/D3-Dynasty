@@ -87,7 +87,7 @@
       rec.people = result.people;
       rec.live = result.live;
       XC.save();
-      if (!result.live) ui.toast('Recruit photos are unavailable right now, so this class uses scouting sketches and local names.', 'warn');
+      if (!result.live) ui.toast('Recruit names are unavailable right now, so this class uses local names.', 'warn');
       if (XC.currentScreen() === 'wheel' && XC.activeSquad === sq) this.updateControls();
     },
 

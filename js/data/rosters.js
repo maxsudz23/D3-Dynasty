@@ -123,7 +123,7 @@
         M: [3321903101]
       },
       // Roster headshots from washubears.com, hosted here. Runners without
-      // one (Lukas Keane has none on the site) get the sketch portrait.
+      // one (Lukas Keane has none on the site) get the silhouette.
       photos: {
         M: {
         'Ryan Brinker': 'img/roster/washu/m/ryan-brinker.webp',
