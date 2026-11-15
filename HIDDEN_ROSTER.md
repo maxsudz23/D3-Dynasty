@@ -10,6 +10,14 @@ This file isn't served on the site (`.assetsignore` skips `*.md`).
 |---|---|---|---|---|
 | Kaleb McElfish | Senior | Rancho Santa Margarita, CA | 27:03.1 | `['Kaleb', 'McElfish', 4, 'Rancho Santa Margarita, CA', '27:03.1'],` |
 
+## Removed from the game
+
+Taken out after being in the game. Add back only if they ask to be in it: paste the row, restore the `tfrrs` and `photos` entries (and the headshot file from git history), and take their hash out of `removed`.
+
+| Name | Squad | Removed | Row for `rosters.js` | TFRRS |
+|---|---|---|---|---|
+| Charlie Glatz | Men | 2026-11-14 | `['Charlie', 'Glatz', 2, 'Ladue, MO', '26:14.0'],` | `'Charlie Glatz': { xc: '26:14.0' },` |
+
 ## Women (4)
 
 | Name | Year | Hometown | 2026 season best | Row for `rosters.js` |

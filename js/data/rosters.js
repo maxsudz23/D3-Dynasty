@@ -31,7 +31,6 @@
         ['Brody', 'Cushing', 1, 'Mount Prospect, IL', '25:51.1'],
         ['Grey', 'Donner', 1, 'Alpharetta, GA', '27:02.8'],
         ['Paul', 'Fleck', 2, 'Baldwin, NY', '27:06.7'],
-        ['Charlie', 'Glatz', 2, 'Ladue, MO', '26:14.0'],
         ['Sean', 'Green', 3, 'San Francisco, CA', '24:43.2'],
         ['Mateo', 'Gros-Slovinsky', 2, 'Bethesda, MD', '26:17.7'],
         ['Charlie', 'Houck', 2, 'Boerne, TX', '24:56.0'],
@@ -68,7 +67,6 @@
           'Dominic Buckman': { xc: '26:45.4' },
           'Calvin Crossland': { xc: '27:02.9', m800: '1:57.40', m1500: '3:59.45', mile: '4:25.99' },
           'Paul Fleck': { xc: '27:06.7' },
-          'Charlie Glatz': { xc: '26:14.0' },
           'Sean Green': { xc: '24:43.2', mile: '4:21.63', m5000: '14:46.08' },
           'Mateo Gros-Slovinsky': { xc: '25:58.3' },
           'Charlie Houck': { xc: '24:48.8', m800: '2:00.96', mile: '4:19.65', m5000: '14:34.64', m10000: '31:13.50' },
@@ -118,6 +116,12 @@
           'Mateo Gros-Slovinsky': { spd: 85, kck: 93 }
         }
       },
+      // Runners taken out of the game after saves had already started with
+      // them. S.migrate drops them from those saves. Stored as U.hash of
+      // "First Last" so this public file doesn't list them by name.
+      removed: {
+        M: [3321903101]
+      },
       // Roster headshots from washubears.com, hosted here. Runners without
       // one (Lukas Keane has none on the site) get the sketch portrait.
       photos: {
@@ -130,7 +134,6 @@
         'Brody Cushing': 'img/roster/washu/m/brody-cushing.webp',
         'Grey Donner': 'img/roster/washu/m/grey-donner.webp',
         'Paul Fleck': 'img/roster/washu/m/paul-fleck.webp',
-        'Charlie Glatz': 'img/roster/washu/m/charlie-glatz.webp',
         'Sean Green': 'img/roster/washu/m/sean-green.webp',
         'Mateo Gros-Slovinsky': 'img/roster/washu/m/mateo-gros-slovinsky.webp',
         'Charlie Houck': 'img/roster/washu/m/charlie-houck.webp',
@@ -199,6 +202,12 @@
     const team = XC.rosters[schoolId];
     const set = team && team.tfrrs && team.tfrrs[squad];
     return (set && set[`${first} ${last}`]) || null;
+  };
+
+  XC.rosters.isRemoved = (schoolId, squad, first, last) => {
+    const team = XC.rosters[schoolId];
+    const set = team && team.removed && team.removed[squad];
+    return !!set && set.includes(XC.util.hash(`${first} ${last}`));
   };
 
   XC.rosters.forSchool = (schoolId, squad) => {

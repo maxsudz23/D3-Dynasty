@@ -924,6 +924,10 @@
     if (real && state.homeCourse.courseId !== real.courseId && !state.homeCourse.custom) state.homeCourse = real;
     state.programs.forEach((sq) => {
       const squad = state.squads[sq];
+      // Real runners taken out of the game leave saves that started with them.
+      if (XC.rosters && XC.rosters.isRemoved) {
+        squad.roster = squad.roster.filter((a) => !(a.real && XC.rosters.isRemoved(state.school.id, sq, a.first, a.last)));
+      }
       // Individual race plans, keyed by athlete. Drop runners who left.
       const ids = new Set(squad.roster.map((a) => a.id));
       squad.plans = Object.fromEntries(Object.entries(squad.plans || {}).filter(([id, plan]) => ids.has(id) && R.PLANS[plan]));
