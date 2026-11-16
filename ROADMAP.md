@@ -24,15 +24,11 @@ A phone-style inbox screen (`XC.screens.texts`) where runners message the coach 
 
 ## Assistant coaches
 
-- **Pool:** Generated coaches, each with:
-  - `trainingQuality` (0–1)
-  - a specialty (threshold, VO2, hills, fartlek)
-  - salary and contract years
-  - Sign current staff or prospects from a hiring screen in the offseason.
-- **Hook already in place:** `XC.training.advisorQuality(state)` reads `state.staff.trainingQuality`. `T.recommend` uses it to add error to the target dose and sometimes pick the wrong workout type. Recommendations from staff carry `source: 'staff'`, and the workout report already appends "This was the staff's suggestion" when one of them ends in an injury or a badly overcooked runner.
-- **To build:**
-  - `state.staff = { coaches: [...], trainingQuality }`, where quality is the best coach's rating plus a specialty bonus for matching workout types.
-  - A "Staff suggestion" button beside "Suggest", so the head coach's exact read and the staff's read are different choices.
+Shipped 2026-11-16 (`js/staff.js`, `js/ui/staff.js`). CLAUDE.md, "Assistant coaches", has the rules. Possible follow-ups:
+
+- A real budget once Facilities and budget lands: staff pay could come out of the same pot.
+- Coaches who outgrow the program leaving for bigger jobs (poaching).
+- Separate staffs per squad.
 
 ## Facilities and budget
 

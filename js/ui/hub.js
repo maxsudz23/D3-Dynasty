@@ -16,6 +16,15 @@
     return r.userEntered ? 'Incomplete' : 'Did not qualify';
   }
 
+  // A reminder on the preseason tile while hiring is still open.
+  function staffFact(state) {
+    const ST = XC.staff;
+    const expiring = state.staff.coaches.filter((c) => c.expiring).length;
+    if (expiring) return `${expiring} staff contract${expiring > 1 ? 's' : ''} up`;
+    const open = ST.openSlots(state);
+    return open > 0 ? `${open} staff opening${open > 1 ? 's' : ''}` : 'Staff is full';
+  }
+
   // What the big "Next up" tile offers in each phase.
   function nextUp(state) {
     const year = S.yearOf(state.season);
@@ -24,7 +33,7 @@
         return {
           kicker: `${year} preseason`,
           headline: 'Recruiting wheel',
-          facts: [`${S.SPINS} spins per squad`, `Recruits up to ${S.repWindow(state.rep).max} OVR`],
+          facts: [`${S.SPINS} spins per squad`, `Recruits up to ${S.repWindow(state.rep).max} OVR`, staffFact(state)],
           action: 'Spin the wheel',
           go: () => XC.go('wheel')
         };
@@ -111,6 +120,7 @@
       const tiles = [
         ['Depth chart', 'Set your top seven and study ratings', () => XC.go('roster')],
         ['Schedule', 'Six meets from opener to nationals', () => XC.go('schedule')],
+        ['Staff', 'Assistant coaches and hiring', () => XC.go('staff')],
         ['Trophy case', 'Banners, finishes and All-Americans', () => XC.go('trophies')],
         ['Settings', 'Sound, announcer and your save', () => XC.go('settings')]
       ].map(([title, text, fn]) => h('button', {

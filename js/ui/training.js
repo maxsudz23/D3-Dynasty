@@ -75,6 +75,7 @@
       const gap = T.gapWeeks(state.meetIndex);
       const roster = state.squads[sq].roster;
       const avgFatigue = U.avg(roster.map((a) => T.dayFatigue(state, a)));
+      const hasStaff = XC.staff.has(state);
 
       const hero = h('section', { class: 'meet-hero training-hero' },
         h('p', { class: 'meet-hero__type' }, `Before the ${meet.name}`),
@@ -87,6 +88,7 @@
 
       const toolbar = h('div', { class: 'actions training-toolbar' },
         ui.button('Auto plan', () => this.autoPlan(), { variant: 'ghost', size: 'small', key: 'A', attrs: { 'data-nav': '' } }),
+        hasStaff ? ui.button('Staff plan', () => this.autoPlan(true), { variant: 'ghost', size: 'small', attrs: { 'data-nav': '' } }) : null,
         ui.button('Everyone rests', () => this.allRest(), { variant: 'ghost', size: 'small', attrs: { 'data-nav': '' } }),
         ui.button('Auto mileage', () => this.autoMileage(), { variant: 'ghost', size: 'small', attrs: { 'data-nav': '' } }),
         ui.button('Add group', () => this.addGroup(), { variant: 'ghost', size: 'small', attrs: { 'data-nav': '' } }),
@@ -123,6 +125,7 @@
           h('span', { class: 'workout-group__count' }, `${members.length} runner${members.length === 1 ? '' : 's'}`),
           h('div', { class: 'actions' },
             ui.button('Suggest', () => this.suggestGroup(g), { variant: 'ghost', size: 'small', disabled: !members.length }),
+            XC.staff.has(XC.state) ? ui.button('Staff suggestion', () => this.suggestGroup(g, true), { variant: 'ghost', size: 'small', disabled: !members.length }) : null,
             ui.button('Remove', () => this.removeGroup(g), { variant: 'ghost', size: 'small', disabled: plan.groups.length <= 1 && members.length > 0 }))),
         this.editor(g.workout, `g-${g.id}`),
         note);
@@ -145,6 +148,7 @@
       const changed = () => {
         T.normalize(w);
         w.source = 'coach';
+        delete w.coach;
         summary.textContent = T.describe(w);
         this.save();
         this.refresh();
@@ -175,11 +179,13 @@
       const fields = [
         select('type', 'Workout', T.TYPE_KEYS.map((t) => [t, T.TYPES[t].label]), w.type, (v) => {
           Object.assign(w, T.make(v), { source: 'coach' });
+          delete w.coach;
           this.save();
           this.draw();
         }, true),
         select('format', 'Format', Object.entries(spec.formats).map(([k, f]) => [k, `${f.label} (${f.continuous ? 'continuous' : 'broken'})`]), w.format, (v) => {
           Object.assign(w, T.make(w.type, v, w.intensity), { source: 'coach' });
+          delete w.coach;
           this.save();
           this.draw();
         }, true)
@@ -192,9 +198,16 @@
         changed();
       }));
 
+      // Whose read this is, and whether an assistant specializes in it.
+      const specialist = XC.staff.specialist(XC.state, w.type);
+      const staffNote = [
+        w.source === 'staff' && w.coach ? `${w.coach}’s suggestion.` : '',
+        specialist ? `${XC.staff.fullName(specialist)} specializes in ${XC.staff.specialtyNoun(w.type)} sessions: +${Math.round((XC.staff.sessionBonus(XC.state, w) - 1) * 100)}% benefit.` : ''
+      ].filter(Boolean).join(' ');
       return h('div', { class: 'workout-editor' },
         h('div', { class: 'workout-editor__fields' }, fields),
         summary,
+        staffNote ? h('p', { class: 'workout-editor__staff' }, staffNote) : null,
         h('p', { class: 'workout-editor__note' }, spec.note));
     },
 
@@ -220,7 +233,8 @@
           h('div', { class: 'plan-row__assign' },
             h('label', { class: 'visually-hidden', for: id }, `Assignment for ${A.fullName(a)}`),
             sel,
-            ui.button('Suggest', () => this.suggestRunner(a), { variant: 'ghost', size: 'small' })),
+            ui.button('Suggest', () => this.suggestRunner(a), { variant: 'ghost', size: 'small' }),
+            XC.staff.has(state) ? ui.button('Staff', () => this.suggestRunner(a, true), { variant: 'ghost', size: 'small', attrs: { 'aria-label': `Staff suggestion for ${A.fullName(a)}` } }) : null),
           this.milesPicker(a));
       }
 
@@ -338,11 +352,16 @@
       this.draw();
     },
 
-    autoPlan() {
-      XC.state.training.plans[XC.activeSquad] = T.autoPlan(XC.state, XC.activeSquad);
+    autoPlan(staff = false) {
+      const state = XC.state;
+      if (state.training.done) return;
+      if (staff && !XC.staff.has(state)) return;
+      state.training.plans[XC.activeSquad] = T.autoPlan(state, XC.activeSquad, Math.random, { staff });
       XC.audio.select();
       this.save();
-      ui.toast('Runners grouped by readiness, each group given a fitted workout. Worn-down runners rest.');
+      ui.toast(staff
+        ? 'The staff grouped runners by readiness and picked each group’s workout. Worn-down runners rest.'
+        : 'Runners grouped by readiness, each group given a fitted workout. Worn-down runners rest.');
       this.draw();
     },
 
@@ -375,18 +394,18 @@
       this.draw();
     },
 
-    suggestGroup(g) {
+    suggestGroup(g, staff = false) {
       const members = this.membersOf(g);
       if (!members.length) return;
-      g.workout = T.recommend(XC.state, XC.activeSquad, members);
+      g.workout = T.recommend(XC.state, XC.activeSquad, members, { staff });
       XC.audio.select();
       this.save();
       this.draw();
     },
 
-    suggestRunner(a) {
+    suggestRunner(a, staff = false) {
       const plan = this.plan();
-      plan.assign[a.id] = { mode: 'custom', workout: T.recommend(XC.state, XC.activeSquad, [a]) };
+      plan.assign[a.id] = { mode: 'custom', workout: T.recommend(XC.state, XC.activeSquad, [a], { staff }) };
       XC.audio.select();
       this.save();
       this.draw();

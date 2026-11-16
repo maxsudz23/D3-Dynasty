@@ -1629,7 +1629,7 @@ body.is-title .ticker {
 
 .menu-tiles {
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-columns: repeat(5, minmax(0, 1fr));
   gap: 14px;
   grid-column: 1 / -1;
 }
@@ -2574,6 +2574,116 @@ body.is-title .ticker {
   font-weight: 600;
 }
 
+/* ---------- Staff ---------- */
+
+.staff-stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 12px;
+}
+
+.staff-stat {
+  display: grid;
+  gap: 2px;
+  padding: 12px 14px;
+  background: var(--glass);
+  border-top: 4px solid var(--team-primary);
+}
+
+.staff-stat__label {
+  font-weight: 700;
+  color: var(--ink-3);
+}
+
+.staff-stat__value {
+  font-size: var(--step-3);
+  font-weight: 800;
+  line-height: 1;
+  color: var(--ink);
+}
+
+.staff-stat__note {
+  font-size: var(--step--1);
+  font-weight: 600;
+  color: var(--ink-3);
+}
+
+.staff-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 280px), 1fr));
+  gap: 14px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.staff-card {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-content: start;
+  gap: 6px 12px;
+  padding: 14px;
+  background: var(--ink);
+  color: var(--on-dark);
+  border-top: 5px solid var(--team-primary);
+}
+
+.staff-card--expiring {
+  border-top-color: var(--team-hi);
+}
+
+.staff-card__name {
+  font-size: var(--step-1);
+  font-weight: 700;
+  line-height: 1.1;
+}
+
+.staff-card__line {
+  font-size: var(--step--1);
+  font-weight: 600;
+  color: var(--on-dark-dim);
+}
+
+.staff-card__rating {
+  display: grid;
+  justify-items: center;
+  align-content: start;
+}
+
+.staff-card__rating strong {
+  font-size: var(--step-3);
+  font-weight: 800;
+  line-height: 1;
+  color: var(--team-hi-on-dark);
+}
+
+.staff-card__rating span {
+  font-size: var(--step--1);
+  font-weight: 600;
+  color: var(--on-dark-dim);
+}
+
+.staff-card__effect,
+.staff-card__why,
+.staff-card .actions {
+  grid-column: 1 / -1;
+}
+
+.staff-card__effect {
+  font-weight: 700;
+}
+
+.staff-card__why {
+  font-size: var(--step--1);
+  font-weight: 700;
+  color: #FFB4AB;
+}
+
+.staff-card .actions {
+  gap: 10px;
+  margin-top: 4px;
+}
+
 .trophies {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
@@ -2819,6 +2929,14 @@ body.is-title .ticker {
   background: var(--ink);
   color: var(--on-dark);
   font-weight: 700;
+}
+
+.workout-editor__staff {
+  padding-left: 10px;
+  border-left: 4px solid var(--team-hi);
+  font-size: var(--step--1);
+  font-weight: 700;
+  color: var(--ink);
 }
 
 .workout-editor__note {

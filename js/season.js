@@ -226,6 +226,7 @@
       };
     });
     initOpp(state);
+    state.staff = XC.staff.fresh(state);
     state.schedule = S.buildSchedule(state);
     S.resetRecruiting(state);
     S.addNews(state, `${school.short} hires Coach ${coachName} to lead the ${school.mascot}.`);
@@ -818,6 +819,7 @@
       if (grads.length) S.addNews(state, `${state.school.short} says goodbye to ${grads.length} ${S.squadLabel(sq).toLowerCase()} senior${grads.length > 1 ? 's' : ''}.`);
     });
     state.offseason = report;
+    XC.staff.endSeason(state);
     state.phase = 'graduation';
   };
 
@@ -907,6 +909,7 @@
       }
     });
     S.resetRecruiting(state);
+    XC.staff.startSeason(state);
     state.phase = 'season';
     state.meetIndex = 0;
     XC.training.startSeason(state);
@@ -964,6 +967,9 @@
       const grads = state.offseason && state.offseason.graduates && state.offseason.graduates[sq];
       (grads || []).forEach(fixPerson);
     });
+    // Assistant coaches (saved since the staff update). Older saves get the
+    // same one-assistant staff a new game starts with.
+    XC.staff.ensure(state);
     if (state.phase === 'season' && (!state.training || state.training.meetIndex !== state.meetIndex)) XC.training.openBlock(state);
     if (state.phase !== 'season' && state.training === undefined) state.training = null;
     return state;

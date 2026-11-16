@@ -15,6 +15,10 @@
   // sentences) and keep the list to six.
   const CHANGELOG = [
     {
+      date: 'Nov 16, 2026',
+      text: 'Hire assistant coaches from the new Staff screen. Each one specializes in a kind of workout, makes those sessions count for more and cuts injuries in practice, and on workout day you can ask for the staff\u2019s suggestion.'
+    },
+    {
       date: 'Nov 14, 2026',
       text: 'Generated runners and recruits now show a plain silhouette instead of a stock photo. Real roster headshots stay.'
     },
@@ -33,10 +37,6 @@
     {
       date: 'Nov 12, 2026',
       text: 'Start a new dynasty as WashU and you coach the real 2026 Bears, with their real hometowns and class years.'
-    },
-    {
-      date: 'Nov 12, 2026',
-      text: 'Runners now build up to higher mileage. Ramp someone up gradually and they can handle more each week, but jump their miles too fast and injury risk climbs, even under their limit.'
     }
   ];
 

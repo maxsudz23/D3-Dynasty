@@ -19,13 +19,13 @@ D3 Dynasty is a Division III cross country coaching game in plain HTML, CSS and 
 
 ## Hard constraints
 `main` is no longer bound by the Website #2 rubric. Libraries and APIs are allowed if a feature needs them, but keep this framework:
-- No build step and no ES modules. Scripts are classic `defer` scripts that hang off one `window.XC` namespace, so the page works from `file://`. Load order in `index.html` matters: engine files first (`util`, `storage`, `audio`, data, `athletes`, `race`, `course`, `training`, `api`, `season`), then UI, then `main.js`.
+- No build step and no ES modules. Scripts are classic `defer` scripts that hang off one `window.XC` namespace, so the page works from `file://`. Load order in `index.html` matters: engine files first (`util`, `storage`, `audio`, data, `athletes`, `race`, `course`, `training`, `staff`, `api`, `season`), then UI, then `main.js`.
 - No inline styles. Setting CSS custom properties from JS is fine. No `onclick` attributes, no `innerHTML`; build DOM with `XC.util.h()` and `XC.util.svg()`.
 - The console must stay error-free, including on hosted pages. Hosted pages request a favicon (`favicon.svg` is linked in `index.html`), and `file://` never shows that error.
 - APIs need graceful failure handling, and browser APIs need handling for denied permissions.
 
 ## Architecture
-- **Engine** (pure, testable in node with `global.window = global`): `util.js`, `data/schools.js`, `data/logos.js`, `data/names.js`, `data/places.js`, `data/courses.js`, `athletes.js`, `race.js`, `course.js`, `training.js`, `api.js`, `season.js`.
+- **Engine** (pure, testable in node with `global.window = global`): `util.js`, `data/schools.js`, `data/logos.js`, `data/names.js`, `data/places.js`, `data/courses.js`, `athletes.js`, `race.js`, `course.js`, `training.js`, `staff.js`, `api.js`, `season.js`.
 - **UI:** `ui/common.js` holds the theme, crest, portraits, chrome, toasts and confirm dialog.
   - `ui.setTheme(primary, accent, school)` also sets `--team-logo` to the school's logo (absolute URL), or `none`. `body::before` draws it at 10% opacity over the background stripes. Schools without a logo and custom schools show nothing. Pass the school wherever a real school's theme is applied.
   - `ui.crest(school)` draws the school's athletics logo on a white shield edged in its primary color when `XC.logos.pathFor(school)` has one, and the generated monogram otherwise. Custom schools (id `custom`) and any logo that fails to load get the monogram.
@@ -35,12 +35,12 @@ D3 Dynasty is a Division III cross country coaching game in plain HTML, CSS and 
 - **Screen hooks:** each screen registers on `XC.screens[name]` with any of:
   - `title`, `render(root, params)`, `legend()`, `onKey(e)`, `back()`, `onSquadChange()`, `cleanup()`, `squadTabs`, `context`
   - `canChangeSquad()`: return false to block squad switching. The wheel uses it while spinning.
-- **Screens:** `title`, `setup`, `hub`, `schedule`, `trophies`, `settings`, `roster`, `wheel`, `training`, `meet`, `race`, `results`, then the offseason screens.
+- **Screens:** `title`, `setup`, `hub`, `schedule`, `trophies`, `settings`, `staff`, `roster`, `wheel`, `training`, `meet`, `race`, `results`, then the offseason screens.
 - **Router:** `main.js` (`XC.go(name, params)`, `XC.refresh()`, `XC.setSquad()`). The global keys are Q/E for squad, Esc for back, M for mute and arrows to move focus between elements marked `[data-nav]`.
 - **Legend items:** `{ key, label, action, keyboardOnly? }`. Set `keyboardOnly: true` on items that repeat an on-screen control (squad tabs, the sound toggle, "Enter: select focused"), so touch screens hide them.
 - **Guard actions in the function itself:** keyboard shortcuts and legend buttons call screen methods directly and skip the disabled buttons, so every action must check its own preconditions. The wheel freeze came from this.
 - **State:** `XC.state` is saved to localStorage key `d3dynasty.save.v1` (version 1; the pre-rename key `harriers27.dynasty.v1` is still read as a fallback). `XC.live` holds values that aren't saved, such as the latest race sims used for the animation.
-  - `S.migrate(state)` runs on every load and fills in fields older saves lack: `homeCourse`, `training`, `squad.plans` (also pruned of runners who left), and athlete `fatigue`/`form`.
+  - `S.migrate(state)` runs on every load and fills in fields older saves lack: `homeCourse`, `training`, `staff` (via `XC.staff.ensure`), `squad.plans` (also pruned of runners who left), and athlete `fatigue`/`form`.
   - New saved fields must be added there.
 - **Phases:** `preseason` (recruiting wheel) → `season` (`meetIndex` 0–5, each meet preceded by a workout day in `state.training`) → `recap` → `graduation` → `progression` → `cut` → `S.startNewSeason` → `preseason`. `S.runMeet` saves results before the race animation plays, so reloading can't reroll a race.
 
@@ -212,7 +212,25 @@ D3 Dynasty is a Division III cross country coaching game in plain HTML, CSS and 
     - 100 miles for everyone 0.547, with about 11 injuries a season.
     - Re-run this after changing mileage numbers.
 - **Plan state:** `state.training = { meetIndex, done, plans: { [sq]: { groups, assign } }, report }`. `assign[id]` is `{ mode: 'group', group }`, `{ mode: 'custom', workout }` or `{ mode: 'rest' }`.
-- **Future hooks:** `T.advisorQuality(state)` reads `state.staff.trainingQuality` (assistant coaches), and staff suggestions carry `source: 'staff'`. `state.facilities.trainingRoom` and `state.facilities.track` add bonuses. `ROADMAP.md` covers the planned texts, assistant coaches, facilities and real home courses.
+- **Future hooks:** `state.facilities.trainingRoom` and `state.facilities.track` add bonuses. `ROADMAP.md` covers the planned texts, facilities and real home courses.
+
+## Assistant coaches (`staff.js`, `ui/staff.js`)
+- **State:** `state.staff = { coaches, pool, trainingQuality }`. One staff serves both squads. A coach is `{ id, first, last, specialty, rating, salary, years, since }`, plus `expiring` and `ask: { salary, years }` once their contract is up. `trainingQuality` is the best signed coach's rating / 100 (0 with none), kept current by `ST.update`. `T.advisorQuality` returns it.
+- **Limits:** `ST.SLOTS` (2) assistants. Budget is `30 + 0.7 × rep` thousand dollars a season. Asking salary is `(8 + ((rating−40)/55)^1.6 × 52) × 0.92–1.08`, so about $15k at 55 and $37k at 78. Expiring coaches don't count toward slots or payroll until re-signed. If rep falls, payroll can sit over budget; that only blocks new hires.
+- **Pool:** 6 candidates, at least one per specialty, rated 45 up to `ST.poolMax = min(95, 62 + 0.33 × rep)`.
+- **When:** hiring, re-signing and letting go are open in `graduation`, `progression`, `cut` and `preseason` (`ST.isOpen`). Every action checks `ST.blocker` itself.
+  - New games (and old saves, through `ST.ensure`) start with one assistant rated 52–60 on a one-year deal.
+  - `ST.endSeason` (from `S.beginOffseason`): ratings move −1..+3, contracts tick down, a coach at 0 years becomes `expiring` with an ask at 95% of market, and a new pool arrives.
+  - `ST.startSeason` (from `S.finishRecruiting`): expiring coaches who weren't re-signed leave.
+- **Effects (`training.js`):**
+  - Specialty: a session whose type matches a signed coach's specialty gets stimulus × `1 + 0.25 × rating/100` (`T.sessionBonus`, which also holds the track facility bonus).
+  - Supervision: workout injury risk × `1 − 0.25 × best rating/100`, in previews and on the day.
+  - Reads: `T.recommend(..., { staff: true })` and `T.autoPlan(..., { staff: true })` give the staff's read. Type picking adds 0.9 to the staff's specialties and uses the best coach's quality for the random-type chance; the dose error uses the specialist's quality + 0.08 (max 0.97), or the best coach's. Without `staff` the head coach's read is exact. Staff workouts carry `source: 'staff'` and `coach` (name); editing one clears `coach`.
+- **Screens:** the hub's Staff tile, and the preseason tile shows openings or contracts up. The workout screen adds "Staff plan", "Staff suggestion" per group and "Staff" per runner when anyone is signed, and the editor notes the specialist's bonus.
+- **Balance** (`season1` sim, 200 first seasons per setup, place percentile, lower is better):
+  - No staff 0.263. Two 75-rated coaches with auto plans 0.256 and about 25% fewer workout injuries.
+  - The staff's own plans: 0.249 with 90-rated coaches (better than the exact auto plan), 0.267 with 55-rated ones (worse than no staff). That's the intended tradeoff.
+  - Re-run it after changing staff numbers.
 
 ## Title-screen "What's new" note
 - `CHANGELOG` at the top of `js/ui/title.js` is newest first. The first entry shows in the title screen's bottom-right corner, or below the menu on narrow or short screens. The next five sit under a "Past updates" `<details>` toggle.

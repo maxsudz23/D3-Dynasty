@@ -318,17 +318,23 @@
   ];
   T.zone = (x) => T.ZONES.find((z) => x <= z.max);
 
-  /* ---------- Hooks for staff and facilities (future features) ---------- */
+  /* ---------- Hooks for staff and facilities ---------- */
 
-  // How good the training suggestions are, 0..1. The head coach is exact
-  // until assistant coaches arrive.
-  T.advisorQuality = (state) => (state.staff && typeof state.staff.trainingQuality === 'number' ? state.staff.trainingQuality : 1);
+  // The best assistant coach's rating, 0..1 (0 with no staff). The head
+  // coach's own read is exact; the staff's read uses XC.staff.read.
+  T.advisorQuality = (state) => (state.staff && typeof state.staff.trainingQuality === 'number' ? state.staff.trainingQuality : 0);
   const facility = (state, key) => (state.facilities && state.facilities[key]) || 0;
+  // An assistant who specializes in this kind of session makes it count for
+  // more, and someone watching every session trims workout injury risk.
+  const staffBonus = (state, w) => (XC.staff && state.staff ? XC.staff.sessionBonus(state, w) : 1);
+  const staffRisk = (state) => (XC.staff && state.staff ? XC.staff.riskFactor(state) : 1);
 
   // Fatigue shed per week. A better training room speeds it up.
   T.recoveryPerWeek = (state, a) => 9 + a.stats.dur * 0.07 + facility(state, 'trainingRoom') * 1.5;
   // A better track makes interval sessions count for more.
   const trackBonus = (state, w) => (w.type === 'vo2' ? 1 + facility(state, 'track') * 0.05 : 1);
+  // Everything that scales a session's benefit beyond the dose itself.
+  T.sessionBonus = (state, w) => trackBonus(state, w) * staffBonus(state, w);
 
   /* ---------- Fatigue, form and racing ---------- */
 
@@ -525,8 +531,8 @@
       after,
       race: race(after),
       miles,
-      risk: Math.min(0.5, 1 - (1 - workoutRisk(x, day, a) * (dnf ? dnf.risk : 1)) * (1 - mileRisk)),
-      stim: stimulus(x, day) * trackBonus(state, res.workout) * (dnf ? dnf.stim : 1)
+      risk: Math.min(0.5, 1 - (1 - workoutRisk(x, day, a) * staffRisk(state) * (dnf ? dnf.risk : 1)) * (1 - mileRisk)),
+      stim: stimulus(x, day) * T.sessionBonus(state, res.workout) * (dnf ? dnf.stim : 1)
     };
   };
 
@@ -559,7 +565,9 @@
     return `${gap} weeks until the next meet. Aim for workouts right at each runner’s capacity.`;
   };
 
-  function pickType(state, members, rng, quality) {
+  // favor: workout types the person suggesting leans toward (the staff's
+  // specialties), each given a bump in the score.
+  function pickType(state, members, rng, quality, favor = []) {
     const meet = state.schedule[state.meetIndex];
     const gap = T.gapWeeks(state.meetIndex);
     const climb = meet ? XC.course.layoutFor(meet.course).climbPerKm : 6;
@@ -577,6 +585,7 @@
       const repeats = members.filter((a) => a.lastWorkout === t).length;
       if (repeats > members.length / 2) score[t] -= 1;
     });
+    favor.forEach((t) => { score[t] += 0.9; });
     if (rng() < (1 - quality) * 0.4) return U.pick(T.TYPE_KEYS, rng);
     return T.TYPE_KEYS.reduce((best, t) => (score[t] > score[best] ? t : best), T.TYPE_KEYS[0]);
   }
@@ -636,23 +645,36 @@
     return T.normalize(Object.assign({}, best));
   }
 
-  // A workout suited to these runners. quality < 1 adds the kind of error
-  // a weaker assistant coach would make.
-  T.recommend = function (state, sq, members, { quality = T.advisorQuality(state), rng = Math.random } = {}) {
+  // A workout suited to these runners. The head coach's read is exact.
+  // With staff: true it's the assistants' read instead, which leans toward
+  // their specialties and carries the kind of error a weaker coach makes
+  // (a wrong target dose, sometimes the wrong kind of session).
+  T.recommend = function (state, sq, members, { staff = false, quality = 1, rng = Math.random } = {}) {
     if (!members.length) return T.make('threshold');
     const days = members.map((a) => T.dayFatigue(state, a));
     const fatigue = median(days);
     let target = T.targetDose(state, fatigue);
+    let type;
+    let coach = null;
+    if (staff && XC.staff && XC.staff.has(state)) {
+      type = pickType(state, members, rng, T.advisorQuality(state), XC.staff.specialties(state));
+      const read = XC.staff.read(state, type);
+      quality = read.quality;
+      coach = read.coach;
+    } else {
+      type = pickType(state, members, rng, quality);
+    }
     target *= 1 + U.gauss(0, (1 - quality) * 0.4, rng);
-    const type = pickType(state, members, rng, quality);
     const w = fitVolume(shapeFor(type, state, fatigue, rng), members, sq, U.clamp(target, 0.25, 1.6), days);
-    w.source = quality < 1 ? 'staff' : 'auto';
+    w.source = coach ? 'staff' : quality < 1 ? 'staff' : 'auto';
+    if (coach) w.coach = XC.staff.fullName(coach);
     return w;
   };
 
   // Rest anyone too worn down, then split the rest into groups of similar
   // readiness and give each group a fitted workout.
-  T.autoPlan = function (state, sq, rng = Math.random) {
+  // With staff: true the assistants pick each group's workout.
+  T.autoPlan = function (state, sq, rng = Math.random, { staff = false } = {}) {
     const roster = state.squads[sq].roster;
     const plan = T.emptyPlan();
     const healthy = roster.filter((a) => a.injury <= 0);
@@ -669,7 +691,7 @@
       const to = Math.round(((g + 1) * active.length) / n);
       const members = active.slice(from, to);
       if (!members.length) continue;
-      const group = { id: `g${g + 1}`, name: names[g], workout: T.recommend(state, sq, members, { rng }) };
+      const group = { id: `g${g + 1}`, name: names[g], workout: T.recommend(state, sq, members, { rng, staff }) };
       plan.groups.push(group);
       members.forEach((a) => { plan.assign[a.id] = { mode: 'group', group: group.id }; });
     }
@@ -772,7 +794,7 @@
           const dnf = att.dnf ? T.DNF : null;
           const x = att.x;
           const zone = T.zone(x);
-          const stim = stimulus(x, day) * trackBonus(state, w) * (dnf ? dnf.stim : 1);
+          const stim = stimulus(x, day) * T.sessionBonus(state, w) * (dnf ? dnf.stim : 1);
           row.desc = T.describe(w);
           row.title = T.title(w);
           row.x = U.round(x, 2);
@@ -785,13 +807,13 @@
           row.gains = gainStats(a, w, stim);
           a.form = U.clamp(0.5 * T.formOf(a) + 1.4 * stim - 0.35 - (dnf ? dnf.form : 0), -3, 4.5);
           a.lastWorkout = w.type;
-          if (rng() < workoutRisk(x, day, a) * (dnf ? dnf.risk : 1)) {
+          if (rng() < workoutRisk(x, day, a) * staffRisk(state) * (dnf ? dnf.risk : 1)) {
             const [what, out] = U.pick(INJURIES, rng);
             a.injury = Math.max(a.injury, out);
             row.injury = { what, out };
           }
           day = Math.min(100, day + workoutFatigue(x) + (dnf ? dnf.fatigue : 0));
-          if (w.source === 'staff' && (row.injury || dnf || zone.key === 'danger')) row.note += ' This was the staff’s suggestion.';
+          if (w.source === 'staff' && (row.injury || dnf || zone.key === 'danger')) row.note += w.coach ? ` This was ${w.coach}’s suggestion.` : ' This was the staff’s suggestion.';
         }
         a.fatigue = U.round(U.clamp(day - half, 0, 100), 1);
         a.form = U.clamp(T.formOf(a) + base.form, -3, 4.5);
