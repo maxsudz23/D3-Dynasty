@@ -16,6 +16,12 @@
     return r.userEntered ? 'Incomplete' : 'Did not qualify';
   }
 
+  // Unanswered texts, for the workout-day tile.
+  function textsFact(state) {
+    const n = XC.texts.unread(state).length;
+    return n ? `${n} unread text${n > 1 ? 's' : ''} from runners` : '';
+  }
+
   // A reminder on the preseason tile while hiring is still open.
   function staffFact(state) {
     const ST = XC.staff;
@@ -44,7 +50,7 @@
           return {
             kicker: `Before the ${meet.name}`,
             headline: 'Workout day',
-            facts: [`${gap} week${gap === 1 ? '' : 's'} to race day`, `${XC.race.COURSES[meet.course.type].label} course`, 'Plan groups or let the staff auto-plan'],
+            facts: [`${gap} week${gap === 1 ? '' : 's'} to race day`, `${XC.race.COURSES[meet.course.type].label} course`, textsFact(state) || 'Plan groups or let the staff auto-plan'],
             action: 'Plan workouts',
             go: () => XC.go('training')
           };
@@ -121,6 +127,10 @@
         ['Depth chart', 'Set your top seven and study ratings', () => XC.go('roster')],
         ['Schedule', 'Six meets from opener to nationals', () => XC.go('schedule')],
         ['Staff', 'Assistant coaches and hiring', () => XC.go('staff')],
+        ['Texts', (() => {
+          const n = XC.texts.unread(state).length;
+          return n ? `${n} unread from your runners` : 'Messages from your runners';
+        })(), () => XC.go('texts')],
         ['Trophy case', 'Banners, finishes and All-Americans', () => XC.go('trophies')],
         ['Settings', 'Sound, announcer and your save', () => XC.go('settings')]
       ].map(([title, text, fn]) => h('button', {

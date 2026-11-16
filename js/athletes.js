@@ -117,6 +117,7 @@
       injury: 0,
       fatigue: 0,
       form: 0,
+      morale: 0,
       pr: null,
       career: { races: 0, wins: 0, top10: 0, aa: 0, best: null }
     };
@@ -130,6 +131,8 @@
   };
 
   A.fullName = (a) => `${a.first} ${a.last}`;
+  // Why a runner is out: "Sick" for an illness (from a text), else "Injured".
+  A.outWord = (a) => (a.illness ? 'Sick' : 'Injured');
   A.shortName = (a) => `${a.first[0]}. ${a.last}`;
 
   // Offseason growth. Returns a report row.

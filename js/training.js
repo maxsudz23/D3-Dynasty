@@ -465,6 +465,7 @@
     if (rng() < blockRisk) {
       const [what, outFor] = U.pick(OVERUSE, rng);
       a.injury = Math.max(a.injury, outFor);
+      a.injuryWhat = what;
       out.injury = { what, out: outFor };
     }
     // Conditioning updates after the risk is judged against the old level.
@@ -649,14 +650,18 @@
   // With staff: true it's the assistants' read instead, which leans toward
   // their specialties and carries the kind of error a weaker coach makes
   // (a wrong target dose, sometimes the wrong kind of session).
-  T.recommend = function (state, sq, members, { staff = false, quality = 1, rng = Math.random } = {}) {
-    if (!members.length) return T.make('threshold');
+  // type fixes the kind of session; push scales the target dose (a runner
+  // asking for a workout tends to ask for a bit too much).
+  T.recommend = function (state, sq, members, { staff = false, quality = 1, rng = Math.random, type: fixed = null, push = 1 } = {}) {
+    if (!members.length) return T.make(fixed || 'threshold');
     const days = members.map((a) => T.dayFatigue(state, a));
     const fatigue = median(days);
-    let target = T.targetDose(state, fatigue);
+    let target = T.targetDose(state, fatigue) * push;
     let type;
     let coach = null;
-    if (staff && XC.staff && XC.staff.has(state)) {
+    if (fixed) {
+      type = fixed;
+    } else if (staff && XC.staff && XC.staff.has(state)) {
       type = pickType(state, members, rng, T.advisorQuality(state), XC.staff.specialties(state));
       const read = XC.staff.read(state, type);
       quality = read.quality;
@@ -696,6 +701,24 @@
       members.forEach((a) => { plan.assign[a.id] = { mode: 'group', group: group.id }; });
     }
     tired.forEach((a) => { plan.assign[a.id] = { mode: 'rest' }; });
+    T.applyPromises(state, sq, plan);
+    return plan;
+  };
+
+  /* ---------- Promises made by text ---------- */
+
+  // A reply to a runner's text can promise their plan for the block: rest,
+  // or the workout they asked for. state.training.promises[athleteId] =
+  // { mode: 'rest' } | { mode: 'custom', workout }, plus by (template id).
+  T.promiseOf = (state, a) => (state.training && state.training.promises && state.training.promises[a.id]) || null;
+
+  T.applyPromises = function (state, sq, plan) {
+    const promises = (state.training && state.training.promises) || {};
+    state.squads[sq].roster.forEach((a) => {
+      const p = promises[a.id];
+      if (!p) return;
+      plan.assign[a.id] = p.mode === 'rest' ? { mode: 'rest' } : { mode: 'custom', workout: Object.assign({}, p.workout) };
+    });
     return plan;
   };
 
@@ -704,7 +727,9 @@
   T.pending = (state) => state.phase === 'season' && state.training && state.training.meetIndex === state.meetIndex && !state.training.done;
 
   T.openBlock = function (state) {
-    state.training = { meetIndex: state.meetIndex, done: false, plans: null, report: null };
+    state.training = { meetIndex: state.meetIndex, done: false, plans: null, report: null, promises: {} };
+    // Runners text the coach at the start of each block.
+    if (XC.texts) XC.texts.roll(state);
   };
 
   // Plans are made on first visit so the coach can just press go.
@@ -735,6 +760,7 @@
     ['tight hamstring', 1], ['sore Achilles', 1], ['calf strain', 2], ['IT band flare-up', 1],
     ['shin splints', 2], ['rolled ankle', 1], ['hip flexor strain', 2], ['stress reaction in the foot', 3]
   ];
+  T.INJURY_NAMES = INJURIES.map(([what]) => what);
 
   function gainStats(a, w, stim) {
     const spec = T.TYPES[w.type];
@@ -782,8 +808,8 @@
         const row = { id: a.id, name: A.fullName(a), mode: res.mode, group: res.group ? res.group.name : null, desc: '', zone: null, x: 0, gains: [], injury: null, note: '', before };
         if (res.mode === 'injured') {
           day = Math.max(0, day - 10);
-          row.desc = 'Rehab and cross-training';
-          row.note = 'Working back from injury.';
+          row.desc = a.illness ? `Sick (${a.illness}), resting` : 'Rehab and cross-training';
+          row.note = a.illness ? 'Getting over the illness.' : 'Working back from injury.';
         } else if (!res.workout) {
           day = Math.max(0, day - 10);
           row.desc = 'Easy recovery run';
@@ -810,6 +836,7 @@
           if (rng() < workoutRisk(x, day, a) * staffRisk(state) * (dnf ? dnf.risk : 1)) {
             const [what, out] = U.pick(INJURIES, rng);
             a.injury = Math.max(a.injury, out);
+            a.injuryWhat = what;
             row.injury = { what, out };
           }
           day = Math.min(100, day + workoutFatigue(x) + (dnf ? dnf.fatigue : 0));

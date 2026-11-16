@@ -19,13 +19,13 @@ D3 Dynasty is a Division III cross country coaching game in plain HTML, CSS and 
 
 ## Hard constraints
 `main` is no longer bound by the Website #2 rubric. Libraries and APIs are allowed if a feature needs them, but keep this framework:
-- No build step and no ES modules. Scripts are classic `defer` scripts that hang off one `window.XC` namespace, so the page works from `file://`. Load order in `index.html` matters: engine files first (`util`, `storage`, `audio`, data, `athletes`, `race`, `course`, `training`, `staff`, `api`, `season`), then UI, then `main.js`.
+- No build step and no ES modules. Scripts are classic `defer` scripts that hang off one `window.XC` namespace, so the page works from `file://`. Load order in `index.html` matters: engine files first (`util`, `storage`, `audio`, data, `athletes`, `race`, `course`, `training`, `staff`, `texts`, `api`, `season`), then UI, then `main.js`.
 - No inline styles. Setting CSS custom properties from JS is fine. No `onclick` attributes, no `innerHTML`; build DOM with `XC.util.h()` and `XC.util.svg()`.
 - The console must stay error-free, including on hosted pages. Hosted pages request a favicon (`favicon.svg` is linked in `index.html`), and `file://` never shows that error.
 - APIs need graceful failure handling, and browser APIs need handling for denied permissions.
 
 ## Architecture
-- **Engine** (pure, testable in node with `global.window = global`): `util.js`, `data/schools.js`, `data/logos.js`, `data/names.js`, `data/places.js`, `data/courses.js`, `athletes.js`, `race.js`, `course.js`, `training.js`, `staff.js`, `api.js`, `season.js`.
+- **Engine** (pure, testable in node with `global.window = global`): `util.js`, `data/schools.js`, `data/logos.js`, `data/names.js`, `data/places.js`, `data/courses.js`, `athletes.js`, `race.js`, `course.js`, `training.js`, `staff.js`, `texts.js`, `api.js`, `season.js`.
 - **UI:** `ui/common.js` holds the theme, crest, portraits, chrome, toasts and confirm dialog.
   - `ui.setTheme(primary, accent, school)` also sets `--team-logo` to the school's logo (absolute URL), or `none`. `body::before` draws it at 10% opacity over the background stripes. Schools without a logo and custom schools show nothing. Pass the school wherever a real school's theme is applied.
   - `ui.crest(school)` draws the school's athletics logo on a white shield edged in its primary color when `XC.logos.pathFor(school)` has one, and the generated monogram otherwise. Custom schools (id `custom`) and any logo that fails to load get the monogram.
@@ -35,12 +35,12 @@ D3 Dynasty is a Division III cross country coaching game in plain HTML, CSS and 
 - **Screen hooks:** each screen registers on `XC.screens[name]` with any of:
   - `title`, `render(root, params)`, `legend()`, `onKey(e)`, `back()`, `onSquadChange()`, `cleanup()`, `squadTabs`, `context`
   - `canChangeSquad()`: return false to block squad switching. The wheel uses it while spinning.
-- **Screens:** `title`, `setup`, `hub`, `schedule`, `trophies`, `settings`, `staff`, `roster`, `wheel`, `training`, `meet`, `race`, `results`, then the offseason screens.
+- **Screens:** `title`, `setup`, `hub`, `schedule`, `trophies`, `settings`, `staff`, `texts`, `roster`, `wheel`, `training`, `meet`, `race`, `results`, then the offseason screens.
 - **Router:** `main.js` (`XC.go(name, params)`, `XC.refresh()`, `XC.setSquad()`). The global keys are Q/E for squad, Esc for back, M for mute and arrows to move focus between elements marked `[data-nav]`.
 - **Legend items:** `{ key, label, action, keyboardOnly? }`. Set `keyboardOnly: true` on items that repeat an on-screen control (squad tabs, the sound toggle, "Enter: select focused"), so touch screens hide them.
 - **Guard actions in the function itself:** keyboard shortcuts and legend buttons call screen methods directly and skip the disabled buttons, so every action must check its own preconditions. The wheel freeze came from this.
 - **State:** `XC.state` is saved to localStorage key `d3dynasty.save.v1` (version 1; the pre-rename key `harriers27.dynasty.v1` is still read as a fallback). `XC.live` holds values that aren't saved, such as the latest race sims used for the animation.
-  - `S.migrate(state)` runs on every load and fills in fields older saves lack: `homeCourse`, `training`, `staff` (via `XC.staff.ensure`), `squad.plans` (also pruned of runners who left), and athlete `fatigue`/`form`.
+  - `S.migrate(state)` runs on every load and fills in fields older saves lack: `homeCourse`, `training`, `staff` (via `XC.staff.ensure`), `inbox`, `squad.plans` (also pruned of runners who left), and athlete `fatigue`/`form`/`morale`.
   - New saved fields must be added there.
 - **Phases:** `preseason` (recruiting wheel) → `season` (`meetIndex` 0–5, each meet preceded by a workout day in `state.training`) → `recap` → `graduation` → `progression` → `cut` → `S.startNewSeason` → `preseason`. `S.runMeet` saves results before the race animation plays, so reloading can't reroll a race.
 
@@ -79,7 +79,7 @@ D3 Dynasty is a Division III cross country coaching game in plain HTML, CSS and 
 - Nationals qualifying: top 2 at regionals is automatic, 3rd gets an at-large bid, and 4th gets one if the team won an invitational. Otherwise, any runner finishing top-10 qualifies individually.
 - Opponent strength is stored in `state.opp[sq][schoolId]` and drifts each season. Opponent rosters are seeded per school, season and squad, so they stay consistent within a season.
 - **Race-day modifiers on effective rating (`race.js`):**
-  - `+ form − max(0, fatigue − 20) × 0.12`.
+  - `+ form − max(0, fatigue − 20) × 0.12 + morale × 0.3`, and MNT counts as `MNT + morale × 2` for race-day variance and bad-day odds (`R.MORALE`).
   - Rival runners race at form +1, so a coach who never trains falls behind.
   - The hill rating's weight is `clamp(climbPerKm / 32, 0.03, 0.5)`, from the actual course. Flat, rolling and mud keep their SPD, END and DUR/MNT bonuses.
 - **JV races (invitationals only):** `S.hasJV(meet)` is true for `type === 'invite'`.
@@ -216,7 +216,20 @@ D3 Dynasty is a Division III cross country coaching game in plain HTML, CSS and 
     - 100 miles for everyone 0.547, with about 11 injuries a season.
     - Re-run this after changing mileage numbers.
 - **Plan state:** `state.training = { meetIndex, done, plans: { [sq]: { groups, assign } }, report }`. `assign[id]` is `{ mode: 'group', group }`, `{ mode: 'custom', workout }` or `{ mode: 'rest' }`.
-- **Future hooks:** `state.facilities.trainingRoom` and `state.facilities.track` add bonuses. `ROADMAP.md` covers the planned texts, facilities and real home courses.
+- **Future hooks:** `state.facilities.trainingRoom` and `state.facilities.track` add bonuses. `ROADMAP.md` covers the planned facilities and real home courses.
+
+## Runner texts (`texts.js`, `ui/texts.js`)
+- **When:** `T.openBlock` calls `XC.texts.roll`, so texts arrive as each workout block opens (season start and after every meet). `S.runMeet` calls `XC.texts.expire` first: unanswered texts expire and cost that runner 0.5 morale. `S.startNewSeason` clears the inbox.
+- **State:** `state.inbox = [{ id, athleteId, squad, templateId, variant, vars, workout?, replied, note, expired? }]`. Each roll replaces the inbox, so it only holds the current block.
+- **Rolling** (per squad, per block):
+  - A 30% chance one healthy runner gets the flu (`a.illness = 'flu'`, `injury` ≥ 1) and texts about it. Illness is an injury with a label: `A.outWord(a)` gives "Sick" or "Injured", and `illness` clears when `injury` reaches 0 (in `applyToRoster`, a reply, or the offseason).
+  - Then 1–3 texts in all (at most `X.MAX_PER_SQUAD`), one per runner, drawn by per-runner weights from `X.TEMPLATES`: tired (fatigue after the meet ≥ 25), request (their favorite workout type at 1.3× target dose, via `T.recommend(..., { type, push })`), PR, bad race (finished ≥ 2 places below their OVR rank on the team, or DNF), injured (uses `a.injuryWhat`, set when an injury happens), homesick (first-years, first three meets), midterms (meets 3–4).
+  - About 12 texts per squad per season.
+- **Replies:** 2–3 per template, each with `effects` (morale, fatigue, form, injury ±, cure, news, plan) and a `note`. `odds` roll outcomes; `miss` adds effects when no odds hit. `X.blocker` refuses replies that change a plan or cure once the workout day has run.
+- **Promises:** a plan reply sets `state.training.promises[athleteId]` (`{ mode: 'rest' }` or `{ mode: 'custom', workout }`). `T.applyPromises` writes them into the plan, and `T.autoPlan` (so `T.ensurePlans`) applies them. The workout screen locks those rows (no menu, no editor), and assign, Suggest and Everyone rests skip them.
+- **Morale:** `a.morale`, −5..5, saved and migrated. It keeps 70% of itself each block and resets to 0 in the offseason. Shown on the texts screen, the roster card and the workout row (when |morale| ≥ 1).
+- **Screens:** a phone-style inbox per squad with a team-morale panel. The hub has a Texts tile with the unread count, and the workout-day tile and workout screen mention unread texts.
+- **Balance** (`textsim`, 200 first seasons per style, place percentile): ignore every text 0.259, always the kindest reply 0.255, random 0.257, always the hardest 0.254. Kind replies rest runners (less training) but lift morale; hard ones keep them training at a morale cost. The stakes are deliberately small.
 
 ## Assistant coaches (`staff.js`, `ui/staff.js`)
 - **State:** `state.staff = { coaches, pool, trainingQuality }`. One staff serves both squads. A coach is `{ id, first, last, specialty, rating, salary, years, since }`, plus `expiring` and `ask: { salary, years }` once their contract is up. `trainingQuality` is the best signed coach's rating / 100 (0 with none), kept current by `ST.update`. `T.advisorQuality` returns it.

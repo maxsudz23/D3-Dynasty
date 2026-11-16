@@ -208,6 +208,7 @@
       recruiting: null,
       offseason: null,
       training: null,
+      inbox: [],
       homeCourse: S.newHomeCourse(Math.random, school)
     };
     programs.forEach((sq) => {
@@ -630,6 +631,7 @@
         a.injury -= 1;
         a.career.missed = (a.career.missed || 0) + 1;
       }
+      if (a.injury <= 0) delete a.illness;
     });
     squad.roster.forEach((a) => {
       if (!raced.has(a.id)) return;
@@ -640,6 +642,7 @@
       XC.training.afterRace(a, cost.fatigue);
       if (meet.type !== 'national' && Math.random() < risk) {
         a.injury = U.randInt(1, 3);
+        a.injuryWhat = U.pick(XC.training.INJURY_NAMES);
         summaryOf[a.id].injuries.push({ name: A.fullName(a), out: a.injury });
       }
     });
@@ -648,6 +651,8 @@
   S.runMeet = function (state) {
     const meet = state.schedule[state.meetIndex];
     if (!meet.weather) meet.weather = XC.api.simulatedWeather(meet.month, meet.id);
+    // Texts nobody answered expire now.
+    XC.texts.expire(state);
     // Skipped the workout day: the team rested through the block.
     if (!state.training || state.training.meetIndex !== state.meetIndex || !state.training.done) {
       if (!state.training || state.training.meetIndex !== state.meetIndex) XC.training.openBlock(state);
@@ -810,8 +815,10 @@
           const row = A.progress(a);
           a.year += 1;
           a.injury = 0;
+          delete a.illness;
           a.fatigue = 0;
           a.form = 0;
+          a.morale = 0;
           return Object.assign(row, { yearBefore, yearAfter: a.year });
         })
         .sort((x, y) => y.delta - x.delta);
@@ -834,6 +841,7 @@
     state.phase = 'preseason';
     state.offseason = null;
     state.training = null;
+    state.inbox = [];
     state.programs.forEach((sq) => {
       state.squads[sq].inviteWins = 0;
       state.squads[sq].natQual = null;
@@ -937,6 +945,7 @@
       squad.roster.forEach((a) => {
         if (typeof a.fatigue !== 'number') a.fatigue = 10;
         if (typeof a.form !== 'number') a.form = 0;
+        if (typeof a.morale !== 'number') a.morale = 0;
         // Mileage conditioning (saved since the conditioning update).
         if (typeof a.base !== 'number') a.base = XC.training.baseOf(a);
       });
@@ -970,6 +979,8 @@
     // Assistant coaches (saved since the staff update). Older saves get the
     // same one-assistant staff a new game starts with.
     XC.staff.ensure(state);
+    // Runner texts (saved since the texts update).
+    if (!Array.isArray(state.inbox)) state.inbox = [];
     if (state.phase === 'season' && (!state.training || state.training.meetIndex !== state.meetIndex)) XC.training.openBlock(state);
     if (state.phase !== 'season' && state.training === undefined) state.training = null;
     return state;

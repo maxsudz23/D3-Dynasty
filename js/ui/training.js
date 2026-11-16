@@ -102,8 +102,16 @@
 
       const runners = h('ul', { class: 'plan-list' }, roster.map((a) => this.runnerRow(a)));
 
+      const unread = XC.texts.unread(state, sq).length;
+      const textsNote = unread
+        ? h('div', { class: 'notice training-texts' },
+          h('p', null, `${unread} runner${unread > 1 ? 's' : ''} texted you this week. Some replies change their plan for this block.`),
+          h('div', { class: 'actions' }, ui.button('Read texts', () => XC.go('texts'), { variant: 'ghost', size: 'small', attrs: { 'data-nav': '' } })))
+        : null;
+
       this.root.appendChild(h('div', { class: 'training' },
         hero,
+        textsNote,
         toolbar,
         h('section', { class: 'stack', 'aria-label': 'Workout groups' },
           h('h2', { class: 'section-title' }, 'Groups'),
@@ -220,8 +228,15 @@
       this.projections.set(a.id, { el: proj, a });
 
       let control;
+      const promise = T.promiseOf(state, a);
       if (a.injury > 0) {
-        control = h('span', { class: 'badge badge--warn' }, `Injured, out ${a.injury}: rehab only`);
+        control = h('span', { class: 'badge badge--warn' }, a.illness ? `Sick (${a.illness}), out ${a.injury}: resting` : `Injured, out ${a.injury}: rehab only`);
+      } else if (promise) {
+        control = h('div', { class: 'plan-row__controls' },
+          h('p', { class: 'plan-row__promise' },
+            h('span', { class: 'badge badge--hi' }, promise.mode === 'rest' ? 'Resting, as promised by text' : 'Own workout, as agreed by text'),
+            promise.mode === 'custom' ? ` ${T.describe(promise.workout)}` : ''),
+          this.milesPicker(a));
       } else {
         const id = `assign-${a.id}`;
         const current = res.mode === 'group' ? `g:${res.group.id}` : res.mode;
@@ -245,13 +260,14 @@
           h('p', { class: 'plan-row__meta' },
             h('span', null, `${a.ovr} OVR`),
             h('span', null, A.yearShort(a.year)),
-            h('span', null, `Form ${U.signed(form, 1)}`))),
+            h('span', null, `Form ${U.signed(form, 1)}`),
+            Math.abs(a.morale || 0) >= 1 ? h('span', null, `Morale ${XC.texts.moraleLabel(a.morale).toLowerCase()}`) : null)),
         h('div', { class: 'plan-row__fatigue' },
           ui.fatigueMeter(f),
           h('p', { class: 'plan-row__meta' }, `Fatigue ${Math.round(f)}, ${T.fatigueLabel(f).toLowerCase()}. Workout day: ${Math.round(T.dayFatigue(state, a))}`)),
         control,
         proj,
-        res.mode === 'custom' ? h('div', { class: 'plan-row__custom' }, this.editor(res.workout, `r-${a.id}`)) : null);
+        res.mode === 'custom' && !promise ? h('div', { class: 'plan-row__custom' }, this.editor(res.workout, `r-${a.id}`)) : null);
     },
 
     // Weekly mileage for the block: auto, or a fixed number of miles.
@@ -341,6 +357,7 @@
     },
 
     assign(a, value) {
+      if (T.promiseOf(XC.state, a)) return;
       const plan = this.plan();
       if (value === 'rest') plan.assign[a.id] = { mode: 'rest' };
       else if (value === 'custom') {
@@ -367,7 +384,9 @@
 
     allRest() {
       const plan = this.plan();
-      XC.state.squads[XC.activeSquad].roster.forEach((a) => { plan.assign[a.id] = { mode: 'rest' }; });
+      XC.state.squads[XC.activeSquad].roster.forEach((a) => {
+        if (!T.promiseOf(XC.state, a)) plan.assign[a.id] = { mode: 'rest' };
+      });
       XC.audio.nav();
       this.save();
       this.draw();
@@ -404,6 +423,7 @@
     },
 
     suggestRunner(a, staff = false) {
+      if (T.promiseOf(XC.state, a)) return;
       const plan = this.plan();
       plan.assign[a.id] = { mode: 'custom', workout: T.recommend(XC.state, XC.activeSquad, [a], { staff }) };
       XC.audio.select();

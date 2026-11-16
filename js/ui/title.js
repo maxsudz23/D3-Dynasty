@@ -16,6 +16,10 @@
   const CHANGELOG = [
     {
       date: 'Nov 16, 2026',
+      text: 'Your runners now text you between meets: tired legs, the flu, a workout they want to try, a PR, midterms. How you answer moves their morale, and some replies change their plan for the week.'
+    },
+    {
+      date: 'Nov 16, 2026',
       text: 'The WashU women now have their real roster headshots in the game, too.'
     },
     {
@@ -33,10 +37,6 @@
     {
       date: 'Nov 12, 2026',
       text: 'Invitationals now have JV races for everyone outside your top seven, named after the host\u2019s colors, like the Red Race and the Green Race at WashU.'
-    },
-    {
-      date: 'Nov 12, 2026',
-      text: 'The WashU men now have their real roster headshots in the game.'
     }
   ];
 

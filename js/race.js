@@ -113,8 +113,9 @@
       case 'mud': eff += ((s.dur + s.mnt) / 2 - ovr) * 0.35; break;
       default: break;
     }
-    // Training: sharpness helps, accumulated fatigue hurts.
-    eff += (runner.form || 0) - Math.max(0, (runner.fatigue || 0) - 20) * 0.12;
+    // Training: sharpness helps, accumulated fatigue hurts. Morale (from
+    // how the coach answers texts) lifts or drags a little too.
+    eff += (runner.form || 0) - Math.max(0, (runner.fatigue || 0) - 20) * 0.12 + (runner.morale || 0) * R.MORALE.rating;
     if (ctx.weather && ctx.weather.soft) eff += ((s.dur + s.mnt) / 2 - ovr) * 0.15;
     return eff;
   }
@@ -145,17 +146,22 @@
   };
   R.baseEff = baseEff;
 
+  // Race-day mental toughness: MNT plus morale.
+  R.MORALE = { rating: 0.3, mnt: 2 };
+  const mntOf = (runner) => U.clamp(runner.stats.mnt + (runner.morale || 0) * R.MORALE.mnt, 1, 99);
+
   function runRunner(runner, strategy, ctx, rng, pre) {
     const s = runner.stats;
+    const mnt = mntOf(runner);
     let eff = pre ? pre.eff : baseEff(runner, ctx) + R.planEffect(runner, strategy, ctx).eff;
-    let sd = (1.4 + ((100 - s.mnt) / 100) * 4.2) * (pre ? pre.sd : R.planEffect(runner, strategy, ctx).sd);
+    let sd = (1.4 + ((100 - mnt) / 100) * 4.2) * (pre ? pre.sd : R.planEffect(runner, strategy, ctx).sd);
     if (pre && pre.shared !== undefined) {
       // Pack runners share part of their luck, so they race together.
       eff += pre.shared * sd * R.PACK.shared + U.gauss(0, sd * Math.sqrt(1 - R.PACK.shared ** 2), rng);
     } else {
       eff += U.gauss(0, sd, rng);
     }
-    const badDay = rng() < 0.035 * (1.4 - s.mnt / 100) * (pre && pre.shared !== undefined ? 0.6 : 1);
+    const badDay = rng() < 0.035 * (1.4 - mnt / 100) * (pre && pre.shared !== undefined ? 0.6 : 1);
     if (badDay) eff -= U.randFloat(5, 12, rng);
 
     const km = ctx.meters / 1000;

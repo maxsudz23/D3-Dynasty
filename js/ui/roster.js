@@ -85,7 +85,7 @@
           cell('pot', a.pot),
           cell('pr', a.pr ? U.formatTime(a.pr) : '—'),
           cell('ftg', String(Math.round(a.fatigue || 0))),
-          h('td', null, a.injury > 0 ? h('span', { class: 'badge badge--warn' }, `Out ${a.injury}`) : racing ? 'Racing' : 'Reserve'));
+          h('td', null, a.injury > 0 ? h('span', { class: 'badge badge--warn' }, a.illness ? `Sick, out ${a.injury}` : `Out ${a.injury}`) : racing ? 'Racing' : 'Reserve'));
         tr.addEventListener('click', () => this.select(i));
         tr.addEventListener('dragstart', (e) => {
           view.dragFrom = i;
@@ -157,7 +157,7 @@
         h('span', { class: 'badge badge--hi' }, racing ? `Racing, slot ${lineup.findIndex((x) => x.id === a.id) + 1}` : 'Reserve'),
         h('span', { class: 'badge badge--line' }, A.ARCHETYPE_LABEL[a.archetype] || 'All-rounder'),
         a.transfer ? h('span', { class: 'badge badge--line' }, 'Transfer') : null,
-        a.injury > 0 ? h('span', { class: 'badge badge--warn' }, `Injured, out ${a.injury} meet${a.injury > 1 ? 's' : ''}`) : null,
+        a.injury > 0 ? h('span', { class: 'badge badge--warn' }, `${a.illness ? `Sick (${a.illness})` : 'Injured'}, out ${a.injury} meet${a.injury > 1 ? 's' : ''}`) : null,
         (a.fatigue || 0) >= 40 ? h('span', { class: 'badge badge--warn' }, XC.training.fatigueLabel(a.fatigue)) : null
       ];
       return h('section', { class: 'player-card', 'aria-label': `Selected runner ${A.fullName(a)}` },
@@ -172,7 +172,8 @@
             h('span', null, 'Potential ', h('b', null, a.pot)),
             h('span', null, 'Races ', h('b', null, String(a.career.races))),
             h('span', null, 'Fatigue ', h('b', null, `${Math.round(a.fatigue || 0)} (${XC.training.fatigueLabel(a.fatigue || 0).toLowerCase()})`)),
-            h('span', null, 'Form ', h('b', null, U.signed(a.form || 0, 1)))),
+            h('span', null, 'Form ', h('b', null, U.signed(a.form || 0, 1))),
+            h('span', null, 'Morale ', h('b', null, XC.texts.moraleLabel(a.morale || 0)))),
           h('div', { class: 'player-card__badges' }, badges)),
         h('div', { class: 'player-card__ovr' },
           h('span', { class: 'player-card__ovr-num' }, String(a.ovr)),

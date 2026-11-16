@@ -191,7 +191,7 @@
           runners.length < 5 && entry.scored ? h('p', { class: 'notice notice--warn' }, 'Fewer than five healthy runners. The team can’t post a score.') : null,
           list,
           S.hasJV(meet) && entry.scored ? jvNote(state, meet, sq) : null,
-          injured.length ? h('p', { class: 'muted' }, `Injured: ${injured.map((a) => `${A.fullName(a)} (out ${a.injury})`).join(', ')}`) : null,
+          injured.length ? h('p', { class: 'muted' }, `Out: ${injured.map((a) => `${A.fullName(a)} (${A.outWord(a).toLowerCase()}, out ${a.injury})`).join(', ')}`) : null,
           this.strategyPicker(sq),
           this.runnerPlans(sq, runners));
       }

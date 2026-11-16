@@ -4,23 +4,11 @@ Planned features that build on the workout system. The hooks they need are alrea
 
 ## Text messages from runners
 
-A phone-style inbox screen (`XC.screens.texts`) where runners message the coach between meets.
+Shipped 2026-11-16 (`js/texts.js`, `js/ui/texts.js`). CLAUDE.md, "Runner texts", has the rules. Possible follow-ups:
 
-- **Triggers:** Each workout block, roll a few texts from runners whose state suggests one.
-  - High fatigue: "legs are dead, can I go easy?"
-  - Recent injury or illness: "I have the flu and can't run this week."
-  - A runner asks for a specific workout: "I was thinking about doing [WORKOUT] this week, thoughts?"
-  - A PR or a bad race.
-  - Homesickness, class load, and so on.
-- **Template table:** Each template lists conditions, message text with `{name}` / `{workout}` slots, and 2–4 coach replies.
-- **Reply effects:** Each reply has small effects:
-  - fatigue ±
-  - a morale stat (new, feeds MNT on race day)
-  - injury days
-  - forcing that runner's plan for the block (rest, or the workout they asked about)
-  - a news line
-- **State:** `state.inbox = [{ id, athleteId, templateId, vars, replied: null }]`. Unanswered texts expire when the meet runs.
-- **Illness:** It works like an injury with a separate label. "Flu" sets `injury` to 1 and blocks training.
+- More templates: a runner asking to race JV or move up, roommate trouble, a recruit visiting.
+- Texts that carry over a block when the reply was "let's talk at practice".
+- Morale feeding offseason growth or transfer risk.
 
 ## Assistant coaches
 
