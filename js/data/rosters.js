@@ -123,7 +123,8 @@
         M: [3321903101]
       },
       // Roster headshots from washubears.com, hosted here. Runners without
-      // one (Lukas Keane has none on the site) get the silhouette.
+      // one (Lukas Keane has none on the site) get the silhouette. The site
+      // files Leah Sekulich's as "Lucy_Sekulich" and Grace Todd's is from 2025.
       photos: {
         M: {
         'Ryan Brinker': 'img/roster/washu/m/ryan-brinker.webp',
@@ -153,6 +154,28 @@
         'Freddie van der Velden': 'img/roster/washu/m/freddie-van-der-velden.webp',
         'Riley Wold': 'img/roster/washu/m/riley-wold.webp',
         'Toby Wong': 'img/roster/washu/m/toby-wong.webp'
+        },
+        W: {
+        'Emily Anand': 'img/roster/washu/w/emily-anand.webp',
+        'Taylor Buese': 'img/roster/washu/w/taylor-buese.webp',
+        'Sally Carrington': 'img/roster/washu/w/sally-carrington.webp',
+        'Madeline Cassidy': 'img/roster/washu/w/madeline-cassidy.webp',
+        'Lily Dipple': 'img/roster/washu/w/lily-dipple.webp',
+        'Chloe Hamilton': 'img/roster/washu/w/chloe-hamilton.webp',
+        'Ella Jackson': 'img/roster/washu/w/ella-jackson.webp',
+        'Kira Larner': 'img/roster/washu/w/kira-larner.webp',
+        'Lucinda Laughlin': 'img/roster/washu/w/lucinda-laughlin.webp',
+        'Maddy Lee': 'img/roster/washu/w/maddy-lee.webp',
+        'Lucy Luetkemeyer': 'img/roster/washu/w/lucy-luetkemeyer.webp',
+        'Amelie Maltz': 'img/roster/washu/w/amelie-maltz.webp',
+        'Anna McAndrew': 'img/roster/washu/w/anna-mcandrew.webp',
+        'Avery Nason': 'img/roster/washu/w/avery-nason.webp',
+        'Lucy Peterson': 'img/roster/washu/w/lucy-peterson.webp',
+        'Lauren Raley': 'img/roster/washu/w/lauren-raley.webp',
+        'Mackenzie Raue': 'img/roster/washu/w/mackenzie-raue.webp',
+        'Leah Sekulich': 'img/roster/washu/w/leah-sekulich.webp',
+        'Sofia Sheldon': 'img/roster/washu/w/sofia-sheldon.webp',
+        'Grace Todd': 'img/roster/washu/w/grace-todd.webp'
         }
       },
       W: [
