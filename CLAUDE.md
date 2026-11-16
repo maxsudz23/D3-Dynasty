@@ -326,19 +326,26 @@ No test files are in the repo. Re-create scripts like these in the scratchpad ra
 - **Hometowns (`data/places.js`):** randomuser.me pairs real city names with random states, so only names come from it. `XC.places.hometown(rng, school)` picks a real town: 4% international (mostly Canada and the British Isles), otherwise a state weighted by population × `0.06 + exp(−km/450)` from the school. `S.migrate` swaps any hometown that fails `XC.places.isReal` for a seeded pick.
 - **Portraits:** `ui.portrait(a, size)` shows a real athlete's photo, a generated runner's look as an SVG avatar (`portrait--avatar`), or the silhouette for a real athlete with no photo (Lukas Keane). Sizes: `sm` 56, default 96, `lg` 132, `xl` 220. randomuser.me is asked for names only (`inc=name`). `S.migrate` clears old randomuser.me photo URLs from rosters, recruiting and graduates.
 - **Looks (`looks.js`, `ui/avatar.js`, `ui/look.js`):** an original cartoon avatar style built from parts. Don't copy any existing game's avatar art.
-  - `a.look = { skin, face, hair, hairColor, eyes, brows, nose, mouth, facial, glasses, marks, gear }`, every value an option id in `XC.looks` (8 skin tones, 16 hairstyles, 12 hair colors, 5 face shapes, 6 eyes, 6 brows, 5 noses, 5 mouths, 5 facial hair, 4 glasses, 4 face details, 3 headwear).
-  - `L.generate(id, sq)` is seeded by the athlete's id, so a look never changes on its own. Squad weights shape the odds (ponytails and buns for the women, short cuts and facial hair for the men), but every option is open to everyone in the editor. Natural hair colors lean on skin tone; dyed colors are rare.
+  - **Version 2 (2026-11-16) is modeled on real headshots.** A research agent studied 100 public 2025–26 roster headshots: 5 men and 5 women from each of Middlebury, Chicago, Kenyon, Pomona-Pitzer, Vassar, UW-La Crosse, Johns Hopkins, North Central, Washington and Lee and SUNY Geneseo (10 conferences). It measured proportions (face landmarks plus hand measurements), sampled skin and hair pixels, and tallied hairstyles, facial hair, accessories, expressions and tops. Only aggregate numbers were kept, the photos were deleted, and no individual is described anywhere.
+  - **What it found, and what the generator uses:**
+    - Men: textured fringe crop 22%, side part 14%, curls on top with faded sides 14%, flow 12%, taper 10%, messy 10%, curly mop 6%, curtain part 6%, shag 4%, afro 2%. Buzz, crew, shaved and top knot are rare.
+    - Women: 92% wear their hair down: long middle part about 52% (straight and wavy), side part 15%, shoulder length 12%, curls 10%, tucked behind an ear 6%. Ponytails and buns are 5% combined.
+    - Big teeth smiles: men 64%, women 88% (the eyes squint into "smiling eyes"). No facial hair for 84% of men. Glasses 6% of men and 2% of women. A necklace on 44% of women and 12% of men, earrings on 16% of women. Head tilt on about 30% of women.
+    - Skin reads warm and a little pink: the nine tones are measured cheek colors, weighted by the measured shares (men a little tanner). Hair colors are measured bases, nudged for a cartoon. Brows render darker than blond hair.
+  - **Layout (100×100):** hairline y 24, eyes y 43.5 and 15.5 apart, brows y 38, nose base y 54, mouth y 60, chin y 74, face 40 wide. Neck by build: slim 22, medium 24.5, broad 27, with tendons, a chin shadow and collarbones. Shoulders run off the frame in a singlet (scoop neck and straps), quarter zip or tee. Long hair falls in front of the shoulders.
+  - `a.look = { v: 2, skin, face, build, hair, hairColor, eyes, eyeColor, brows, nose, mouth, facial, glasses, marks, jewelry, gear, top, tilt }`, every value an option id in `XC.looks` (9 skin tones, 28 hairstyles, 13 hair colors, 5 face shapes, 3 builds, 6 eyes, 6 eye colors, 7 brows, 5 noses, 5 mouths, 5 facial hair, 5 glasses, 4 face details, 5 jewelry, 3 headwear, 3 tops, 3 tilts). Option weights are `M`/`W` per squad or `w` for both; every option is open to everyone in the editor.
+  - `L.generate(id, sq)` is seeded by the athlete's id (`look2|id`), so a look never changes on its own.
   - `L.ensure(a, sq)` gives generated runners a look and never touches `a.real` athletes. It runs in `startingRoster`, `S.makeProspect` and `S.migrate`; graduates copy `look` and `real` into their snapshot.
-  - The avatar wears a singlet in the team colors with an accent sash, through the CSS classes `avatar__jersey`, `avatar__trim` and `avatar__trim-line`. Skin and hair colors are SVG fill attributes.
-  - **Drawing rules** (from fixing gaps the user spotted):
-    - Every hairstyle with a front layer has a `cap`: its outer outline, drawn behind the head. Front hair can't follow all five face shapes, so the cap fills any gap with hair instead of background.
-    - Hair layers get a 0.6 outline in the hair color to close seams.
-    - The messy style has a solid base under its spikes so square heads don't poke through.
-    - The buzz cut is opaque, the hair color blended 30% toward the skin.
-    - Stubble is clipped to the face shape and the beard to the face scaled 1.15 (`clipPath` ids are unique per avatar), so the beard's own outline forms its edge. The beard's inner edge (cheeks and mouth) stays inside every face shape, and its sideburns have flat tops.
-    - The neck flares into the collar and runs under the singlet, so nothing shows inside the neckline.
-    - Long hair, bobs and long curls set `hideEars`, so ears don't sit on top of the hair.
-    - There's no forehead shine; it read as a patch at the hairline.
+    - Version 1 looks that nobody edited (they still equal `L.legacyGenerate(id, sq)`, an exact copy of the old generator) are replaced with version 2. Edited ones keep every choice and get seeded values for the new fields. Keep `legacyGenerate` until old saves no longer matter.
+  - The top uses the team colors through the CSS classes `avatar__jersey`, `avatar__trim`, `avatar__trim-line`, `avatar__collar` and `avatar__zip`. Skin, hair and eye colors are SVG fill attributes.
+  - **Drawing rules:**
+    - Short styles build on the shared `crown()`: an outer outline, a hairline at y ≈ 24.5, and a `cap` (the outline drawn behind the head) so no background shows between hair and any face shape. Fringes and tufts must overlap the crown, or a strip of forehead shows.
+    - Long styles use curtains from the part down past the chin, drawn after the top, plus a darker back layer. `ears` is 'both', 'left', 'right' or 'none'.
+    - Hair layers get a 0.5 outline in the hair color to close seams. Texture strokes are darker; highlights (sun-lightened) are lighter.
+    - Faded sides (taper, curls on top) and the buzz cut blend the hair color toward the skin.
+    - Stubble is clipped to the face and the beard to the face scaled 1.15 (`clipPath` ids are unique per avatar). The beard's inner edge stays inside every face shape.
+    - A faint sun flush on the cheeks and nose, scaled down on deeper skin so it never reads as a patch. "Rosy cheeks" is the stronger version.
+    - Head tilt rotates the head and hair around (50, 82); the neck and top stay put.
   - When adding a hairstyle or face shape, render every hairstyle × face shape at 100px and at 200px and look for skin or background showing between hair and head.
   - The look editor (`XC.screens.look`, params `{ id, back }`) opens from the roster card's "Edit look" button, which real athletes don't get. Stepper rows and color swatches save on every change; "Surprise me" (R) rolls a random look and "Original look" restores the seeded one.
 - **Logos:** 71 programs use a real athletics logo from Wikimedia Commons in `img/logos/` (listed in `js/data/logos.js`, sources in `img/logos/SOURCES.md`). The other 72 keep generated monograms.

@@ -812,7 +812,16 @@ body.is-title .ticker {
 
 .avatar__trim-line {
   stroke: var(--team-accent);
-  stroke-width: 2.2;
+  stroke-width: 1.6;
+}
+
+.avatar__collar {
+  filter: brightness(0.85);
+}
+
+.avatar__zip {
+  stroke: #C9CED4;
+  stroke-width: 0.9;
 }
 
 .portrait--xl {

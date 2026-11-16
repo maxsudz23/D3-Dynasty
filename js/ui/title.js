@@ -16,6 +16,10 @@
   const CHANGELOG = [
     {
       date: 'Nov 16, 2026',
+      text: 'Runner looks were redrawn from a study of 100 real D3 team headshots: real proportions and skin tones, the hairstyles runners actually wear, big smiles, necklaces, and singlets or quarter zips. Edited looks are kept.'
+    },
+    {
+      date: 'Nov 16, 2026',
       text: 'Generated runners and recruits now have their own cartoon looks: hair, skin, faces, glasses and more. Tap Edit look on the depth chart to change how any of your non-real runners look.'
     },
     {
@@ -33,10 +37,6 @@
     {
       date: 'Nov 16, 2026',
       text: 'Augustana, Illinois Wesleyan and Elmhurst now race on their real home courses: Saukie Golf Course, Maxwell Park and Eldridge Park. North Park\u2019s home meet is at Schiller Woods.'
-    },
-    {
-      date: 'Nov 16, 2026',
-      text: 'Hire assistant coaches from the new Staff screen. Each one specializes in a kind of workout, makes those sessions count for more and cuts injuries in practice, and on workout day you can ask for the staff\u2019s suggestion.'
     }
   ];
 
