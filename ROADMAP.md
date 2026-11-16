@@ -85,6 +85,17 @@ Shipped 2026-11-16 (`js/staff.js`, `js/ui/staff.js`). CLAUDE.md, "Assistant coac
   - Trinity's home meet is a 5K, so its trace follows the 2021 NESCAC 8K/6K maps.
 - **Engine fix:** smoothed loops now start at the traced first point. Before, a race ending at a loop's start could finish a few meters off.
 
+**CCIW (2026-11-16):**
+- **Traced:** Augustana (Saukie Golf Course, high, from Augustana's 2021 8K/6K maps, which match the 2026 Midwest Regional manual), Illinois Wesleyan (Maxwell Park, medium) and Elmhurst (Eldridge Park, medium). M/W lengths are within 1.7% of 8K/6K. Saukie and Maxwell Park are turned 90° to fill the frame.
+- **Shared:** Wheaton (IL) and North Central stay on St. James Farm.
+- **Venue only:** North Park (Schiller Woods, no map).
+- **Left generated:** Carthage (no home meet; UW-Parkside's Dannehl course is the obvious substitute if wanted) and Millikin (two alternating venues, no maps).
+- **Judgment calls:**
+  - IWU's own meet is a 3 mi / 2 mi opener, so its trace follows the 2016 CCIW Championships maps, as Trinity's does.
+  - Elmhurst's Earlybird ran 6K/4K (three and two laps of a 2K loop, last held 2022). The game runs four and three laps from the same 2009 map.
+  - Elmhurst and North Park also each hosted a CCIW Championships at St. James Farm (2022, 2024), but their own venues were used instead.
+- **Cost:** two research agents in parallel, about 10 minutes and 350K tokens together.
+
 **What the pilot taught:**
 - Most D3 "home" courses are off campus, and several schools only ever hosted a conference meet. Record the honest situation in `notes` and use medium confidence.
 - Conference championship pages, especially "UAA Championships" host pages, are the best source of official 8K/6K maps.

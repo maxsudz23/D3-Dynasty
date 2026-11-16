@@ -16,6 +16,10 @@
   const CHANGELOG = [
     {
       date: 'Nov 16, 2026',
+      text: 'Augustana, Illinois Wesleyan and Elmhurst now race on their real home courses: Saukie Golf Course, Maxwell Park and Eldridge Park. North Park\u2019s home meet is at Schiller Woods.'
+    },
+    {
+      date: 'Nov 16, 2026',
       text: 'Hire assistant coaches from the new Staff screen. Each one specializes in a kind of workout, makes those sessions count for more and cuts injuries in practice, and on workout day you can ask for the staff\u2019s suggestion.'
     },
     {
@@ -33,10 +37,6 @@
     {
       date: 'Nov 12, 2026',
       text: 'WashU\u2019s ratings now come from the team\u2019s real 2026 season-best times, so the Bears start as one of the top programs in the country.'
-    },
-    {
-      date: 'Nov 12, 2026',
-      text: 'Start a new dynasty as WashU and you coach the real 2026 Bears, with their real hometowns and class years.'
     }
   ];
 

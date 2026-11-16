@@ -948,6 +948,267 @@
     ]
   };
 
+  // Traced from Elmhurst's hand-drawn map (2009), still the "Course Map"
+  // link on the Earlybird meet page in 2022. The map labels each loop
+  // 2,000 m; the real meet ran 6K/4K (3 and 2 loops), so the game's 8K/6K
+  // run 4 and 3.
+  COURSES['eldridge-park'] = {
+    name: 'Eldridge Park',
+    city: 'Elmhurst',
+    state: 'IL',
+    type: 'flat',
+    kind: 'loop',
+    features: [
+      'A 2K loop on both banks of Salt Creek, crossing the footbridge twice a lap',
+      'North of the creek: out along Butterfield Rd, past the tennis courts and an S-bend over the park\'s one hill',
+      'South of the creek: a big field loop and a lap of the pond',
+      'Finish chute straight north off the bridge, beside the soccer fields'
+    ],
+    confidence: 'medium',
+    notes: 'Home of Elmhurst\'s Earlybird Invitational, last held in 2022 (men 6K, women 4K). No home meet in 2023–2026; Elmhurst hosted the 2022 CCIW Championships at St. James Farm. The only map is a hand-drawn 2009 sketch with one start arrow; running order comes from its 1K, 1-, 2- and 3-mile marks.',
+    sources: [
+      'https://elmhurstbluejays.com/sports/2009/7/27/WXC_0727090431.aspx?path=cross',
+      'https://elmhurstbluejays.com/news/2022/9/2/mens-cross-country-takes-fourth-at-earlybird.aspx',
+      'https://dxbhsrqyrr690.cloudfront.net/sidearm.nextgen.sites/elmhurstbluejays.com/documents/2022/9/2/mindividual.htm',
+      'https://elmhurstbluejays.com/sports/cross-country/schedule/2026',
+      'https://cciw.org/news/2022/10/26/cciw-mens-cross-country-championship-set-for-saturday.aspx/'
+    ],
+    trace: {
+      mapSource: 'https://dxbhsrqyrr690.cloudfront.net/sidearm.nextgen.sites/elmhurstbluejays.com/documents/2009/8/7/coursemap.pdf',
+      // Pixel coordinates on the map's 2000×1514 render. North is to the
+      // left; the frame doesn't need north up.
+      legs: {
+        loop: {
+          closed: true,
+          pts: [
+            // Start line by the soccer fields, out along Butterfield Rd
+            [1730, 650], [1715, 480], [1700, 320], [1690, 180], [1660, 95], [1580, 55], [1420, 45],
+            // Across the top past the tennis courts, then the S-bend over the hill
+            [1150, 40], [850, 45], [580, 52], [400, 85], [270, 170], [150, 250], [95, 320], [100, 410],
+            [170, 460], [320, 475], [440, 485], [520, 525], [550, 590], [520, 645], [440, 675], [340, 700],
+            [330, 745], [430, 752], [570, 728], [720, 715], [850, 728], [960, 770], [1040, 830],
+            // 1K on the bridge, then west along the creek (2 miles) round the big field
+            [1085, 900], [1040, 955], [880, 968], [700, 975], [540, 980], [390, 995], [270, 1060],
+            [215, 1190], [225, 1320], [300, 1395], [450, 1438], [700, 1450], [950, 1442], [1170, 1425],
+            // Round the pond (1 mile on its far side) and back over the bridge
+            [1320, 1365], [1520, 1310], [1700, 1285], [1795, 1215], [1840, 1090], [1825, 975],
+            [1750, 918], [1590, 905], [1400, 905], [1230, 918], [1150, 905], [1135, 860],
+            // Up the creek to the start line
+            [1200, 800], [1340, 772], [1500, 748], [1640, 722], [1710, 690]
+          ]
+        },
+        finish: { pts: [[1135, 860], [1080, 790], [1040, 700], [1020, 610], [1010, 545]] }
+      },
+      races: {
+        M: {
+          label: 'Four laps of the 2K loop, finishing straight off the bridge',
+          path: [{ leg: 'loop', to: [1135, 860], laps: 3 }, { leg: 'finish' }]
+        },
+        W: {
+          label: 'Three laps of the 2K loop, finishing straight off the bridge',
+          path: [{ leg: 'loop', to: [1135, 860], laps: 2 }, { leg: 'finish' }]
+        }
+      },
+      // The one labelled hill, inside the S-bend.
+      hills: [{ x: 500, y: 590, r: 150, h: 1 }],
+      layoutLabel: '2 km loop over two creek crossings',
+      describe: 'A flat 2K park loop across Salt Creek twice a lap, with an S-bend over the one hill'
+    }
+  };
+
+  // Traced from Augustana's 2021 8K and 6K maps, which match the course
+  // appendices in the 2026 NCAA Midwest Regional technical manual.
+  COURSES['saukie'] = {
+    name: 'Saukie Golf Course',
+    city: 'Rock Island',
+    state: 'IL',
+    type: 'rolling',
+    kind: 'loop',
+    features: [
+      'Fairways of a city golf course, laid out as two laps for both races',
+      'A long start diagonal down to a junction, then a south loop and a southwest loop',
+      'The men\'s lap adds a northeast tongue through the far fairways; the women turn back on the north fairway',
+      'Finish chute down the west side by the clubhouse'
+    ],
+    confidence: 'high',
+    notes: 'Home of the Brissman-Lundeen Invitational and the Augustana Interregional Invitational. Hosted the 2025 CCIW Championships and the NCAA DIII Midwest Regional (2021, 2024, 2026). Augustana calls it rolling; no climb figure is published.',
+    sources: [
+      'https://athletics.augustana.edu/sports/2021/8/9/home-cross-country-meet-info',
+      'https://athletics.augustana.edu/news/2025/10/14/womens-cross-country-5th-annual-augustana-interregional-invitational-set-for-this-saturday-at-saukie-golf-course.aspx',
+      'https://athletics.augustana.edu/news/2025/10/31/womens-cross-country-augustana-set-to-host-2025-cciw-xc-championships.aspx',
+      'https://athletics.augustana.edu/sports/2024/9/27/2024-ncaa-division-iii-cross-country-midwest-regional.aspx',
+      'https://s3.us-east-2.amazonaws.com/sidearm.nextgen.sites/augustana.sidearmsports.com/documents/2021/10/6/Saukie_Womens_Course_Map.pdf',
+      'https://s3.us-east-2.amazonaws.com/sidearm.nextgen.sites/augustana.sidearmsports.com/documents/2026/10/2/Men_sCourse.pdf'
+    ],
+    trace: {
+      mapSource: 'https://s3.us-east-2.amazonaws.com/sidearm.nextgen.sites/augustana.sidearmsports.com/documents/2021/10/6/Saukie_Mens_Course_Map_1_.pdf',
+      // Pixel coordinates on the men's map's 1545×2000 render, north up.
+      // The course is taller than wide, so turn it to fill the frame.
+      rotate: -90,
+      legs: {
+        start: { pts: [[335, 598], [385, 705], [440, 815], [495, 905]] },
+        // Shared by both races: down to the junction, the south loop, the
+        // southwest loop, the curl (mile 1), up the west edge and east
+        // along the north fairway.
+        main: {
+          pts: [
+            [495, 905], [530, 965], [575, 1020], [610, 1068], [650, 1110], [700, 1160], [760, 1210],
+            [772, 1300], [772, 1450], [770, 1600], [745, 1680], [690, 1712], [640, 1690], [605, 1620],
+            [595, 1555], [600, 1400], [605, 1290], [612, 1150], [610, 1075], [580, 1035], [530, 1013],
+            [460, 1012], [390, 1015], [345, 1045], [310, 1110], [270, 1200], [230, 1280], [195, 1318],
+            [160, 1325], [135, 1300], [132, 1220], [145, 1150], [180, 1080], [225, 1035], [280, 1005],
+            [320, 995], [360, 1003], [410, 998], [445, 965], [450, 915], [425, 875], [380, 840],
+            [320, 790], [285, 758], [255, 720], [232, 660], [205, 580], [165, 525], [125, 490],
+            [118, 445], [140, 415], [195, 385], [250, 345], [300, 305], [350, 275], [430, 255],
+            [560, 246], [700, 243], [850, 243]
+          ]
+        },
+        // Men: the northeast tongue (mile 2 at its south tip).
+        ne: {
+          pts: [
+            [850, 243], [940, 247], [985, 262], [1010, 300], [1030, 320], [1100, 365], [1180, 425],
+            [1250, 455], [1305, 465], [1320, 500], [1300, 545], [1265, 610], [1230, 655], [1205, 660],
+            [1195, 620], [1190, 560], [1170, 510], [1130, 500], [1080, 520], [1040, 570], [1015, 630],
+            [1005, 720], [1005, 800], [990, 825], [965, 818], [945, 760], [945, 700], [965, 650],
+            [1000, 590], [1025, 520], [1030, 480], [1005, 420], [970, 370], [945, 330], [900, 325],
+            [850, 322]
+          ]
+        },
+        // Women: a short turnaround on the north fairway instead.
+        hairpin: { pts: [[850, 243], [915, 246], [932, 268], [925, 300], [900, 315], [850, 322]] },
+        // Both: west along the inner fairway, then down the straight past the start.
+        inner: {
+          pts: [
+            [850, 322], [700, 315], [550, 305], [450, 292], [370, 288], [330, 300], [325, 340],
+            [345, 465], [375, 580], [430, 760], [495, 905]
+          ]
+        },
+        finish: { pts: [[330, 300], [275, 365], [228, 445], [220, 500], [240, 610], [270, 712]] }
+      },
+      races: {
+        M: {
+          label: 'Two 4K laps, each with the northeast tongue, then the chute down the west side',
+          path: [
+            { leg: 'start' }, { leg: 'main' }, { leg: 'ne' }, { leg: 'inner' },
+            { leg: 'main' }, { leg: 'ne' }, { leg: 'inner', to: [330, 300] }, { leg: 'finish' }
+          ]
+        },
+        W: {
+          label: 'Two 3K laps, turning back on the north fairway, then the chute down the west side',
+          path: [
+            { leg: 'start' }, { leg: 'main' }, { leg: 'hairpin' }, { leg: 'inner' },
+            { leg: 'main' }, { leg: 'hairpin' }, { leg: 'inner', to: [330, 300] }, { leg: 'finish' }
+          ]
+        }
+      },
+      layoutLabel: 'Two laps through the fairways',
+      describe: 'Two laps of a rolling golf course, a south loop and a southwest loop off one junction'
+    }
+  };
+
+  // Traced from the 2016 CCIW Championships maps (IWU host). IWU's own
+  // meet there since is a short opener (3 mi / 2 mi), so the game's 8K/6K
+  // follow the championship maps, as with Trinity's Wickham Park.
+  COURSES['maxwell-park'] = {
+    name: 'Maxwell Park',
+    city: 'Normal',
+    state: 'IL',
+    type: 'flat',
+    kind: 'loop',
+    features: [
+      'A town park with a marked cross country course, 99% grass',
+      'A long start straight west from Parkside Dr to a junction',
+      'A big northern loop along Gregory St and Parkside Dr, and a southern loop past the water tower through a wooded strip',
+      'Women finish with a lap around the track before the run-in to Parkside Dr'
+    ],
+    confidence: 'medium',
+    notes: 'Home of IWU\'s Titan Opener (2022, 2025, 2026; 3 mi men, 2 mi women); no home meet in 2023–2024. IWU last ran 8K/6K here at the 2016 CCIW Championships; the route is from those 10-year-old maps, with no sign of changes since.',
+    sources: [
+      'https://www.normalil.gov/1418/Maxwell',
+      'https://iwusports.com/news/2022/9/1/mens-cross-country-cross-country-earns-a-second-and-third-place-team-finish-at-the-titan-opener.aspx',
+      'https://www.iwusports.com/news/2025/8/29/mens-cross-country-cross-country-leads-way-at-titan-opener.aspx',
+      'https://www.iwusports.com/sports/mens-cross-country/schedule/2026',
+      'https://cciw.org/sports/2016/10/19/MCC_1019164256.aspx',
+      'https://cciw.org/custompages/CCIW_Links/CrossCountry/Results/2016/info16.doc',
+      'https://cciw.org/custompages/CCIW_Links/CrossCountry/Results/2016/6K.doc'
+    ],
+    trace: {
+      mapSource: 'https://cciw.org/custompages/CCIW_Links/CrossCountry/Results/2016/8K.doc',
+      // Pixel coordinates on the men's map's 1558×2000 render, north up.
+      // The women's map shares the same base. Turned to fill the frame.
+      rotate: -90,
+      legs: {
+        start: { pts: [[1300, 990], [1100, 990], [900, 990], [700, 990], [545, 990]] },
+        // North loop, clockwise: far-west leg, Gregory St, Parkside Dr, back
+        // west and down the inner leg to the junction.
+        north: {
+          pts: [
+            [545, 990], [530, 940], [505, 800], [450, 760], [385, 700], [440, 590], [540, 375],
+            [700, 372], [950, 375], [1000, 345], [1045, 295], [1180, 292], [1315, 295], [1325, 330],
+            [1315, 500], [1300, 680], [1200, 705], [1090, 722], [990, 708], [900, 692], [870, 600],
+            [830, 485], [700, 535], [570, 582], [585, 700], [605, 850], [630, 995]
+          ]
+        },
+        // South loop: the long straight, past the water tower, up the wooded strip.
+        south: {
+          pts: [
+            [630, 995], [622, 1150], [610, 1350], [595, 1580], [575, 1610], [470, 1612], [370, 1610],
+            [370, 1460], [400, 1410], [460, 1360], [510, 1320], [540, 1230], [540, 1190], [510, 1140],
+            [505, 1100], [520, 1060], [535, 1040], [530, 1010], [545, 990]
+          ]
+        },
+        finishM: { pts: [[630, 995], [660, 1005], [900, 1015], [1100, 1023], [1290, 1030]] },
+        // Women: down the straight, east at the bottom, up past the track and round to the line.
+        finishW: {
+          pts: [
+            [630, 995], [622, 1150], [610, 1350], [595, 1580], [612, 1622], [650, 1638], [690, 1612],
+            [730, 1450], [790, 1250], [845, 1110], [830, 1088], [720, 1085], [702, 1055], [725, 1030],
+            [950, 1025], [1100, 1035], [1290, 1050]
+          ]
+        }
+      },
+      races: {
+        M: {
+          label: 'Start straight, north loop three times with the south loop between, then the run-in',
+          path: [
+            { leg: 'start' }, { leg: 'north' }, { leg: 'south' }, { leg: 'north' },
+            { leg: 'south' }, { leg: 'north' }, { leg: 'finishM' }
+          ]
+        },
+        W: {
+          label: 'Start straight, north loop twice with the south loop between, then down the straight and round the track',
+          path: [
+            { leg: 'start' }, { leg: 'north' }, { leg: 'south' }, { leg: 'north' }, { leg: 'finishW' }
+          ]
+        }
+      },
+      layoutLabel: 'Two loops off one junction',
+      describe: 'A flat, grassy town park: a big north loop and a wooded south loop, crossing at one junction'
+    }
+  };
+
+  // North Park's first home meet in 20+ years (2024, co-hosted with
+  // Concordia Chicago) and again in 2025, both 5K. No course map.
+  COURSES['schiller-woods'] = {
+    name: 'Schiller Woods',
+    city: 'Schiller Park',
+    state: 'IL',
+    type: 'flat',
+    features: [
+      'Cook County forest preserve on the Des Plaines River floodplain',
+      'Shared with Concordia University Chicago for the season opener'
+    ],
+    confidence: 'medium',
+    notes: 'Venue of the North Park Invite / NPU-CUC Early Invite (2024, 2025; 5K for both races). No home meet in 2022–2023 or 2026; North Park hosted the 2024 CCIW Championships at St. James Farm. No course map or description was found, so the layout is generated; flat terrain is inferred from the riverside forest-preserve setting. North Park\'s earlier home course was Montrose Harbor (2011 CCIW host), which has 8K/6K maps but hasn\'t been used since.',
+    sources: [
+      'https://athletics.northpark.edu/news/2024/8/31/mens-cross-country-vikings-cross-country-opens-season-at-co-hosted-meet.aspx',
+      'https://athletics.northpark.edu/sports/mens-cross-country/schedule/2025',
+      'https://www.cucougars.com/news/2025/8/29/mens-cross-country-cougars-celebrate-four-seniors-in-npu-cuc-season-opener.aspx',
+      'https://fpdcc.com/places/locations/schiller-woods/',
+      'https://athletics.northpark.edu/news/2024/11/2/mens-cross-country-north-park-competes-at-hosted-cciw-championships.aspx'
+    ]
+  };
+
   // schoolId -> courseId
   const HOME_OF = {
     middlebury: 'middlebury-golf-course',
@@ -963,6 +1224,10 @@
     uchicago: 'st-james-farm',
     wheatonil: 'st-james-farm',
     northcentral: 'st-james-farm',
+    elmhurst: 'eldridge-park',
+    augustanail: 'saukie',
+    iwu: 'maxwell-park',
+    northpark: 'schiller-woods',
     case: 'squire-valleevue-farm',
     rochester: 'genesee-valley-park',
     cmu: 'youthtowne-fields',
