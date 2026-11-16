@@ -99,10 +99,12 @@
       front: [p(SLEEK, { fill: c })]
     }),
     long: (c) => ({
+      hideEars: true,
       back: [p('M23.5 44 C21.5 21 36 11.5 50 11.5 C64 11.5 78.5 21 76.5 44 L78.5 87 C70.5 91 62.5 85 62.5 74 L37.5 74 C37.5 85 29.5 91 21.5 87 Z', { fill: c })],
       front: [p('M26 52 C23.5 24 36 13.5 50 13.5 C64 13.5 76.5 24 74 52 C72.5 36.5 62.5 25.5 50 23.5 C37.5 25.5 27.5 36.5 26 52 Z', { fill: c })]
     }),
     bob: (c) => ({
+      hideEars: true,
       back: [p('M22.5 46 C20.5 21 35.5 12.5 50 12.5 C64.5 12.5 79.5 21 77.5 46 L77.5 69 L66 69 L66 62 L34 62 L34 69 L22.5 69 Z', { fill: c })],
       front: [p('M26.5 44 C25.5 22 38 14.5 50 14.5 C62 14.5 74.5 22 73.5 44 L73 38.5 C66 37 59 36 50 36 C41 36 34 37 27 38.5 Z', { fill: c })]
     }),
@@ -111,6 +113,7 @@
       return { cap: SLEEK_CAP, back: braid(26).concat(braid(74)), front: [p(SLEEK, { fill: c })] };
     },
     curlylong: (c) => ({
+      hideEars: true,
       back: [p('M22 46 C20 20 36 11 50 11 C64 11 80 20 78 46 L80 80 L20 80 Z', { fill: c })]
         .concat(curls(50, 52, 30, 30, 95, 265, 7, 7, c), curls(50, 52, 30, 30, -85, 85, 7, 7, c)),
       cap: 'M27 46 C26 27 37 19 50 19 C63 19 74 27 73 46 Z',
@@ -177,14 +180,17 @@
   }
 
   function facialHair(style, color) {
-    const beardPath = 'M27.5 49 Q27 76 50 78.5 Q73 76 72.5 49 Q71 61 63 66 Q57 68.5 50 68.5 Q43 68.5 37 66 Q29 61 27.5 49 Z';
+    // The inner edge (around the cheeks and mouth) stays well inside every
+    // face shape, so no background shows between the beard and the face.
+    const beardPath = 'M27.5 47 Q27 76 50 78.5 Q73 76 72.5 47 L68 47 Q68 61.5 63 66 Q57 68.5 50 68.5 Q43 68.5 37 66 Q32 61.5 32 47 Z';
     const stache = p('M42.5 62 Q46 58.6 50 60.2 Q54 58.6 57.5 62 Q50 61 42.5 62 Z', { fill: color });
     switch (style) {
       // Stubble stays on the skin: clipped to the face.
       case 'stubble': return { clip: 'face', under: [p(beardPath, { fill: color, 'fill-opacity': '0.22' }), p('M42.5 61.8 Q50 58.8 57.5 61.8 Q50 60.8 42.5 61.8 Z', { fill: color, 'fill-opacity': '0.25' })], over: [] };
       case 'mustache': return { under: [], over: [stache] };
       case 'goatee': return { under: [p('M44.5 67 Q50 73 55.5 67 Q50 69.5 44.5 67 Z', { fill: color })], over: [stache] };
-      // A beard can sit a little past the jaw: clipped to a slightly larger face.
+      // A beard can sit past the jaw: clipped to a larger face, so its own
+      // outline (not the clip) forms its edge and no seam shows at the jaw.
       case 'beard': return { clip: 'beard', under: [p(beardPath, { fill: color })], over: [stache] };
       default: return { under: [], over: [] };
     }
@@ -234,7 +240,7 @@
     // Clip paths for facial hair: the face itself, and the face a little larger.
     const id = `avatar-clip-${++clipCount}`;
     const bigger = headShape('#000000');
-    bigger.setAttribute('transform', 'translate(50 49) scale(1.08) translate(-50 -49)');
+    bigger.setAttribute('transform', 'translate(50 49) scale(1.15) translate(-50 -49)');
     const defs = s('defs', null,
       s('clipPath', { id: `${id}-face` }, headShape('#000000')),
       s('clipPath', { id: `${id}-beard` }, bigger));
@@ -247,11 +253,15 @@
       defs,
       hairStyle.cap ? p(hairStyle.cap, { fill: hairColor }) : null,
       seam(hairStyle.back),
-      s('ellipse', { cx: '27', cy: '51', rx: '4.2', ry: '6', fill: skin }),
-      s('ellipse', { cx: '73', cy: '51', rx: '4.2', ry: '6', fill: skin }),
-      s('ellipse', { cx: '27.4', cy: '51', rx: '2', ry: '3.4', fill: shade(skin, 0.12) }),
-      s('ellipse', { cx: '72.6', cy: '51', rx: '2', ry: '3.4', fill: shade(skin, 0.12) }),
-      p('M42 64 L42 82 L58 82 L58 64 Z', { fill: neck }),
+      // Ears, unless the hair falls over them.
+      hairStyle.hideEars ? null : [
+        s('ellipse', { cx: '27', cy: '51', rx: '4.2', ry: '6', fill: skin }),
+        s('ellipse', { cx: '73', cy: '51', rx: '4.2', ry: '6', fill: skin }),
+        s('ellipse', { cx: '27.4', cy: '51', rx: '2', ry: '3.4', fill: shade(skin, 0.12) }),
+        s('ellipse', { cx: '72.6', cy: '51', rx: '2', ry: '3.4', fill: shade(skin, 0.12) })],
+      // The neck flares into the collar and runs under the singlet, so no
+      // background shows inside the neckline.
+      p('M42 64 L42 79 Q41 84 34 87 L66 87 Q59 84 58 79 L58 64 Z', { fill: neck }),
       // The singlet, with a sash in the accent color.
       p('M6 100 C8 88 21 82 35 80 Q50 89 65 80 C79 82 92 88 94 100 Z', { class: 'avatar__jersey' }),
       p('M28 100 L69.5 80.6 L76 82.4 L39 100 Z', { class: 'avatar__trim' }),

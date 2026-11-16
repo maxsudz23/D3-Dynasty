@@ -335,7 +335,9 @@ No test files are in the repo. Re-create scripts like these in the scratchpad ra
     - Hair layers get a 0.6 outline in the hair color to close seams.
     - The messy style has a solid base under its spikes so square heads don't poke through.
     - The buzz cut is opaque, the hair color blended 30% toward the skin.
-    - Stubble is clipped to the face shape and the beard to the face scaled 1.08 (`clipPath` ids are unique per avatar).
+    - Stubble is clipped to the face shape and the beard to the face scaled 1.15 (`clipPath` ids are unique per avatar), so the beard's own outline forms its edge. The beard's inner edge (cheeks and mouth) stays inside every face shape, and its sideburns have flat tops.
+    - The neck flares into the collar and runs under the singlet, so nothing shows inside the neckline.
+    - Long hair, bobs and long curls set `hideEars`, so ears don't sit on top of the hair.
     - There's no forehead shine; it read as a patch at the hairline.
   - When adding a hairstyle or face shape, render every hairstyle × face shape at 100px and at 200px and look for skin or background showing between hair and head.
   - The look editor (`XC.screens.look`, params `{ id, back }`) opens from the roster card's "Edit look" button, which real athletes don't get. Stepper rows and color swatches save on every change; "Surprise me" (R) rolls a random look and "Original look" restores the seeded one.
