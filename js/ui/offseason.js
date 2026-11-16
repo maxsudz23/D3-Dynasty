@@ -69,6 +69,7 @@
       if (q.regional === 1) highlights.push(['good', 'Regional champions.']);
       if (q.mvp && q.mvp.pr) highlights.push(['', `Fastest on the team: ${q.mvp.name}, ${U.formatTime(q.mvp.pr)}.`]);
       highlights.push(['', `Next recruiting class: ${win.min}–${win.max} OVR after the offseason reputation dip.`]);
+      highlights.push(['good', `The athletic department adds $${XC.facilities.payout(entry).total}k to the facilities fund.`]);
 
       root.appendChild(h('div', { class: 'stack' },
         hero,

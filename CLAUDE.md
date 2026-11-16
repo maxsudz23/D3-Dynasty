@@ -19,13 +19,13 @@ D3 Dynasty is a Division III cross country coaching game in plain HTML, CSS and 
 
 ## Hard constraints
 `main` is no longer bound by the Website #2 rubric. Libraries and APIs are allowed if a feature needs them, but keep this framework:
-- No build step and no ES modules. Scripts are classic `defer` scripts that hang off one `window.XC` namespace, so the page works from `file://`. Load order in `index.html` matters: engine files first (`util`, `storage`, `audio`, data, `athletes`, `race`, `course`, `training`, `staff`, `texts`, `api`, `season`), then UI, then `main.js`.
+- No build step and no ES modules. Scripts are classic `defer` scripts that hang off one `window.XC` namespace, so the page works from `file://`. Load order in `index.html` matters: engine files first (`util`, `storage`, `audio`, data, `athletes`, `race`, `course`, `training`, `staff`, `texts`, `facilities`, `api`, `season`), then UI, then `main.js`.
 - No inline styles. Setting CSS custom properties from JS is fine. No `onclick` attributes, no `innerHTML`; build DOM with `XC.util.h()` and `XC.util.svg()`.
 - The console must stay error-free, including on hosted pages. Hosted pages request a favicon (`favicon.svg` is linked in `index.html`), and `file://` never shows that error.
 - APIs need graceful failure handling, and browser APIs need handling for denied permissions.
 
 ## Architecture
-- **Engine** (pure, testable in node with `global.window = global`): `util.js`, `data/schools.js`, `data/logos.js`, `data/names.js`, `data/places.js`, `data/courses.js`, `athletes.js`, `race.js`, `course.js`, `training.js`, `staff.js`, `texts.js`, `api.js`, `season.js`.
+- **Engine** (pure, testable in node with `global.window = global`): `util.js`, `data/schools.js`, `data/logos.js`, `data/names.js`, `data/places.js`, `data/courses.js`, `athletes.js`, `race.js`, `course.js`, `training.js`, `staff.js`, `texts.js`, `facilities.js`, `api.js`, `season.js`.
 - **UI:** `ui/common.js` holds the theme, crest, portraits, chrome, toasts and confirm dialog.
   - `ui.setTheme(primary, accent, school)` also sets `--team-logo` to the school's logo (absolute URL), or `none`. `body::before` draws it at 10% opacity over the background stripes. Schools without a logo and custom schools show nothing. Pass the school wherever a real school's theme is applied.
   - `ui.crest(school)` draws the school's athletics logo on a white shield edged in its primary color when `XC.logos.pathFor(school)` has one, and the generated monogram otherwise. Custom schools (id `custom`) and any logo that fails to load get the monogram.
@@ -35,12 +35,12 @@ D3 Dynasty is a Division III cross country coaching game in plain HTML, CSS and 
 - **Screen hooks:** each screen registers on `XC.screens[name]` with any of:
   - `title`, `render(root, params)`, `legend()`, `onKey(e)`, `back()`, `onSquadChange()`, `cleanup()`, `squadTabs`, `context`
   - `canChangeSquad()`: return false to block squad switching. The wheel uses it while spinning.
-- **Screens:** `title`, `setup`, `hub`, `schedule`, `trophies`, `settings`, `staff`, `texts`, `roster`, `wheel`, `training`, `meet`, `race`, `results`, then the offseason screens.
+- **Screens:** `title`, `setup`, `hub`, `schedule`, `trophies`, `settings`, `staff`, `facilities`, `texts`, `roster`, `wheel`, `training`, `meet`, `race`, `results`, then the offseason screens.
 - **Router:** `main.js` (`XC.go(name, params)`, `XC.refresh()`, `XC.setSquad()`). The global keys are Q/E for squad, Esc for back, M for mute and arrows to move focus between elements marked `[data-nav]`.
 - **Legend items:** `{ key, label, action, keyboardOnly? }`. Set `keyboardOnly: true` on items that repeat an on-screen control (squad tabs, the sound toggle, "Enter: select focused"), so touch screens hide them.
 - **Guard actions in the function itself:** keyboard shortcuts and legend buttons call screen methods directly and skip the disabled buttons, so every action must check its own preconditions. The wheel freeze came from this.
 - **State:** `XC.state` is saved to localStorage key `d3dynasty.save.v1` (version 1; the pre-rename key `harriers27.dynasty.v1` is still read as a fallback). `XC.live` holds values that aren't saved, such as the latest race sims used for the animation.
-  - `S.migrate(state)` runs on every load and fills in fields older saves lack: `homeCourse`, `training`, `staff` (via `XC.staff.ensure`), `inbox`, `squad.plans` (also pruned of runners who left), and athlete `fatigue`/`form`/`morale`.
+  - `S.migrate(state)` runs on every load and fills in fields older saves lack: `homeCourse`, `training`, `staff` (via `XC.staff.ensure`), `facilities` and `funds` (via `XC.facilities.ensure`), `inbox`, `squad.plans` (also pruned of runners who left), and athlete `fatigue`/`form`/`morale`.
   - New saved fields must be added there.
 - **Phases:** `preseason` (recruiting wheel) → `season` (`meetIndex` 0–5, each meet preceded by a workout day in `state.training`) → `recap` → `graduation` → `progression` → `cut` → `S.startNewSeason` → `preseason`. `S.runMeet` saves results before the race animation plays, so reloading can't reroll a race.
 
@@ -154,7 +154,7 @@ D3 Dynasty is a Division III cross country coaching game in plain HTML, CSS and 
     | Conn College | Harkness Memorial State Park, Waterford CT | The map has no arrows, and its km labels conflict with Conn's turn-by-turn description. Conn's course-tour videos could settle the order. |
     | North Park | Schiller Woods, Schiller Park IL | The 2024–2025 opener (5K) has no map or description; flat is inferred from the floodplain setting. Its pre-2012 home course, Montrose Harbor, has 2011 CCIW 8K/6K maps but isn't used now. |
 - **Where courses come from:** every school has a fixed home course from `S.venueFor`: its real course when `XC.courses.forSchool` has one, otherwise one seeded by school id, with the same name, terrain and layout on every visit.
-  - The user's own course is `state.homeCourse = { name, type, seed, courseId? }`. New games start on the school's real course. `S.migrate` moves an old save's random home course onto the real one unless `homeCourse.custom` is set, which the planned course editor should set. Meets already on the schedule keep their stored course.
+  - The user's own course is `state.homeCourse = { name, type, seed, courseId?, kind?, custom? }`. New games start on the school's real course. `S.migrate` moves an old save's random home course onto the real one unless `homeCourse.custom` is set, which the Facilities course editor sets. A renamed real course keeps its `courseId` (and trace). `kind` ('loop' or 'point') is passed to `C.generate` for custom courses; generated courses without it are unchanged. Meets already on the schedule keep their stored course, except that course work updates home meets that haven't run.
   - The nationals venue is seeded by its venue name.
   - Old saves' meets without `course.seed` derive one from the name and terrain.
 - **Drawing:** the race canvas draws every leg with direction arrows, hill shading and contours, separate start and finish lines, and split markers that merge when laps put them in the same spot. The meet preview shows the SVG map, layout, laps and climbing. Traced courses get a separate route row per squad.
@@ -216,7 +216,22 @@ D3 Dynasty is a Division III cross country coaching game in plain HTML, CSS and 
     - 100 miles for everyone 0.547, with about 11 injuries a season.
     - Re-run this after changing mileage numbers.
 - **Plan state:** `state.training = { meetIndex, done, plans: { [sq]: { groups, assign } }, report }`. `assign[id]` is `{ mode: 'group', group }`, `{ mode: 'custom', workout }` or `{ mode: 'rest' }`.
-- **Future hooks:** `state.facilities.trainingRoom` and `state.facilities.track` add bonuses. `ROADMAP.md` covers the planned facilities and real home courses.
+- **Facility hooks:** `state.facilities.trainingRoom` and `state.facilities.track` add bonuses (`T.recoveryPerWeek`, `T.sessionBonus`). `ROADMAP.md` covers real home courses and the 3D view.
+
+## Facilities and the fund (`facilities.js`, `ui/facilities.js`)
+- **State:** `state.funds` (thousands of dollars; new games and migrated saves start at `F.START_FUNDS`, 60), `state.facilities = { trainingRoom, track, spectators, championship }`, and `state.lastPayout = { year, total, lines }`.
+- **Payout:** `F.collect` runs in `S.beginOffseason` and adds `F.payout(entry)`: base 30, `0.4 × rep`, `1.5 ×` rep gained, and per squad conference title 15, regional title 15, national title 40 (or podium 20, or team at nationals 8), 3 per All-American. Capped at `F.PAYOUT_CAP` (180), shown as an "Athletic department limit" line. The recap previews it. Staff salaries stay on the separate staff budget.
+- **Upgrades** (`F.ITEMS`, three levels each):
+  - Training room 90/160/250: +1.5 fatigue recovered per week per level.
+  - Track 80/140/220: VO2 max sessions +5% benefit per level.
+  - Spectator areas 40/70/110: +0.4 rep per level for each squad's race at a home meet (`F.homeRep`, added in `S.runMeet`).
+  - Championship grade, 250 once: you host the conference meet 50% of the time instead of 20% (`F.confHostChance` in `S.buildSchedule`).
+- **Course editor:** rename for free (`F.rename`, 40 characters). New terrain, a new layout (fresh seed) or a fixed kind costs `F.COURSE_WORK` (25) via `F.build`, sets `custom`, and moves unrun home meets onto it. Schools with a real course can restore it the same way. The screen keeps a draft and previews it with `ui.courseMap` before you pay.
+- **When:** everything is bought in `F.OPEN_PHASES` (graduation through preseason), the same window as staff hiring. Every action checks `F.blocker` itself.
+- **Balance:**
+  - `facsim` (8-season dynasties, 16 runs): payouts average about $85k in season 1, rising to the $180k cap by season 7. Buying the cheapest upgrade each offseason maxed spectators by about season 4, the track by about 7, and the training room in half the runs by season 8.
+  - `facone` (200 first seasons, place percentile): none 0.260, training room 3 0.258, track 3 0.257, both 0.255 (fewer workout injuries, slightly more growth), spectators 3 adds about 1.7 rep a season.
+  - Re-run both after changing facility numbers.
 
 ## Runner texts (`texts.js`, `ui/texts.js`)
 - **When:** `T.openBlock` calls `XC.texts.roll`, so texts arrive as each workout block opens (season start and after every meet). `S.runMeet` calls `XC.texts.expire` first: unanswered texts expire and cost that runner 0.5 morale. `S.startNewSeason` clears the inbox.

@@ -14,21 +14,17 @@ Shipped 2026-11-16 (`js/texts.js`, `js/ui/texts.js`). CLAUDE.md, "Runner texts",
 
 Shipped 2026-11-16 (`js/staff.js`, `js/ui/staff.js`). CLAUDE.md, "Assistant coaches", has the rules. Possible follow-ups:
 
-- A real budget once Facilities and budget lands: staff pay could come out of the same pot.
+- One budget for staff and facilities (see Facilities and budget).
 - Coaches who outgrow the program leaving for bigger jobs (poaching).
 - Separate staffs per squad.
 
 ## Facilities and budget
 
-- **Funding:** The school pays out each offseason based on results (rep change, titles). That money upgrades three facilities.
-  - **Training room:** better recovery.
-  - **Track:** better interval sessions.
-  - **Home course:** customization and upgrades.
-- **Hooks already in place:**
-  - `T.recoveryPerWeek` adds `state.facilities.trainingRoom × 1.5` fatigue shed per week.
-  - Interval (VO2) workouts gain `state.facilities.track × 5%` more benefit.
-  - `state.homeCourse = { name, type, seed }` is the user's course, used for every home meet.
-- **Home course editor:** Rename it, pick terrain, and reroll the layout (new seed). Also choose loop vs point-to-point by rerolling until `XC.course.generate(seed).kind` matches. Upgrades could add spectator areas (a home-meet rep bonus) or a "championship grade" course that makes hosting the conference meet more likely.
+Shipped 2026-11-16 (`js/facilities.js`, `js/ui/facilities.js`). CLAUDE.md, "Facilities and the fund", has the rules. Possible follow-ups:
+
+- One budget for staff and facilities, so salaries and upgrades compete for the same money.
+- More course upgrades (lights for a night meet, a permanent finish structure) and hosting a regional.
+- Facilities as a recruiting draw.
 
 ## Real home courses
 
@@ -96,7 +92,7 @@ Shipped 2026-11-16 (`js/staff.js`, `js/ui/staff.js`). CLAUDE.md, "Assistant coac
 - The other 135 programs, one conference at a time, in the same steps: research agents, view and trace each map, the data check, the contact sheet, and a browser season.
 - Real regional and nationals venues to replace `XC.names.nationalVenues`.
 - Traced hill positions where maps have elevation profiles.
-- Set `homeCourse.custom` once the home course editor exists.
+- The home course editor (Facilities) sets `homeCourse.custom`, so customized courses stay put.
 
 Replace the invented venue names with the real courses each school races on, so a meet at a school's home course carries that course's real name, terrain and character.
 

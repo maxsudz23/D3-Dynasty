@@ -16,6 +16,10 @@
   const CHANGELOG = [
     {
       date: 'Nov 16, 2026',
+      text: 'The athletic department now pays into a facilities fund after each season. Upgrade your training room and track, add stands, make your course championship grade, or redesign your home course.'
+    },
+    {
+      date: 'Nov 16, 2026',
       text: 'Your runners now text you between meets: tired legs, the flu, a workout they want to try, a PR, midterms. How you answer moves their morale, and some replies change their plan for the week.'
     },
     {
@@ -33,10 +37,6 @@
     {
       date: 'Nov 14, 2026',
       text: 'Generated runners and recruits now show a plain silhouette instead of a stock photo. Real roster headshots stay.'
-    },
-    {
-      date: 'Nov 12, 2026',
-      text: 'Invitationals now have JV races for everyone outside your top seven, named after the host\u2019s colors, like the Red Race and the Green Race at WashU.'
     }
   ];
 

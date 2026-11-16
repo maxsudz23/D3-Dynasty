@@ -577,19 +577,20 @@
 
   const cache = new Map();
 
-  // course: { name, type, seed?, courseId? }. Old saves have no seed, so
+  // course: { name, type, seed?, courseId?, kind? }. Old saves have no seed, so
   // derive one. A courseId with a trace in XC.courses builds the real route;
   // one without a trace is generated but steered by what's known about it.
   C.layoutFor = function (course) {
     const seed = course.seed !== undefined ? course.seed : U.hash(`${course.name}|${course.type}`);
     const def = course.courseId && XC.courses ? XC.courses.byId(course.courseId) : null;
-    const key = def ? `${course.courseId}|${seed}` : `${seed}|${course.type}`;
+    const key = def ? `${course.courseId}|${seed}` : `${seed}|${course.type}|${course.kind || ''}`;
     if (!cache.has(key)) {
       if (cache.size > 40) cache.clear();
       let layout;
       if (def && def.trace) layout = C.fromTrace(def, seed);
       else if (def) layout = C.generate(seed, def.type, { kind: def.kind, climbPerKm: def.climbPerKm });
-      else layout = C.generate(seed, course.type);
+      // A custom home course can fix its kind (loop or point to point).
+      else layout = C.generate(seed, course.type, course.kind ? { kind: course.kind } : {});
       cache.set(key, layout);
     }
     return cache.get(key);

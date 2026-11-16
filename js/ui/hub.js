@@ -127,6 +127,7 @@
         ['Depth chart', 'Set your top seven and study ratings', () => XC.go('roster')],
         ['Schedule', 'Six meets from opener to nationals', () => XC.go('schedule')],
         ['Staff', 'Assistant coaches and hiring', () => XC.go('staff')],
+        ['Facilities', `Fund $${Math.round(state.funds || 0)}k for upgrades and your course`, () => XC.go('facilities')],
         ['Texts', (() => {
           const n = XC.texts.unread(state).length;
           return n ? `${n} unread from your runners` : 'Messages from your runners';

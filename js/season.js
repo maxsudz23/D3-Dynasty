@@ -228,6 +228,7 @@
     });
     initOpp(state);
     state.staff = XC.staff.fresh(state);
+    XC.facilities.ensure(state);
     state.schedule = S.buildSchedule(state);
     S.resetRecruiting(state);
     S.addNews(state, `${school.short} hires Coach ${coachName} to lead the ${school.mascot}.`);
@@ -305,7 +306,8 @@
   }
 
   // Your own course: the school's real one when we know it, otherwise a
-  // random one. Kept in the save so facilities can upgrade it later.
+  // random one. Kept in the save; the Facilities screen can rebuild it
+  // (setting custom, so S.migrate leaves it alone).
   S.newHomeCourse = function (rng = Math.random, school = null) {
     const real = school && realVenue(school.id);
     if (real) return real;
@@ -366,7 +368,8 @@
     }
 
     const confMates = others.filter((s) => s.conf === home.conf);
-    const confHost = confMates.length && rng() < 0.8 ? U.pick(confMates, rng) : home;
+    // A championship-grade home course makes you the likeliest host.
+    const confHost = confMates.length && rng() >= XC.facilities.confHostChance(state) ? U.pick(confMates, rng) : home;
     meets.push({
       type: 'conference',
       name: `${home.conf === 'Independent' ? 'Independent' : home.conf} Championship`,
@@ -693,6 +696,8 @@
       } else if (summary.userEntered) {
         delta = repForPlace(meet.type, summary.userPlace, summary.nTeams);
       }
+      // Spectator areas: a home crowd adds a little rep.
+      if (summary.userEntered) delta += XC.facilities.homeRep(state, meet);
       summary.repDelta = U.round(delta * factor, 1);
       repTotal += delta * factor;
 
@@ -827,6 +832,7 @@
     });
     state.offseason = report;
     XC.staff.endSeason(state);
+    XC.facilities.collect(state);
     state.phase = 'graduation';
   };
 
@@ -979,6 +985,8 @@
     // Assistant coaches (saved since the staff update). Older saves get the
     // same one-assistant staff a new game starts with.
     XC.staff.ensure(state);
+    // Facilities and the facilities fund (saved since the facilities update).
+    XC.facilities.ensure(state);
     // Runner texts (saved since the texts update).
     if (!Array.isArray(state.inbox)) state.inbox = [];
     if (state.phase === 'season' && (!state.training || state.training.meetIndex !== state.meetIndex)) XC.training.openBlock(state);
