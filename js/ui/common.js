@@ -109,8 +109,11 @@
     U.svg('path', { d: 'M13 100 C13 76 30 63 50 63 C70 63 87 76 87 100 Z', class: 'portrait__figure' }));
   }
 
+  // A photo for real athletes, the runner's look (ui/avatar.js) for
+  // generated ones, and the silhouette otherwise.
   ui.portrait = function (athlete, size = '') {
     const sizeClass = size ? `portrait--${size}` : '';
+    if (!athlete.photo && athlete.look && !athlete.real && ui.avatar) return ui.avatar(athlete.look, `${athlete.first} ${athlete.last}`, sizeClass);
     if (!athlete.photo) return silhouette(athlete, sizeClass);
     const img = h('img', {
       class: `portrait ${sizeClass}`, src: athlete.photo, alt: `${athlete.first} ${athlete.last}`,

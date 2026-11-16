@@ -19,14 +19,14 @@ D3 Dynasty is a Division III cross country coaching game in plain HTML, CSS and 
 
 ## Hard constraints
 `main` is no longer bound by the Website #2 rubric. Libraries and APIs are allowed if a feature needs them, but keep this framework:
-- No build step and no ES modules. Scripts are classic `defer` scripts that hang off one `window.XC` namespace, so the page works from `file://`. Load order in `index.html` matters: engine files first (`util`, `storage`, `audio`, data, `athletes`, `race`, `course`, `training`, `staff`, `texts`, `facilities`, `api`, `season`), then UI, then `main.js`.
+- No build step and no ES modules. Scripts are classic `defer` scripts that hang off one `window.XC` namespace, so the page works from `file://`. Load order in `index.html` matters: engine files first (`util`, `storage`, `audio`, data, `athletes`, `looks`, `race`, `course`, `training`, `staff`, `texts`, `facilities`, `api`, `season`), then UI, then `main.js`.
 - No inline styles. Setting CSS custom properties from JS is fine. No `onclick` attributes, no `innerHTML`; build DOM with `XC.util.h()` and `XC.util.svg()`.
 - The console must stay error-free, including on hosted pages. Hosted pages request a favicon (`favicon.svg` is linked in `index.html`), and `file://` never shows that error.
 - APIs need graceful failure handling, and browser APIs need handling for denied permissions.
 
 ## Architecture
-- **Engine** (pure, testable in node with `global.window = global`): `util.js`, `data/schools.js`, `data/logos.js`, `data/names.js`, `data/places.js`, `data/courses.js`, `athletes.js`, `race.js`, `course.js`, `training.js`, `staff.js`, `texts.js`, `facilities.js`, `api.js`, `season.js`.
-- **UI:** `ui/common.js` holds the theme, crest, portraits, chrome, toasts and confirm dialog.
+- **Engine** (pure, testable in node with `global.window = global`): `util.js`, `data/schools.js`, `data/logos.js`, `data/names.js`, `data/places.js`, `data/courses.js`, `athletes.js`, `looks.js`, `race.js`, `course.js`, `training.js`, `staff.js`, `texts.js`, `facilities.js`, `api.js`, `season.js`.
+- **UI:** `ui/common.js` holds the theme, crest, portraits, chrome, toasts and confirm dialog. `ui/avatar.js` draws runner looks (loaded right after `common.js`).
   - `ui.setTheme(primary, accent, school)` also sets `--team-logo` to the school's logo (absolute URL), or `none`. `body::before` draws it at 10% opacity over the background stripes. Schools without a logo and custom schools show nothing. Pass the school wherever a real school's theme is applied.
   - `ui.crest(school)` draws the school's athletics logo on a white shield edged in its primary color when `XC.logos.pathFor(school)` has one, and the generated monogram otherwise. Custom schools (id `custom`) and any logo that fails to load get the monogram.
   - `ui.teamMark(team)` is the small mark beside a team name in the meet preview field, the live race panel, and both results tables. Teams with a logo get a 22×25 logo shield, and the rest get the two-color chip. Both take 28px, so names line up. `team.id` is the school id, or `'user'` for the player's school.
@@ -35,12 +35,12 @@ D3 Dynasty is a Division III cross country coaching game in plain HTML, CSS and 
 - **Screen hooks:** each screen registers on `XC.screens[name]` with any of:
   - `title`, `render(root, params)`, `legend()`, `onKey(e)`, `back()`, `onSquadChange()`, `cleanup()`, `squadTabs`, `context`
   - `canChangeSquad()`: return false to block squad switching. The wheel uses it while spinning.
-- **Screens:** `title`, `setup`, `hub`, `schedule`, `trophies`, `settings`, `staff`, `facilities`, `texts`, `roster`, `wheel`, `training`, `meet`, `race`, `results`, then the offseason screens.
+- **Screens:** `title`, `setup`, `hub`, `schedule`, `trophies`, `settings`, `staff`, `facilities`, `texts`, `look`, `roster`, `wheel`, `training`, `meet`, `race`, `results`, then the offseason screens.
 - **Router:** `main.js` (`XC.go(name, params)`, `XC.refresh()`, `XC.setSquad()`). The global keys are Q/E for squad, Esc for back, M for mute and arrows to move focus between elements marked `[data-nav]`.
 - **Legend items:** `{ key, label, action, keyboardOnly? }`. Set `keyboardOnly: true` on items that repeat an on-screen control (squad tabs, the sound toggle, "Enter: select focused"), so touch screens hide them.
 - **Guard actions in the function itself:** keyboard shortcuts and legend buttons call screen methods directly and skip the disabled buttons, so every action must check its own preconditions. The wheel freeze came from this.
 - **State:** `XC.state` is saved to localStorage key `d3dynasty.save.v1` (version 1; the pre-rename key `harriers27.dynasty.v1` is still read as a fallback). `XC.live` holds values that aren't saved, such as the latest race sims used for the animation.
-  - `S.migrate(state)` runs on every load and fills in fields older saves lack: `homeCourse`, `training`, `staff` (via `XC.staff.ensure`), `facilities` and `funds` (via `XC.facilities.ensure`), `inbox`, `squad.plans` (also pruned of runners who left), and athlete `fatigue`/`form`/`morale`.
+  - `S.migrate(state)` runs on every load and fills in fields older saves lack: `homeCourse`, `training`, `staff` (via `XC.staff.ensure`), `facilities` and `funds` (via `XC.facilities.ensure`), `inbox`, `squad.plans` (also pruned of runners who left), athlete `fatigue`/`form`/`morale`, and `look` for generated runners, prospects and graduates.
   - New saved fields must be added there.
 - **Phases:** `preseason` (recruiting wheel) → `season` (`meetIndex` 0–5, each meet preceded by a workout day in `state.training`) → `recap` → `graduation` → `progression` → `cut` → `S.startNewSeason` → `preseason`. `S.runMeet` saves results before the race animation plays, so reloading can't reroll a race.
 
@@ -324,7 +324,13 @@ No test files are in the repo. Re-create scripts like these in the scratchpad ra
 ## Known judgment calls
 - 143 real D3 programs plus a custom-school builder. Colors are approximate.
 - **Hometowns (`data/places.js`):** randomuser.me pairs real city names with random states, so only names come from it. `XC.places.hometown(rng, school)` picks a real town: 4% international (mostly Canada and the British Isles), otherwise a state weighted by population × `0.06 + exp(−km/450)` from the school. `S.migrate` swaps any hometown that fails `XC.places.isReal` for a seeded pick.
-- **Portraits:** generated runners and recruits have no photo (`photo: null`), and `ui.portrait` draws a plain silhouette (`portrait--silhouette`). randomuser.me is asked for names only (`inc=name`). `S.migrate` clears old randomuser.me photo URLs from rosters, recruiting and graduates. Only real roster headshots are photos.
+- **Portraits:** `ui.portrait(a, size)` shows a real athlete's photo, a generated runner's look as an SVG avatar (`portrait--avatar`), or the silhouette for a real athlete with no photo (Lukas Keane). Sizes: `sm` 56, default 96, `lg` 132, `xl` 220. randomuser.me is asked for names only (`inc=name`). `S.migrate` clears old randomuser.me photo URLs from rosters, recruiting and graduates.
+- **Looks (`looks.js`, `ui/avatar.js`, `ui/look.js`):** an original cartoon avatar style built from parts. Don't copy any existing game's avatar art.
+  - `a.look = { skin, face, hair, hairColor, eyes, brows, nose, mouth, facial, glasses, marks, gear }`, every value an option id in `XC.looks` (8 skin tones, 16 hairstyles, 12 hair colors, 5 face shapes, 6 eyes, 6 brows, 5 noses, 5 mouths, 5 facial hair, 4 glasses, 4 face details, 3 headwear).
+  - `L.generate(id, sq)` is seeded by the athlete's id, so a look never changes on its own. Squad weights shape the odds (ponytails and buns for the women, short cuts and facial hair for the men), but every option is open to everyone in the editor. Natural hair colors lean on skin tone; dyed colors are rare.
+  - `L.ensure(a, sq)` gives generated runners a look and never touches `a.real` athletes. It runs in `startingRoster`, `S.makeProspect` and `S.migrate`; graduates copy `look` and `real` into their snapshot.
+  - The avatar wears a singlet in the team colors with an accent sash, through the CSS classes `avatar__jersey`, `avatar__trim` and `avatar__trim-line`. Skin and hair colors are SVG fill attributes.
+  - The look editor (`XC.screens.look`, params `{ id, back }`) opens from the roster card's "Edit look" button, which real athletes don't get. Stepper rows and color swatches save on every change; "Surprise me" (R) rolls a random look and "Original look" restores the seeded one.
 - **Logos:** 71 programs use a real athletics logo from Wikimedia Commons in `img/logos/` (listed in `js/data/logos.js`, sources in `img/logos/SOURCES.md`). The other 72 keep generated monograms.
   - Every file is public domain on Commons (a logo too simple for copyright) but is still the school's trademark. The user accepted that risk for `main`; keep logos off `grading`.
   - Only athletics marks and bold athletic wordmarks were used. Thin university text logos, seals, and wordmarks wider than about 3:1 were skipped because they're unreadable in the 34px context-bar crest.

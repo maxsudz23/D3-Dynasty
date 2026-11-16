@@ -510,12 +510,14 @@ body.no-context .context-bar {
 }
 
 .on-dark .btn--ghost,
-.panel--dark .btn--ghost {
+.panel--dark .btn--ghost,
+.player-card .btn--ghost {
   color: var(--on-dark);
 }
 
 .on-dark .btn--ghost::before,
-.panel--dark .btn--ghost::before {
+.panel--dark .btn--ghost::before,
+.player-card .btn--ghost::before {
   box-shadow: inset 0 0 0 2px rgba(255, 255, 255, 0.45);
 }
 
@@ -794,6 +796,28 @@ body.is-title .ticker {
 .portrait--lg {
   width: 132px;
   height: 132px;
+}
+
+.portrait--avatar {
+  background: linear-gradient(165deg, #E4EAF1, #B8C5D3);
+}
+
+.avatar__jersey {
+  fill: var(--team-primary);
+}
+
+.avatar__trim {
+  fill: var(--team-accent);
+}
+
+.avatar__trim-line {
+  stroke: var(--team-accent);
+  stroke-width: 2.2;
+}
+
+.portrait--xl {
+  width: 220px;
+  height: 220px;
 }
 
 .portrait--silhouette {
@@ -3082,6 +3106,131 @@ body.is-title .ticker {
   border-left: 5px solid var(--team-hi);
 }
 
+/* ---------- Look editor ---------- */
+
+.look-editor {
+  display: grid;
+  grid-template-columns: minmax(0, 300px) minmax(0, 1fr);
+  gap: 24px;
+  align-items: start;
+}
+
+.look-preview {
+  display: grid;
+  gap: 14px;
+  justify-items: center;
+  padding: 20px;
+  background: var(--ink);
+  color: var(--on-dark);
+  border-top: 5px solid var(--team-primary);
+  text-align: center;
+}
+
+.look-preview .portrait {
+  border-radius: 50%;
+  box-shadow: 0 0 0 4px var(--team-hi-on-dark);
+}
+
+.look-preview__name {
+  font-size: var(--step-2);
+  font-weight: 800;
+  line-height: 1.1;
+}
+
+.look-preview__meta {
+  font-size: var(--step--1);
+  font-weight: 600;
+  color: var(--on-dark-dim);
+}
+
+.look-preview .actions {
+  justify-content: center;
+  gap: 10px;
+}
+
+.look-rows {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 340px), 1fr));
+  gap: 10px 28px;
+}
+
+.look-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  min-height: 44px;
+  padding: 4px 0;
+  border-bottom: 1px solid var(--line);
+}
+
+.look-row--swatches {
+  flex-wrap: wrap;
+  grid-column: 1 / -1;
+}
+
+.look-row__label {
+  font-weight: 700;
+  color: var(--ink);
+  white-space: nowrap;
+}
+
+.look-step {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.look-step__value {
+  min-width: 7.5em;
+  font-weight: 600;
+  text-align: center;
+}
+
+.look-step__arrow {
+  width: 36px;
+  height: 36px;
+  border: 2px solid var(--ink-3);
+  border-radius: 50%;
+  background: #FFFFFF;
+  color: var(--ink);
+  font: inherit;
+  font-size: var(--step-1);
+  font-weight: 800;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.look-step__arrow:hover {
+  background: var(--fog);
+}
+
+.look-swatches {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.look-swatch {
+  width: 36px;
+  height: 36px;
+  padding: 2px;
+  border: 2px solid transparent;
+  border-radius: 50%;
+  background: transparent;
+  cursor: pointer;
+}
+
+.look-swatch svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+.look-swatch[aria-checked="true"] {
+  border-color: var(--ink);
+}
+
 /* ---------- Facilities ---------- */
 
 .payout {
@@ -3337,6 +3486,10 @@ body.is-title .ticker {
   }
 
   .course-editor {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .look-editor {
     grid-template-columns: minmax(0, 1fr);
   }
 

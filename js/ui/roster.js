@@ -174,7 +174,9 @@
             h('span', null, 'Fatigue ', h('b', null, `${Math.round(a.fatigue || 0)} (${XC.training.fatigueLabel(a.fatigue || 0).toLowerCase()})`)),
             h('span', null, 'Form ', h('b', null, U.signed(a.form || 0, 1))),
             h('span', null, 'Morale ', h('b', null, XC.texts.moraleLabel(a.morale || 0)))),
-          h('div', { class: 'player-card__badges' }, badges)),
+          h('div', { class: 'player-card__badges' }, badges,
+            // Generated runners' looks can be changed; real athletes keep their photos.
+            a.real ? null : ui.button('Edit look', () => XC.go('look', { id: a.id, back: this.params }), { variant: 'ghost', size: 'small', attrs: { 'data-nav': '' } }))),
         h('div', { class: 'player-card__ovr' },
           h('span', { class: 'player-card__ovr-num' }, String(a.ovr)),
           h('span', { class: 'player-card__ovr-label' }, 'OVR')));

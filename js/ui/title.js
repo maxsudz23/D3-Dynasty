@@ -16,6 +16,10 @@
   const CHANGELOG = [
     {
       date: 'Nov 16, 2026',
+      text: 'Generated runners and recruits now have their own cartoon looks: hair, skin, faces, glasses and more. Tap Edit look on the depth chart to change how any of your non-real runners look.'
+    },
+    {
+      date: 'Nov 16, 2026',
       text: 'The athletic department now pays into a facilities fund after each season. Upgrade your training room and track, add stands, make your course championship grade, or redesign your home course.'
     },
     {
@@ -33,10 +37,6 @@
     {
       date: 'Nov 16, 2026',
       text: 'Hire assistant coaches from the new Staff screen. Each one specializes in a kind of workout, makes those sessions count for more and cuts injuries in practice, and on workout day you can ask for the staff\u2019s suggestion.'
-    },
-    {
-      date: 'Nov 14, 2026',
-      text: 'Generated runners and recruits now show a plain silhouette instead of a stock photo. Real roster headshots stay.'
     }
   ];
 

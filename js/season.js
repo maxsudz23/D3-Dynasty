@@ -72,7 +72,8 @@
       const pot = year <= 2
         ? A.randomPot({ A: 15, B: 35, C: 35, D: 15 })
         : A.randomPot({ A: 5, B: 25, C: 45, D: 25 });
-      return A.create({ person: people[i] || XC.api.localPerson(squad, Math.random, school), year, ovr: U.clamp(ovr, 50, 90), pot, usedNumbers: used });
+      const a = A.create({ person: people[i] || XC.api.localPerson(squad, Math.random, school), year, ovr: U.clamp(ovr, 50, 90), pot, usedNumbers: used });
+      return XC.looks.ensure(a, squad);
     });
     return roster.sort((a, b) => b.ovr - a.ovr);
   }
@@ -812,7 +813,7 @@
       squad.roster = squad.roster.filter((a) => a.year < 4);
       report.graduates[sq] = grads.map((a) => ({
         id: a.id, name: A.fullName(a), first: a.first, last: a.last, num: a.num, ovr: a.ovr, pot: a.pot,
-        hometown: a.hometown, photo: a.photo, pr: a.pr, career: a.career, transfer: a.transfer
+        hometown: a.hometown, photo: a.photo, look: a.look, real: a.real, pr: a.pr, career: a.career, transfer: a.transfer
       }));
       report.progression[sq] = squad.roster
         .map((a) => {
@@ -901,6 +902,7 @@
     const athlete = A.create({ person, year, transfer, ovr: Math.min(ovr, 99), pot, usedNumbers: used });
     athlete.tier = seg.key;
     athlete.status = 'pending';
+    XC.looks.ensure(athlete, sq);
     rec.prospects.push(athlete);
     rec.spins += 1;
     return athlete;
@@ -981,6 +983,10 @@
       }
       const grads = state.offseason && state.offseason.graduates && state.offseason.graduates[sq];
       (grads || []).forEach(fixPerson);
+      // Generated runners get a seeded look (saved since the looks update).
+      state.squads[sq].roster.forEach((a) => XC.looks.ensure(a, sq));
+      if (rec) (rec.prospects || []).forEach((p) => XC.looks.ensure(p, sq));
+      (grads || []).forEach((g) => XC.looks.ensure(g, sq));
     });
     // Assistant coaches (saved since the staff update). Older saves get the
     // same one-assistant staff a new game starts with.
