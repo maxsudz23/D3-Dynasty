@@ -330,6 +330,14 @@ No test files are in the repo. Re-create scripts like these in the scratchpad ra
   - `L.generate(id, sq)` is seeded by the athlete's id, so a look never changes on its own. Squad weights shape the odds (ponytails and buns for the women, short cuts and facial hair for the men), but every option is open to everyone in the editor. Natural hair colors lean on skin tone; dyed colors are rare.
   - `L.ensure(a, sq)` gives generated runners a look and never touches `a.real` athletes. It runs in `startingRoster`, `S.makeProspect` and `S.migrate`; graduates copy `look` and `real` into their snapshot.
   - The avatar wears a singlet in the team colors with an accent sash, through the CSS classes `avatar__jersey`, `avatar__trim` and `avatar__trim-line`. Skin and hair colors are SVG fill attributes.
+  - **Drawing rules** (from fixing gaps the user spotted):
+    - Every hairstyle with a front layer has a `cap`: its outer outline, drawn behind the head. Front hair can't follow all five face shapes, so the cap fills any gap with hair instead of background.
+    - Hair layers get a 0.6 outline in the hair color to close seams.
+    - The messy style has a solid base under its spikes so square heads don't poke through.
+    - The buzz cut is opaque, the hair color blended 30% toward the skin.
+    - Stubble is clipped to the face shape and the beard to the face scaled 1.08 (`clipPath` ids are unique per avatar).
+    - There's no forehead shine; it read as a patch at the hairline.
+  - When adding a hairstyle or face shape, render every hairstyle × face shape at 100px and at 200px and look for skin or background showing between hair and head.
   - The look editor (`XC.screens.look`, params `{ id, back }`) opens from the roster card's "Edit look" button, which real athletes don't get. Stepper rows and color swatches save on every change; "Surprise me" (R) rolls a random look and "Original look" restores the seeded one.
 - **Logos:** 71 programs use a real athletics logo from Wikimedia Commons in `img/logos/` (listed in `js/data/logos.js`, sources in `img/logos/SOURCES.md`). The other 72 keep generated monograms.
   - Every file is public domain on Commons (a logo too simple for copyright) but is still the school's trademark. The user accepted that risk for `main`; keep logos off `grading`.

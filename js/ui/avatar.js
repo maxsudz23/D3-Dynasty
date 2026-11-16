@@ -10,7 +10,6 @@
   const s = U.svg;
 
   const shade = (hex, t) => U.mixHex(hex, '#000000', t);
-  const tint = (hex, t) => U.mixHex(hex, '#FFFFFF', t);
   const p = (d, attrs) => s('path', Object.assign({ d }, attrs));
 
   /* ---------- Head shapes (centered on x 50, temples at about 27 and 73) ---------- */
@@ -23,9 +22,14 @@
     heart: (fill) => p('M27 41 Q26.5 22.5 50 22.5 Q73.5 22.5 73 41 Q73 58 61 68 Q54 74 50 74 Q46 74 39 68 Q27 58 27 41 Z', { fill })
   };
 
-  /* ---------- Hair: back layer (behind the head) and front layer ---------- */
+  /* ---------- Hair ----------
+     Each style has a back layer (behind the head), a front layer, and a
+     cap: the outline of the front hair, drawn behind the head. The front
+     layer's inner edge can't follow every face shape, so the cap fills
+     any gap between it and the head with hair instead of background. */
 
   const SLEEK = 'M26.5 46 C24.5 24 36 15.5 50 15.5 C64 15.5 75.5 24 73.5 46 C72 33 63 25.5 50 25 C37 25.5 28 33 26.5 46 Z';
+  const SLEEK_CAP = 'M26.5 46 C24.5 24 36 15.5 50 15.5 C64 15.5 75.5 24 73.5 46 Z';
   function curls(cx, cy, rx, ry, from, to, n, r, fill) {
     const out = [];
     for (let i = 0; i <= n; i++) {
@@ -37,45 +41,60 @@
 
   const HAIR = {
     bald: () => ({ back: [], front: [] }),
-    buzz: (c) => ({
+    // Close-cropped: the hair color blended with the skin, so it reads as
+    // a short cut rather than a helmet.
+    buzz: (c, skin) => ({
+      cap: 'M27.5 42 C26.5 25 38 18.5 50 18.5 C62 18.5 73.5 25 72.5 42 Z',
+      color: U.mixHex(c, skin, 0.3),
       back: [],
-      front: [p('M27.5 41 C26.5 25 38 18.5 50 18.5 C62 18.5 73.5 25 72.5 41 C69.5 32 62 27.5 50 27.5 C38 27.5 30.5 32 27.5 41 Z', { fill: c, 'fill-opacity': '0.78' })]
+      front: [p('M27.5 42 C26.5 25 38 18.5 50 18.5 C62 18.5 73.5 25 72.5 42 C69.5 32 62 27.5 50 27.5 C38 27.5 30.5 32 27.5 42 Z', { fill: U.mixHex(c, skin, 0.3) })]
     }),
     crew: (c) => ({
+      cap: 'M26.5 43 C24.5 23 37 15 50 15 C63 15 75.5 23 73.5 43 Z',
       back: [],
       front: [p('M26.5 43 C24.5 23 37 15 50 15 C63 15 75.5 23 73.5 43 C71 33 64.5 28.5 57 28 C52 30 46 30 41 28 C35 28.5 29.5 33 26.5 43 Z', { fill: c })]
     }),
     sidepart: (c) => ({
+      cap: 'M26 45 C23 21 36 13 52 13 C67 13 77.5 22 74 45 Z',
       back: [],
       front: [p('M26 45 C23 21 36 13 52 13 C67 13 77.5 22 74 45 C73 33 69 27.5 62 25.5 C55 30.5 42 31 32 34 C29 37 27 41 26 45 Z', { fill: c }),
         p('M52 14 C55 20 60 24 62 25.5', { fill: 'none', stroke: shade(c, 0.35), 'stroke-width': '0.8' })]
     }),
     messy: (c) => ({
+      cap: 'M26 43 C25 24 37 18 50 18 C63 18 75 24 74 43 Z',
       back: [],
-      front: [p('M26 43 L23.5 30 L31 32 L29.5 19.5 L38 25 L41.5 13 L48 21 L54 11 L58.5 21 L65.5 14.5 L66.5 25.5 L75 23 L71.5 31.5 L77 34 L74 43 C70.5 34.5 62 30 50 30 C38 30 30 34.5 26 43 Z', { fill: c })]
+      // A solid base under the spikes, so the top of any head shape stays covered.
+      front: [p('M26 43 C24.5 22 36.5 16.5 50 16.5 C63.5 16.5 75.5 22 74 43 C70.5 34.5 62 30 50 30 C38 30 30 34.5 26 43 Z', { fill: c }),
+        p('M26 43 L23.5 30 L31 32 L29.5 19.5 L38 25 L41.5 13 L48 21 L54 11 L58.5 21 L65.5 14.5 L66.5 25.5 L75 23 L71.5 31.5 L77 34 L74 43 C70.5 34.5 62 30 50 30 C38 30 30 34.5 26 43 Z', { fill: c })]
     }),
     curlyshort: (c) => ({
+      cap: 'M27 42 C26 26 37 18 50 18 C63 18 74 26 73 42 Z',
       back: [],
       front: [p('M27 42 C26 26 37 18 50 18 C63 18 74 26 73 42 C68 33 60 30 50 30 C40 30 32 33 27 42 Z', { fill: c })]
         .concat(curls(50, 30, 21.5, 13.5, 185, 355, 9, 5.6, c))
     }),
     afro: (c) => ({
+      cap: 'M26.5 42 C25 23 37 17.5 50 17.5 C63 17.5 75 23 73.5 42 Z',
       back: [s('circle', { cx: '50', cy: '35', r: '31', fill: c })],
       front: [p('M26.5 42 C25 23 37 17.5 50 17.5 C63 17.5 75 23 73.5 42 C68 33 60 30.5 50 30.5 C40 30.5 32 33 26.5 42 Z', { fill: c })]
     }),
     manbun: (c) => ({
+      cap: SLEEK_CAP,
       back: [s('circle', { cx: '50', cy: '13.5', r: '7.5', fill: c })],
       front: [p(SLEEK, { fill: c })]
     }),
     pixie: (c) => ({
+      cap: 'M26 47 C22.5 22 38 13.5 52 14.5 C66 15.5 77.5 25 74 43 Z',
       back: [],
       front: [p('M26 47 C22.5 22 38 13.5 52 14.5 C66 15.5 77.5 25 74 43 C70.5 34 62 30.5 54 32.5 C46 35 38 40.5 30.5 42.5 C28.5 43.5 27 45 26 47 Z', { fill: c })]
     }),
     ponytail: (c) => ({
+      cap: SLEEK_CAP,
       back: [p('M64 22 C80 17 88 33 83 52 C80.5 63 76.5 71 72 75 C75 61 75.5 46 68.5 34 Z', { fill: c })],
       front: [p(SLEEK, { fill: c }), s('rect', { x: '64', y: '20', width: '5', height: '6', rx: '1.5', fill: shade(c, 0.3), transform: 'rotate(-35 66.5 23)' })]
     }),
     bun: (c) => ({
+      cap: SLEEK_CAP,
       back: [s('circle', { cx: '50', cy: '13', r: '9.5', fill: c })],
       front: [p(SLEEK, { fill: c })]
     }),
@@ -89,14 +108,16 @@
     }),
     braids: (c) => {
       const braid = (x) => [0, 1, 2, 3, 4, 5].map((i) => s('ellipse', { cx: String(x), cy: String(58 + i * 6), rx: '3.6', ry: '3.4', fill: i % 2 ? shade(c, 0.18) : c }));
-      return { back: braid(26).concat(braid(74)), front: [p(SLEEK, { fill: c })] };
+      return { cap: SLEEK_CAP, back: braid(26).concat(braid(74)), front: [p(SLEEK, { fill: c })] };
     },
     curlylong: (c) => ({
       back: [p('M22 46 C20 20 36 11 50 11 C64 11 80 20 78 46 L80 80 L20 80 Z', { fill: c })]
         .concat(curls(50, 52, 30, 30, 95, 265, 7, 7, c), curls(50, 52, 30, 30, -85, 85, 7, 7, c)),
+      cap: 'M27 46 C26 27 37 19 50 19 C63 19 74 27 73 46 Z',
       front: curls(50, 29, 22, 12, 185, 355, 8, 6, c).concat([p('M27 46 C26 27 37 19 50 19 C63 19 74 27 73 46 C70 34 61 29 50 29 C39 29 30 34 27 46 Z', { fill: c })])
     }),
     puffs: (c) => ({
+      cap: SLEEK_CAP,
       back: [s('circle', { cx: '28', cy: '21', r: '11', fill: c }), s('circle', { cx: '72', cy: '21', r: '11', fill: c })],
       front: [p(SLEEK, { fill: c })]
     })
@@ -159,10 +180,12 @@
     const beardPath = 'M27.5 49 Q27 76 50 78.5 Q73 76 72.5 49 Q71 61 63 66 Q57 68.5 50 68.5 Q43 68.5 37 66 Q29 61 27.5 49 Z';
     const stache = p('M42.5 62 Q46 58.6 50 60.2 Q54 58.6 57.5 62 Q50 61 42.5 62 Z', { fill: color });
     switch (style) {
-      case 'stubble': return { under: [p(beardPath, { fill: color, 'fill-opacity': '0.22' }), p('M42.5 61.8 Q50 58.8 57.5 61.8 Q50 60.8 42.5 61.8 Z', { fill: color, 'fill-opacity': '0.25' })], over: [] };
+      // Stubble stays on the skin: clipped to the face.
+      case 'stubble': return { clip: 'face', under: [p(beardPath, { fill: color, 'fill-opacity': '0.22' }), p('M42.5 61.8 Q50 58.8 57.5 61.8 Q50 60.8 42.5 61.8 Z', { fill: color, 'fill-opacity': '0.25' })], over: [] };
       case 'mustache': return { under: [], over: [stache] };
       case 'goatee': return { under: [p('M44.5 67 Q50 73 55.5 67 Q50 69.5 44.5 67 Z', { fill: color })], over: [stache] };
-      case 'beard': return { under: [p(beardPath, { fill: color })], over: [stache] };
+      // A beard can sit a little past the jaw: clipped to a slightly larger face.
+      case 'beard': return { clip: 'beard', under: [p(beardPath, { fill: color })], over: [stache] };
       default: return { under: [], over: [] };
     }
   }
@@ -198,15 +221,32 @@
   /* ---------- Avatar ---------- */
 
   // look: an a.look; label: accessible name; sizeClass: portrait size class.
+  let clipCount = 0;
+
   ui.avatar = function (look, label, sizeClass = '') {
     const lk = L.normalize(look);
     const skin = L.option('skin', lk.skin).hex;
     const hair = L.option('hairColor', lk.hairColor).hex;
-    const hairStyle = (HAIR[lk.hair] || HAIR.crew)(hair);
+    const hairStyle = (HAIR[lk.hair] || HAIR.crew)(hair, skin);
     const face = facialHair(lk.facial, shade(hair, 0.1));
     const neck = shade(skin, 0.14);
+    const headShape = HEAD[lk.face] || HEAD.oval;
+    // Clip paths for facial hair: the face itself, and the face a little larger.
+    const id = `avatar-clip-${++clipCount}`;
+    const bigger = headShape('#000000');
+    bigger.setAttribute('transform', 'translate(50 49) scale(1.08) translate(-50 -49)');
+    const defs = s('defs', null,
+      s('clipPath', { id: `${id}-face` }, headShape('#000000')),
+      s('clipPath', { id: `${id}-beard` }, bigger));
+    const facialUnder = face.clip ? s('g', { 'clip-path': `url(#${id}-${face.clip})` }, face.under) : face.under;
+    // A thin outline in the hair color closes hairline seams where two
+    // hair shapes meet over the skin.
+    const hairColor = hairStyle.color || hair;
+    const seam = (kids) => s('g', { stroke: hairColor, 'stroke-width': '0.6', 'stroke-linejoin': 'round' }, kids);
     return s('svg', { class: `portrait portrait--avatar ${sizeClass}`.trim(), viewBox: '0 0 100 100', role: 'img', 'aria-label': label },
-      hairStyle.back,
+      defs,
+      hairStyle.cap ? p(hairStyle.cap, { fill: hairColor }) : null,
+      seam(hairStyle.back),
       s('ellipse', { cx: '27', cy: '51', rx: '4.2', ry: '6', fill: skin }),
       s('ellipse', { cx: '73', cy: '51', rx: '4.2', ry: '6', fill: skin }),
       s('ellipse', { cx: '27.4', cy: '51', rx: '2', ry: '3.4', fill: shade(skin, 0.12) }),
@@ -216,17 +256,15 @@
       p('M6 100 C8 88 21 82 35 80 Q50 89 65 80 C79 82 92 88 94 100 Z', { class: 'avatar__jersey' }),
       p('M28 100 L69.5 80.6 L76 82.4 L39 100 Z', { class: 'avatar__trim' }),
       p('M35 80 Q50 89 65 80', { fill: 'none', class: 'avatar__trim-line' }),
-      HEAD[lk.face] ? HEAD[lk.face](skin) : HEAD.oval(skin),
-      // A soft shine on the forehead.
-      s('ellipse', { cx: '43', cy: '33', rx: '7', ry: '4', fill: tint(skin, 0.5), 'fill-opacity': '0.25' }),
+      headShape(skin),
       marks(lk.marks, skin),
-      face.under,
+      facialUnder,
       nose(lk.nose, skin),
       mouth(lk.mouth, skin),
       face.over,
       eyes(lk.eyes),
       brows(lk.brows, shade(hair, 0.2)),
-      hairStyle.front,
+      seam(hairStyle.front),
       glasses(lk.glasses),
       gear(lk.gear));
   };
