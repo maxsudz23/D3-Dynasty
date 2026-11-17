@@ -330,7 +330,7 @@ Project skills in `.claude/skills/` load automatically in this repo:
   - Depth chart: a random rostered runner (photo or look), a different one on every hover, named in the note; the photo slowly zooms.
   - Schedule: a tear-off calendar showing the next meet's date. Each `animationiteration` of the top page advances a day; it resets on leave.
   - Texts: a phone with the unread count that lights up and buzzes, with bubbles and emoji floating off it. The bubbles come from the inbox's text types (`SNIPPETS`).
-  - Facilities: a cartoon weight room (squat racks with team banners and loaded barbells, turf with yard lines) that pulses.
+  - Facilities: a cartoon team weight room in one-point perspective, modeled on a photo of WashU's: a row of squat racks running to the far wall (team-color uprights with holes, pulleys on top, a banner with the school's short name and initial badge, a weight stack, bumper plates on the side), a white ceiling with LED strips, a duct and a fan, rubber floor tiles, and turf with a sideline, yard lines and the school's letter. It spans the whole block, faded behind the title. On hover it pulses and the fan spins.
   - Trophy case: cups, medals on team ribbons and a plaque that glow, with a shine across the glass.
   - Staff: signed coaches, then the hiring pool, cycling every 1.1 s while hovered. Coaches get a seeded look (`coach|id`) in a quarter zip.
   - Settings: two meshing gears that turn.

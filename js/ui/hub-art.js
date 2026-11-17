@@ -131,43 +131,142 @@
 
   /* ---------- Facilities: a weight room in team colors ---------- */
 
-  function facilities() {
-    const racks = [];
-    // Squat racks in a row, receding to the left: two uprights, a crossbar,
-    // a team banner between the uprights and a loaded barbell.
-    for (let k = 5; k >= 0; k--) {
-      const sc = 1 - k * 0.14;
-      const x = 214 - k * 30 * (1 - k * 0.04);
-      const base = 138 - k * 9;
-      const hgt = 108 * sc;
-      const w = 34 * sc;
-      const top = base - hgt;
-      const barY = top + hgt * 0.5;
-      const plates = (cx) => [
-        s('rect', { x: cx - 3.2 * sc, y: barY - 13 * sc, width: 6.4 * sc, height: 26 * sc, rx: 2 * sc, class: 'gym__plate' }),
-        s('rect', { x: cx - 1.4 * sc, y: barY - 9 * sc, width: 2.8 * sc, height: 18 * sc, rx: 1 * sc, class: 'gym__plate-rim' })
-      ];
-      racks.push(s('g', { class: 'gym__rack' },
-        s('rect', { x: x - w * 0.66, y: top + 9 * sc, width: w * 0.32, height: hgt * 0.7, class: 'gym__banner' }),
-        s('rect', { x: x - w * 0.56, y: top + 14 * sc, width: w * 0.12, height: hgt * 0.56, class: 'gym__banner-stripe' }),
-        s('rect', { x: x - w, y: top, width: 4 * sc, height: hgt, class: 'gym__upright' }),
-        s('rect', { x: x - 4 * sc, y: top, width: 4 * sc, height: hgt, class: 'gym__upright' }),
-        s('rect', { x: x - w - 1 * sc, y: top - 3 * sc, width: w + 2 * sc, height: 4 * sc, class: 'gym__bar' }),
-        s('rect', { x: x - w - 3 * sc, y: base - 3 * sc, width: w + 6 * sc, height: 4 * sc, class: 'gym__bar' }),
-        s('rect', { x: x - w - 14 * sc, y: barY - 1.3 * sc, width: w + 28 * sc, height: 2.6 * sc, class: 'gym__barbell' }),
-        ...plates(x - w - 8 * sc),
-        ...plates(x + 8 * sc)));
+  // A team weight room in one-point perspective: a long row of squat racks
+  // (team-color uprights, pulleys, a banner with the school's name, a weight
+  // stack and bumper plates on the side) running off toward the far wall,
+  // under a white ceiling with LED strips, a duct and a fan, with turf and
+  // yard lines on the left. Drawn in a 200 x 180 box.
+  let gymCount = 0;
+  const VP = [54, 76];
+  // A point `t` of the way from (x, y) to the vanishing point.
+  const toward = (x, y, t) => [x + (VP[0] - x) * t, y + (VP[1] - y) * t];
+  const pts = (list) => list.map(([x, y]) => `${U.round(x, 2)},${U.round(y, 2)}`).join(' ');
+
+  function rack(school, k) {
+    const sc = 1.3 * 0.7 ** k;
+    const [bx, by] = toward(176, 170, 1 - 0.7 ** k);
+    const name = (school.short || school.name || '').toUpperCase();
+    const fs = Math.min(9, 58 / Math.max(1, name.length * 0.56));
+    const dx = -9;
+    const dy = -6;
+    const holes = [];
+    for (let y = -92; y <= -8; y += 6) {
+      holes.push(s('circle', { cx: -42, cy: y, r: 0.55, class: 'gym__hole' }), s('circle', { cx: -2, cy: y, r: 0.55, class: 'gym__hole' }));
     }
-    const lights = [0, 1, 2].map((k) => s('rect', { x: 40 + k * 66, y: 8 + k * 3, width: 50 - k * 6, height: 3.5, rx: 1.75, class: 'gym__light' }));
-    const yard = [0, 1, 2, 3].map((k) => s('line', { x1: 0, y1: 104 + k * 13, x2: 18 + k * 15, y2: 104 + k * 13, class: 'gym__yard' }));
-    const svg = s('svg', { viewBox: '0 0 240 150', class: 'gym', preserveAspectRatio: 'xMaxYMax slice' },
-      s('rect', { x: 0, y: 0, width: 240, height: 150, class: 'gym__wall' }),
-      s('rect', { x: 0, y: 0, width: 240, height: 24, class: 'gym__ceiling' }),
-      ...lights,
-      s('polygon', { points: '0,150 0,92 240,108 240,150', class: 'gym__floor' }),
-      s('polygon', { points: '0,150 0,96 40,96 100,150', class: 'gym__turf' }),
+    const stack = [];
+    for (let y = -46; y <= -20; y += 3) stack.push(s('line', { x1: -14, y1: y, x2: -7, y2: y, class: 'gym__stack-line' }));
+    const plate = (cy, r, label) => [
+      s('circle', { cx: 8, cy, r, class: 'gym__plate' }),
+      s('circle', { cx: 8, cy, r: r * 0.72, class: 'gym__plate-ring' }),
+      s('circle', { cx: 8, cy, r: r * 0.22, class: 'gym__plate-hub' }),
+      s('rect', { x: 8 - r * 0.32, y: cy - r * 0.62, width: r * 0.64, height: r * 0.16, class: 'gym__plate-label' }),
+      label ? s('circle', { cx: 8, cy: cy + r * 0.48, r: r * 0.09, class: 'gym__plate-label' }) : null
+    ];
+    const pulley = (cx, cy, r) => [
+      s('circle', { cx, cy, r, class: 'gym__pulley' }),
+      s('circle', { cx, cy, r: r * 0.3, class: 'gym__plate-hub' })
+    ];
+    return s('g', { class: 'gym__rack', transform: `translate(${U.round(bx, 2)} ${U.round(by, 2)}) scale(${U.round(sc, 4)})` },
+      // Back frame, set up and left toward the far wall.
+      s('rect', { x: -44 + dx, y: -100 + dy, width: 4, height: 100, class: 'gym__upright-back' }),
+      s('rect', { x: -4 + dx, y: -100 + dy, width: 4, height: 100, class: 'gym__upright-back' }),
+      s('polygon', { points: pts([[-44, -100], [-44 + dx, -100 + dy], [dx, -100 + dy], [0, -100], [0, -96], [-44, -96]]), class: 'gym__upright-side' }),
+      s('rect', { x: -47 + dx, y: -2 + dy, width: 50, height: 3, class: 'gym__foot' }),
+      // Banner board with the school's name, and the weight stack.
+      s('rect', { x: -32, y: -88, width: 14, height: 66, class: 'gym__banner' }),
+      s('rect', { x: -30, y: -86, width: 10, height: 9, rx: 1.5, class: 'gym__badge' }),
+      s('text', { class: 'gym__badge-text', x: -25, y: -81.3, 'font-size': 7.5, 'text-anchor': 'middle', 'dominant-baseline': 'central' }, name[0] || ''),
+      s('text', { class: 'gym__banner-text', 'font-size': U.round(fs, 2), transform: 'translate(-25 -46) rotate(-90)', 'text-anchor': 'middle', 'dominant-baseline': 'central' }, name),
+      s('rect', { x: -15, y: -84, width: 9, height: 66, class: 'gym__stack-rail' }),
+      s('rect', { x: -14, y: -48, width: 7, height: 30, class: 'gym__stack' }),
+      ...stack,
+      // Front frame.
+      s('rect', { x: -44, y: -100, width: 4, height: 100, class: 'gym__upright' }),
+      s('rect', { x: -4, y: -100, width: 4, height: 100, class: 'gym__upright' }),
+      s('rect', { x: -44, y: -100, width: 44, height: 4, class: 'gym__upright' }),
+      ...holes,
+      s('rect', { x: -45, y: -60, width: 6, height: 2.5, class: 'gym__hook' }),
+      s('rect', { x: -5, y: -60, width: 6, height: 2.5, class: 'gym__hook' }),
+      s('rect', { x: -48, y: -2, width: 52, height: 3, class: 'gym__foot' }),
+      ...pulley(-38, -104, 4),
+      ...pulley(-21, -107, 5.5),
+      ...pulley(-6, -104, 4),
+      // Plate horn and bumper plates on the side.
+      s('rect', { x: 0, y: -92, width: 12, height: 2, class: 'gym__foot' }),
+      ...plate(-74, 11, true),
+      ...plate(-47, 9, true),
+      ...plate(-24, 7, false));
+  }
+
+  function facilities(state) {
+    const school = (state && state.school) || {};
+    const id = `gym-${++gymCount}`;
+    const far = { l: 40, r: 74, t: 64, b: 86 };
+
+    // Ceiling: panels, beams to the far wall, LED strips, a duct and a fan.
+    const beams = [-80, -20, 40, 100, 160, 220].map((x) => {
+      const [x2, y2] = toward(x, 0, 0.92);
+      return s('line', { x1: x, y1: 0, x2, y2, class: 'gym__beam' });
+    });
+    const strip = (x, w, t1, t2) => s('polygon', {
+      points: pts([toward(x, 0, t1), toward(x + w, 0, t1), toward(x + w, 0, t2), toward(x, 0, t2)]),
+      class: 'gym__led'
+    });
+    const leds = [strip(-70, 10, 0.05, 0.42), strip(-70, 10, 0.5, 0.78), strip(30, 9, 0.02, 0.4), strip(30, 9, 0.48, 0.74), strip(120, 9, 0.18, 0.5)];
+    const duct = s('polygon', { points: pts([[200, 2], [200, 9], toward(200, 9, 0.9), toward(200, 2, 0.9)]), class: 'gym__duct' });
+    const fan = s('g', { transform: 'translate(74 26) scale(1 0.34)' },
+      s('g', { class: 'gym__fan' },
+        ...[0, 120, 240].map((deg) => s('rect', { x: 0, y: -1.6, width: 20, height: 3.2, rx: 1.6, transform: `rotate(${deg})`, class: 'gym__fan-blade' })),
+        s('circle', { cx: 0, cy: 0, r: 2.6, class: 'gym__fan-hub' })));
+
+    // Floor tiles in a band along the turf, dark and light like rubber mats.
+    const tiles = [];
+    const tStep = [0, 0.18, 0.33, 0.45, 0.55, 0.63, 0.7, 0.76, 0.81];
+    for (let i = 0; i < tStep.length - 1; i++) {
+      for (let j = 0; j < 3; j++) {
+        if ((i + j) % 2) continue;
+        const x0 = 78 + j * 24;
+        const x1 = x0 + 24;
+        tiles.push(s('polygon', { points: pts([toward(x0, 180, tStep[i]), toward(x1, 180, tStep[i]), toward(x1, 180, tStep[i + 1]), toward(x0, 180, tStep[i + 1])]), class: 'gym__tile' }));
+      }
+    }
+
+    // Turf with a sideline, yard lines and the school's letter.
+    const edge = (t) => toward(72, 180, t);
+    const yard = [0.12, 0.3, 0.45, 0.57, 0.66, 0.73, 0.79].map((t) => {
+      const [x, y] = edge(t);
+      return s('line', { x1: x - 3, y1: y, x2: Math.max(0, x - 64 * (1 - t)), y2: y + 1, class: 'gym__yard' });
+    });
+    const letter = ((school.short || school.name || 'X')[0] || 'X').toUpperCase();
+
+    const svg = s('svg', { viewBox: '0 0 200 180', class: 'gym', preserveAspectRatio: 'xMaxYMax slice' },
+      s('defs', null,
+        s('linearGradient', { id: `${id}-ceil`, x1: 0, y1: 0, x2: 0, y2: 1 },
+          s('stop', { offset: 0, class: 'gym__ceil-top' }),
+          s('stop', { offset: 1, class: 'gym__ceil-bottom' })),
+        s('linearGradient', { id: `${id}-floor`, x1: 0, y1: 0, x2: 0, y2: 1 },
+          s('stop', { offset: 0, class: 'gym__floor-far' }),
+          s('stop', { offset: 1, class: 'gym__floor-near' }))),
+      // Walls, ceiling and floor.
+      s('rect', { x: 0, y: 0, width: 200, height: 180, class: 'gym__wall' }),
+      s('polygon', { points: pts([[0, 0], [200, 0], [far.r, far.t], [far.l, far.t], [0, 40]]), fill: `url(#${id}-ceil)` }),
+      ...beams,
+      duct,
+      ...leds,
+      fan,
+      s('rect', { x: far.l, y: far.t, width: far.r - far.l, height: far.b - far.t, class: 'gym__far' }),
+      s('rect', { x: far.l + 4, y: far.t + 4, width: far.r - far.l - 8, height: 9, class: 'gym__mirror' }),
+      s('rect', { x: far.l, y: far.b - 6, width: far.r - far.l, height: 3, class: 'gym__trim' }),
+      s('polygon', { points: pts([[0, 40], [far.l, far.t], [far.l, far.b], [0, 110]]), class: 'gym__side-wall' }),
+      s('polygon', { points: pts([[0, 92], [far.l, far.b - 6], [far.l, far.b - 3], [0, 100]]), class: 'gym__trim' }),
+      s('polygon', { points: pts([[0, 110], [far.l, far.b], [far.r, far.b], [200, 120], [200, 180], [0, 180]]), fill: `url(#${id}-floor)` }),
+      ...tiles,
+      s('polygon', { points: pts([[0, 180], edge(0), edge(0.82), [0, 108]]), class: 'gym__turf' }),
+      s('polyline', { points: pts([edge(0), edge(0.82)]), class: 'gym__sideline' }),
       ...yard,
-      ...racks);
+      s('text', { class: 'gym__turf-letter', x: 0, y: 0, transform: 'translate(10 172) skewX(-38) scale(1 0.5)', 'font-size': 46 }, letter),
+      // Racks, far to near.
+      ...[8, 7, 6, 5, 4, 3, 2, 1, 0].map((k) => rack(school, k)));
     return { el: art('facilities', svg) };
   }
 

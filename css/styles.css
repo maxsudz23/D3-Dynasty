@@ -1840,6 +1840,12 @@ button.hub-tile:is(:hover, :focus-visible) .art {
   filter: none;
 }
 
+/* The weight room spans the block, fading in behind the title. */
+.art--facilities {
+  width: 100%;
+  mask-image: linear-gradient(to right, rgba(0, 0, 0, 0.12) 0%, rgba(0, 0, 0, 0.4) 26%, #000000 52%);
+}
+
 /* Calendar and phone sit whole on the right; no fade. */
 .art--schedule,
 .art--texts {
@@ -1973,19 +1979,43 @@ button.hub-tile:is(:hover, :focus-visible) .art {
   transform-origin: 70% 75%;
 }
 
-.gym__wall { fill: #D9DEE4; }
-.gym__ceiling { fill: #EEF1F4; }
-.gym__light { fill: #FFFFFF; }
-.gym__floor { fill: #A8AEB5; }
-.gym__turf { fill: #3E8E41; }
-.gym__yard { stroke: #FFFFFF; stroke-width: 1.4; }
+.gym__wall { fill: #DDE1E6; }
+.gym__ceil-top { stop-color: #F7F8FA; }
+.gym__ceil-bottom { stop-color: #E3E6EA; }
+.gym__beam { stroke: #CDD2D8; stroke-width: 0.6; }
+.gym__led { fill: #FFFFFF; stroke: rgba(255, 255, 255, 0.7); stroke-width: 1.4; }
+.gym__duct { fill: #C9CED4; }
+.gym__fan-blade { fill: #8E959D; }
+.gym__fan-hub { fill: #5D646C; }
+.gym__far { fill: #C5CAD0; }
+.gym__mirror { fill: #A9B6C2; }
+.gym__trim { fill: var(--team-primary); }
+.gym__side-wall { fill: #CFD4DA; }
+.gym__floor-far { stop-color: #A5ABB2; }
+.gym__floor-near { stop-color: #8F959C; }
+.gym__tile { fill: #5F656D; opacity: 0.55; }
+.gym__turf { fill: #3C8C3F; }
+.gym__sideline { fill: none; stroke: #FFFFFF; stroke-width: 2.2; }
+.gym__yard { stroke: #FFFFFF; stroke-width: 1.3; }
+.gym__turf-letter { fill: var(--team-primary); stroke: #FFFFFF; stroke-width: 2; paint-order: stroke; font-family: var(--font-ui); font-weight: 800; }
 .gym__upright { fill: var(--team-primary); }
-.gym__banner { fill: color-mix(in srgb, var(--team-primary) 78%, #000000); }
-.gym__banner-stripe { fill: #FFFFFF; opacity: 0.75; }
-.gym__bar { fill: #23272D; }
-.gym__barbell { fill: #B7BDC4; }
-.gym__plate { fill: #1B1E22; }
-.gym__plate-rim { fill: #3A4048; }
+.gym__upright-back { fill: color-mix(in srgb, var(--team-primary) 62%, #000000); }
+.gym__upright-side { fill: color-mix(in srgb, var(--team-primary) 75%, #000000); }
+.gym__hole { fill: rgba(255, 255, 255, 0.55); }
+.gym__hook,
+.gym__foot { fill: #1E2227; }
+.gym__banner { fill: color-mix(in srgb, var(--team-primary) 80%, #000000); }
+.gym__badge { fill: #FFFFFF; }
+.gym__badge-text { fill: var(--team-primary); font-family: var(--font-ui); font-weight: 800; }
+.gym__banner-text { fill: #FFFFFF; font-family: var(--font-ui); font-weight: 800; }
+.gym__stack-rail { fill: #2A2F35; }
+.gym__stack { fill: #15181C; }
+.gym__stack-line { stroke: #3B4148; stroke-width: 0.6; }
+.gym__pulley { fill: #16191D; }
+.gym__plate { fill: #15181C; }
+.gym__plate-ring { fill: none; stroke: #2E343B; stroke-width: 1.2; }
+.gym__plate-hub { fill: #A7AEB5; }
+.gym__plate-label { fill: #E6E9EC; }
 
 /* Texts: a phone with messages coming off it. */
 .art--texts {
@@ -2159,6 +2189,10 @@ button.hub-tile:is(:hover, :focus-visible) :is(.case__cup, .case__medal) {
 
   button.hub-tile:is(:hover, :focus-visible) .gym {
     animation: hub-pulse 1.6s ease-in-out infinite;
+  }
+
+  button.hub-tile:is(:hover, :focus-visible) .gym__fan {
+    animation: hub-spin 1.4s linear infinite;
   }
 
   button.hub-tile:is(:hover, :focus-visible) .handset {
