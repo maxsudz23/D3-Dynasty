@@ -248,8 +248,10 @@
           h('div', { class: 'plan-row__assign' },
             h('label', { class: 'visually-hidden', for: id }, `Assignment for ${A.fullName(a)}`),
             sel,
-            ui.button('Suggest', () => this.suggestRunner(a), { variant: 'ghost', size: 'small' }),
-            XC.staff.has(state) ? ui.button('Staff', () => this.suggestRunner(a, true), { variant: 'ghost', size: 'small', attrs: { 'aria-label': `Staff suggestion for ${A.fullName(a)}` } }) : null),
+            // Kept together so they wrap below the menu as a pair.
+            h('div', { class: 'plan-row__buttons' },
+              ui.button('Suggest', () => this.suggestRunner(a), { variant: 'ghost', size: 'small' }),
+              XC.staff.has(state) ? ui.button('Staff', () => this.suggestRunner(a, true), { variant: 'ghost', size: 'small', attrs: { 'aria-label': `Staff suggestion for ${A.fullName(a)}` } }) : null)),
           this.milesPicker(a));
       }
 
