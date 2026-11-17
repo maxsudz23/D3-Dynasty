@@ -120,6 +120,14 @@
           'Mateo Gros-Slovinsky': { spd: 85, kck: 93 }
         }
       },
+      // OVR points added on top of the mark-based rating (new saves only).
+      // Will Ruszkowski's 2026 Midwest Regional PR (3.9 s) was under one
+      // point by the formula; the user gave him the +1 for it.
+      ovrBonus: {
+        M: {
+          'Will Ruszkowski': 1
+        }
+      },
       // Runners taken out of the game after saves had already started with
       // them. S.migrate drops them from those saves. Stored as U.hash of
       // "First Last" so this public file doesn't list them by name.
@@ -229,6 +237,12 @@
     const team = XC.rosters[schoolId];
     const set = team && team.tfrrs && team.tfrrs[squad];
     return (set && set[`${first} ${last}`]) || null;
+  };
+
+  XC.rosters.bonusFor = (schoolId, squad, first, last) => {
+    const team = XC.rosters[schoolId];
+    const set = team && team.ovrBonus && team.ovrBonus[squad];
+    return (set && set[`${first} ${last}`]) || 0;
   };
 
   XC.rosters.isRemoved = (schoolId, squad, first, last) => {

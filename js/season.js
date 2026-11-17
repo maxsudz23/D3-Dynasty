@@ -171,7 +171,8 @@
       // Past their first year, TFRRS college bests sharpen the rating.
       const tf = year >= 2 ? XC.rosters.tfrrsFor(school.id, squad, first, last) : null;
       const fromTf = tf ? S.realOvr(squad, mark, tf) : null;
-      const ovr = fromTf || (mark ? S.ovrFromMark(squad, mark) : seeded);
+      const bonus = XC.rosters.bonusFor(school.id, squad, first, last);
+      const ovr = Math.min(95, (fromTf || (mark ? S.ovrFromMark(squad, mark) : seeded)) + bonus);
       const pot = year <= 2
         ? A.randomPot({ A: 15, B: 35, C: 35, D: 15 }, rng)
         : A.randomPot({ A: 5, B: 25, C: 45, D: 25 }, rng);
