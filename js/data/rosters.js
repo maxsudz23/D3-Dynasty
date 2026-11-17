@@ -16,6 +16,10 @@
     // https://washubears.com/sports/mens-cross-country/roster (2026)
     // https://washubears.com/sports/womens-cross-country/roster (2026)
     // Marks: 2026 season bests supplied by the team (men 8K, women 6K).
+    // Updated with PRs from the NCAA DIII Midwest Regional (Nov 14, 2026,
+    // Rock Island, IL; tfrrs.org/results/xc/28860): Houck, Lorenz,
+    // Ruszkowski, Buese and Lee, as both the season best and the TFRRS XC
+    // best. Slower regional times changed nothing.
     // At the team's request, each squad includes its top 20 by season best
     // plus anyone outside it who asked to be in the game. The rest are in
     // HIDDEN_ROSTER.md (not served).
@@ -33,7 +37,7 @@
         ['Paul', 'Fleck', 2, 'Baldwin, NY', '27:06.7'],
         ['Sean', 'Green', 3, 'San Francisco, CA', '24:43.2'],
         ['Mateo', 'Gros-Slovinsky', 2, 'Bethesda, MD', '26:17.7'],
-        ['Charlie', 'Houck', 2, 'Boerne, TX', '24:56.0'],
+        ['Charlie', 'Houck', 2, 'Boerne, TX', '24:37.0'],
         ['Lukas', 'Keane', 1, 'Naperville, IL', '26:10.4'],
         ['Russell', 'Kramer', 4, 'Penn Laird, VA', '26:22.2'],
         ['Ryan', 'Lien', 1, 'Shorewood, WI', '25:50.9'],
@@ -41,11 +45,11 @@
         // Riegel's formula (t8 = t5 x 1.6^1.06). Starts the game injured.
         ['Jackson', 'Proffitt', 1, 'Lexington, KY', '25:27.9'],
         ['Will', 'Liu', 4, 'Acton, MA', '25:52.1'],
-        ['Ben', 'Lorenz', 3, 'Westport, CT', '24:45.8'],
+        ['Ben', 'Lorenz', 3, 'Westport, CT', '24:40.5'],
         ['William', 'Newkirk', 2, 'Colorado Springs, CO', '26:52.6'],
         ['Gavin', 'O\'Connor', 2, 'Evergreen Park, IL', '25:01.6'],
         ['Bankson', 'Roach', 2, 'Fayetteville, GA', '27:23.1'],
-        ['Will', 'Ruszkowski', 3, 'Michigan City, IN', '25:09.4'],
+        ['Will', 'Ruszkowski', 3, 'Michigan City, IN', '25:05.5'],
         // Freshman (2025) 8K PR from TFRRS; he starts the game injured.
         ['Rishi', 'Shadaksharappa', 2, 'Scarsdale, NY', '25:23.7'],
         ['Ilan', 'Sherman-Kadish', 3, 'Newton, MA', '26:28.0'],
@@ -69,25 +73,25 @@
           'Paul Fleck': { xc: '27:06.7' },
           'Sean Green': { xc: '24:43.2', mile: '4:21.63', m5000: '14:46.08' },
           'Mateo Gros-Slovinsky': { xc: '25:58.3' },
-          'Charlie Houck': { xc: '24:48.8', m800: '2:00.96', mile: '4:19.65', m5000: '14:34.64', m10000: '31:13.50' },
+          'Charlie Houck': { xc: '24:37.0', m800: '2:00.96', mile: '4:19.65', m5000: '14:34.64', m10000: '31:13.50' },
           'Russell Kramer': { xc: '26:22.2', m800: '2:07.73', m1500: '4:09.01', mile: '4:30.01', m5000: '15:17.19', m10000: '32:11.55' },
           'Will Liu': { xc: '25:25.0', m800: '2:00.59', mile: '4:15.32', m5000: '14:40.89' },
-          'Ben Lorenz': { xc: '24:45.8', m800: '2:05.54', m1500: '4:03.10', mile: '4:22.15', m5000: '14:57.30' },
+          'Ben Lorenz': { xc: '24:40.5', m800: '2:05.54', m1500: '4:03.10', mile: '4:22.15', m5000: '14:57.30' },
           'William Newkirk': { xc: '26:52.6', m800: '1:53.96', mile: '4:27.25' },
           'Gavin O\'Connor': { xc: '25:01.6' },
           'Bankson Roach': { xc: '27:23.1' },
-          'Will Ruszkowski': { xc: '25:09.4', m800: '2:03.17', mile: '4:27.48', m5000: '14:52.11' },
+          'Will Ruszkowski': { xc: '25:05.5', m800: '2:03.17', mile: '4:27.48', m5000: '14:52.11' },
           'Rishi Shadaksharappa': { xc: '25:23.7' },
           'Ilan Sherman-Kadish': { xc: '25:27.2', mile: '4:24.82', m5000: '14:54.70' },
           'Max Sudrzynski': { xc: '24:17.7' }
         },
         W: {
-          'Taylor Buese': { xc: '22:20.1', m800: '2:25.17', mile: '5:09.56' },
+          'Taylor Buese': { xc: '22:01.8', m800: '2:25.17', mile: '5:09.56' },
           'Sally Carrington': { xc: '22:00.1', m800: '2:28.37', m1500: '4:53.39', mile: '5:14.98', m5000: '17:41.79' },
           'Lily Dipple': { xc: '23:00.2', m800: '2:18.24', m1500: '4:56.96', mile: '5:18.97' },
           'Kira Larner': { xc: '22:50.6', m800: '2:30.39', m1500: '4:53.12', mile: '5:20.39', m5000: '18:29.83' },
           'Lucinda Laughlin': { xc: '20:41.6' },
-          'Maddy Lee': { xc: '22:10.2' },
+          'Maddy Lee': { xc: '22:05.4' },
           'Amelie Maltz': { xc: '22:51.9', m1500: '4:52.24', mile: '5:24.51', m5000: '17:59.04' },
           'Anna McAndrew': { xc: '23:31.2', m800: '2:32.87', m1500: '5:05.73', mile: '5:38.69' },
           'Avery Nason': { xc: '22:02.4', m800: '2:28.82', m1500: '4:55.26', mile: '5:15.22', m5000: '17:42.86', m10000: '37:17.68' },
@@ -180,7 +184,7 @@
       },
       W: [
         ['Emily', 'Anand', 1, 'New Braunfels, TX', '23:24.3'],
-        ['Taylor', 'Buese', 2, 'Denver, CO', '22:20.1'],
+        ['Taylor', 'Buese', 2, 'Denver, CO', '22:01.8'],
         ['Sally', 'Carrington', 3, 'Denver, CO', '22:00.1'],
         ['Madeline', 'Cassidy', 1, 'Batavia, IL', '23:10.9'],
         ['Lily', 'Dipple', 4, 'Demarest, NJ', '23:00.2'],
@@ -188,7 +192,7 @@
         ['Ella', 'Jackson', 1, 'Webster Groves, MO', '22:58.6'],
         ['Kira', 'Larner', 4, 'Encinitas, CA', '23:05.5'],
         ['Lucinda', 'Laughlin', 3, 'San Francisco, CA', '20:41.6'],
-        ['Maddy', 'Lee', 3, 'Greenwich, CT', '22:10.2'],
+        ['Maddy', 'Lee', 3, 'Greenwich, CT', '22:05.4'],
         ['Lucy', 'Luetkemeyer', 1, 'St. Louis, MO', '21:42.8'],
         ['Amelie', 'Maltz', 4, 'San Francisco, CA', '23:46.7'],
         ['Anna', 'McAndrew', 2, 'St. Louis, MO', '23:31.2'],
