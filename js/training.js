@@ -737,12 +737,24 @@
     if (XC.texts) XC.texts.roll(state);
   };
 
-  // Plans are made on first visit so the coach can just press go.
+  // Hard difficulty has no auto plans: workout day starts with one group
+  // on a standard session and nobody assigned to it (everyone on a
+  // recovery run), and the coach builds the plan.
+  T.manualPlan = function (state, sq) {
+    const plan = T.emptyPlan();
+    plan.groups.push({ id: 'g1', name: 'Group A', workout: T.make('threshold') });
+    state.squads[sq].roster.forEach((a) => { plan.assign[a.id] = { mode: 'rest' }; });
+    return T.applyPromises(state, sq, plan);
+  };
+
+  // Plans are made on first visit so the coach can just press go (or, on
+  // hard, start from a blank plan).
   T.ensurePlans = function (state) {
     if (!state.training || state.training.meetIndex !== state.meetIndex) T.openBlock(state);
     if (!state.training.plans) {
+      const auto = !XC.difficulty || XC.difficulty.shows(state, 'autoPlan');
       state.training.plans = {};
-      state.programs.forEach((sq) => { state.training.plans[sq] = T.autoPlan(state, sq); });
+      state.programs.forEach((sq) => { state.training.plans[sq] = auto ? T.autoPlan(state, sq) : T.manualPlan(state, sq); });
     }
     return state.training.plans;
   };

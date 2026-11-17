@@ -169,18 +169,19 @@
           h('p', { class: 'muted' }, 'You can still watch the championship race.'));
       } else {
         const runners = entry.runners;
+        const condition = XC.difficulty.shows(state, 'condition');
         const list = h('div', { class: 'table-wrap' }, h('table', { class: 'grid' },
-          h('thead', null, h('tr', null, ['#', 'Runner', 'YR', 'OVR', 'Form', 'Fatigue', 'PR'].map((c, i) => h('th', { scope: 'col', class: i === 1 ? 'cell-left' : '' }, c)))),
+          h('thead', null, h('tr', null, ['#', 'Runner', 'YR', 'OVR', condition ? 'Form' : null, condition ? 'Fatigue' : null, 'PR'].map((c, i) => (c ? h('th', { scope: 'col', class: i === 1 ? 'cell-left' : '' }, c) : null)))),
           h('tbody', null, runners.map((a, i) => h('tr', null,
             h('td', null, String(i + 1)),
             h('td', { class: 'cell-left' }, A.fullName(a)),
             h('td', null, A.yearShort(a.year)),
             h('td', null, String(a.ovr)),
-            h('td', null, ui.delta(a.form || 0)),
-            h('td', { class: (a.fatigue || 0) >= 40 ? 'cell-warn' : '' }, String(Math.round(a.fatigue || 0))),
+            condition ? h('td', null, ui.delta(a.form || 0)) : null,
+            condition ? h('td', { class: (a.fatigue || 0) >= 40 ? 'cell-warn' : '' }, String(Math.round(a.fatigue || 0))) : null,
             h('td', null, a.pr ? U.formatTime(a.pr) : '—'))))));
         const injured = squad.roster.filter((a) => !S.raceReady(state, a));
-        const worn = runners.filter((a) => (a.fatigue || 0) >= 40);
+        const worn = condition ? runners.filter((a) => (a.fatigue || 0) >= 40) : [];
         const pending = XC.training.pending(state);
         lineupBody = h('div', { class: 'stack' },
           pending ? h('div', { class: 'notice' },
@@ -260,7 +261,7 @@
               h('p', { class: 'runner-plan__meta' },
                 h('span', null, `OVR ${a.ovr}`),
                 ['spd', 'end', 'hil', 'kck', 'iq', 'dur', 'mnt'].map((k) => h('span', null, `${k.toUpperCase()} ${st[k]}`)),
-                h('span', null, `Fatigue ${Math.round(a.fatigue || 0)}`))),
+                XC.difficulty.shows(XC.state, 'condition') ? h('span', null, `Fatigue ${Math.round(a.fatigue || 0)}`) : null)),
             select));
         });
         reset.hidden = !runners.some((a) => squad.plans[a.id]);

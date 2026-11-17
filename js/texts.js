@@ -283,6 +283,17 @@
           if (w > 0) cands.push({ a, id, w });
         });
       });
+      // Hard difficulty hides fatigue numbers, so worn-down runners always
+      // speak up (up to two a block, on top of the usual texts).
+      if (XC.difficulty && !XC.difficulty.shows(state, 'condition')) {
+        roster.filter((a) => a.injury <= 0 && (a.fatigue || 0) >= 32 && !items.some((it) => it.athleteId === a.id))
+          .sort((x, y) => (y.fatigue || 0) - (x.fatigue || 0))
+          .slice(0, 2)
+          .forEach((a) => {
+            items.push(makeItem(state, sq, a, 'tired', rng));
+            for (let j = cands.length - 1; j >= 0; j--) if (cands[j].a.id === a.id) cands.splice(j, 1);
+          });
+      }
       const n = Math.max(0, Math.min(X.MAX_PER_SQUAD - items.length, 1 + (rng() < 0.55 ? 1 : 0) + (rng() < 0.2 ? 1 : 0)));
       draw(cands, n, rng).forEach(({ a, id }) => {
         const extra = {};

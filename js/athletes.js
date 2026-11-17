@@ -136,10 +136,11 @@
   A.shortName = (a) => `${a.first[0]}. ${a.last}`;
 
   // Offseason growth. Returns a report row.
-  A.progress = function (a, rng = Math.random) {
+  // mult scales the summer's gains (hard difficulty grows runners slower).
+  A.progress = function (a, rng = Math.random, mult = 1) {
     const before = a.ovr;
     const [lo, hi] = POT_GAIN[a.pot] || POT_GAIN.C;
-    let gain = U.randFloat(lo, hi, rng);
+    let gain = U.randFloat(lo, hi, rng) * mult;
     if (a.ovr >= 88) gain *= 0.55;
     else if (a.ovr >= 80) gain *= 0.8;
     // A season lost to injury slows development.

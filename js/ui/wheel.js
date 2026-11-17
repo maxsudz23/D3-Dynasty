@@ -42,6 +42,7 @@
       const state = XC.state;
       if (!state) return XC.go('title');
       if (state.phase !== 'preseason') return XC.go('hub');
+      if (XC.difficulty.recruitMode(state) === 'scout') return XC.go('recruit');
       this.root = root;
       this.draw();
     },
@@ -62,13 +63,15 @@
       this.countEl = h('p', { class: 'wheel__count', role: 'status' });
       this.spinBtn = ui.button('Spin', () => this.spin(), { variant: 'primary', size: 'big', key: 'Space', attrs: { 'data-autofocus': '' } });
       this.allBtn = ui.button('Spin all', () => this.spinAll(), { variant: 'ghost', key: 'A' });
-      const win = S.repWindow(state.rep);
+      const win = XC.difficulty.range(state);
 
       const wheel = h('section', { class: 'wheel', 'aria-label': 'Wheel' },
         h('div', { class: 'wheel__canvas-wrap' }, this.canvas),
         this.countEl,
         h('div', { class: 'actions' }, this.spinBtn, this.allBtn),
-        h('p', { class: 'wheel__window' }, `Reputation ${Math.round(state.rep)} puts recruits between ${win.min} and ${win.max} overall.`));
+        h('p', { class: 'wheel__window' }, XC.difficulty.key(state) === 'easy'
+          ? `Reputation ${Math.round(state.rep)} puts recruits between ${win.min} and ${win.max} overall.`
+          : `Reputation ${Math.round(state.rep)} opens the pool up to ${win.max} overall. Most recruits land toward the low end; blue chips land high.`));
 
       this.board = h('section', { class: 'board', 'aria-label': 'Prospect board' });
       root.appendChild(h('div', { class: 'wheel-screen' }, wheel, this.board));

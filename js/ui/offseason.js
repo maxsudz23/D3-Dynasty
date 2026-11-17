@@ -61,7 +61,7 @@
       const fill = meter.querySelector('.meter__fill');
       requestAnimationFrame(() => requestAnimationFrame(() => fill.style.setProperty('--fill', `${U.clamp(entry.repEnd, 0, 100)}%`)));
       const nextRep = entry.repEnd > 80 ? entry.repEnd - 5 : entry.repEnd > 20 ? entry.repEnd - 3 : entry.repEnd;
-      const win = S.repWindow(nextRep);
+      const win = XC.difficulty.range(Object.assign({}, state, { rep: nextRep }));
 
       const highlights = [];
       if (q.aa.length) highlights.push(['good', `All-Americans: ${q.aa.join(', ')}.`]);

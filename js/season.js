@@ -224,7 +224,7 @@
   // plus a recruiting class; everyone else gets the standard limit.
   S.rosterCap = (state, sq) => Math.max(S.ROSTER_CAP, (state.rosterCap && state.rosterCap[sq]) || 0);
 
-  S.newGame = function ({ coachName, school, programs, people }) {
+  S.newGame = function ({ coachName, school, programs, people, difficulty = 'easy', recruitMode = 'wheel' }) {
     const state = {
       version: 1,
       coach: { name: coachName },
@@ -245,6 +245,8 @@
       training: null,
       inbox: [],
       injuryUnits: 'weeks',
+      difficulty: XC.difficulty.LEVELS[difficulty] ? difficulty : 'easy',
+      recruitMode,
       homeCourse: S.newHomeCourse(Math.random, school)
     };
     programs.forEach((sq) => {
@@ -735,6 +737,8 @@
       }
       // Spectator areas: a home crowd adds a little rep.
       if (summary.userEntered) delta += XC.facilities.homeRep(state, meet);
+      // Hard difficulty: reputation is slower to earn (losses aren't softened).
+      if (delta > 0) delta *= XC.difficulty.of(state).rep;
       summary.repDelta = U.round(delta * factor, 1);
       repTotal += delta * factor;
 
@@ -854,7 +858,7 @@
       report.progression[sq] = squad.roster
         .map((a) => {
           const yearBefore = a.year;
-          const row = A.progress(a);
+          const row = A.progress(a, Math.random, XC.difficulty.of(state).progress);
           a.year += 1;
           a.injury = 0;
           delete a.illness;
@@ -935,6 +939,8 @@
         ovr = U.randInt(win.min + 5, win.max - 5);
         pot = A.randomPot({ A: 15, B: 40, C: 35, D: 10 });
     }
+    // Medium and hard: reputation widens the pool rather than lifting it.
+    if (XC.difficulty.key(state) !== 'easy') ovr = XC.difficulty.wheelOvr(state, seg.key);
     const athlete = A.create({ person, year, transfer, ovr: Math.min(ovr, 99), pot, usedNumbers: used });
     athlete.tier = seg.key;
     athlete.status = 'pending';
@@ -953,6 +959,7 @@
       const signed = rec.prospects.filter((p) => p.status === 'signed');
       signed.forEach((p) => {
         delete p.status;
+        delete p.scout;
         state.squads[sq].roster.push(p);
       });
       if (signed.length) {
@@ -1029,6 +1036,10 @@
     XC.staff.ensure(state);
     // Facilities and the facilities fund (saved since the facilities update).
     XC.facilities.ensure(state);
+    // Difficulty (saved since the difficulty update). Older saves played
+    // like Easy, with the wheel.
+    if (!XC.difficulty.LEVELS[state.difficulty]) state.difficulty = 'easy';
+    if (!state.recruitMode) state.recruitMode = XC.difficulty.recruitMode(state);
     // Runner texts (saved since the texts update).
     if (!Array.isArray(state.inbox)) state.inbox = [];
     // Injuries were counted in meets before; convert each to the weeks that

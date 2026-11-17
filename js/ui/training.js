@@ -23,6 +23,18 @@
   const dnfBadge = (text) => h('span', { class: 'badge zone zone--danger' }, text);
 
   const pct = (x) => `${Math.round(x * 100)}%`;
+  // What this difficulty shows: dose percentages (easy), fatigue/form/
+  // morale/injury risk (easy, medium), auto plans and exact suggestions.
+  const sees = (what) => XC.difficulty.shows(XC.state, what);
+  // "3 on target, 1 overreach" for a group, when percentages are hidden.
+  function zoneSummary(previews) {
+    const counts = new Map();
+    previews.forEach((p) => {
+      const label = p.dnf ? 'won\u2019t finish' : p.zone ? p.zone.label.toLowerCase() : 'resting';
+      counts.set(label, (counts.get(label) || 0) + 1);
+    });
+    return [...counts.entries()].map(([label, k]) => `${k} ${label}`).join(', ');
+  }
   const riskText = (r) => (r < 0.01 ? 'under 1%' : `${U.round(r * 100, 1)}%`);
   // Rating points from the workout plus base building from the mileage.
   const gainsOf = (r) => (r.gains || []).concat(r.baseGains || []);
@@ -83,12 +95,12 @@
         h('p', { class: 'meet-hero__facts' },
           h('span', null, `${gap} week${gap === 1 ? '' : 's'} to race day`),
           h('span', null, `${XC.race.COURSES[meet.course.type].label}, ${Math.round(layout.climbPerKm)} m climb per km`),
-          h('span', null, `Team fatigue ${Math.round(avgFatigue)} (${T.fatigueLabel(avgFatigue).toLowerCase()})`)),
+          sees('condition') ? h('span', null, `Team fatigue ${Math.round(avgFatigue)} (${T.fatigueLabel(avgFatigue).toLowerCase()})`) : null),
         h('p', { class: 'training-hero__advice' }, T.blockAdvice(state)));
 
       const toolbar = h('div', { class: 'actions training-toolbar' },
-        ui.button('Auto plan', () => this.autoPlan(), { variant: 'ghost', size: 'small', key: 'A', attrs: { 'data-nav': '' } }),
-        hasStaff ? ui.button('Staff plan', () => this.autoPlan(true), { variant: 'ghost', size: 'small', attrs: { 'data-nav': '' } }) : null,
+        sees('autoPlan') ? ui.button('Auto plan', () => this.autoPlan(), { variant: 'ghost', size: 'small', key: 'A', attrs: { 'data-nav': '' } }) : null,
+        hasStaff && sees('autoPlan') ? ui.button('Staff plan', () => this.autoPlan(true), { variant: 'ghost', size: 'small', attrs: { 'data-nav': '' } }) : null,
         ui.button('Everyone rests', () => this.allRest(), { variant: 'ghost', size: 'small', attrs: { 'data-nav': '' } }),
         ui.button('Auto mileage', () => this.autoMileage(), { variant: 'ghost', size: 'small', attrs: { 'data-nav': '' } }),
         ui.button('Add group', () => this.addGroup(), { variant: 'ghost', size: 'small', attrs: { 'data-nav': '' } }),
@@ -98,7 +110,7 @@
       const groups = h('div', { class: 'workout-groups' },
         plan.groups.length
           ? plan.groups.map((g) => this.groupCard(g))
-          : h('p', { class: 'empty' }, 'No groups yet. Use Auto plan, or add a group and assign runners to it.'));
+          : h('p', { class: 'empty' }, sees('autoPlan') ? 'No groups yet. Use Auto plan, or add a group and assign runners to it.' : 'No groups yet. Add a group, set its workout and assign runners to it.'));
 
       const runners = h('ul', { class: 'plan-list' }, roster.map((a) => this.runnerRow(a)));
 
@@ -132,7 +144,7 @@
           h('h3', { class: 'workout-group__name' }, g.name),
           h('span', { class: 'workout-group__count' }, `${members.length} runner${members.length === 1 ? '' : 's'}`),
           h('div', { class: 'actions' },
-            ui.button('Suggest', () => this.suggestGroup(g), { variant: 'ghost', size: 'small', disabled: !members.length }),
+            sees('autoPlan') ? ui.button('Suggest', () => this.suggestGroup(g), { variant: 'ghost', size: 'small', disabled: !members.length }) : null,
             XC.staff.has(XC.state) ? ui.button('Staff suggestion', () => this.suggestGroup(g, true), { variant: 'ghost', size: 'small', disabled: !members.length }) : null,
             ui.button('Remove', () => this.removeGroup(g), { variant: 'ghost', size: 'small', disabled: plan.groups.length <= 1 && members.length > 0 }))),
         this.editor(g.workout, `g-${g.id}`),
@@ -250,7 +262,7 @@
             sel,
             // Kept together so they wrap below the menu as a pair.
             h('div', { class: 'plan-row__buttons' },
-              ui.button('Suggest', () => this.suggestRunner(a), { variant: 'ghost', size: 'small' }),
+              sees('autoPlan') ? ui.button('Suggest', () => this.suggestRunner(a), { variant: 'ghost', size: 'small' }) : null,
               XC.staff.has(state) ? ui.button('Staff', () => this.suggestRunner(a, true), { variant: 'ghost', size: 'small', attrs: { 'aria-label': `Staff suggestion for ${A.fullName(a)}` } }) : null)),
           this.milesPicker(a));
       }
@@ -262,11 +274,13 @@
           h('p', { class: 'plan-row__meta' },
             h('span', null, `${a.ovr} OVR`),
             h('span', null, A.yearShort(a.year)),
-            h('span', null, `Form ${U.signed(form, 1)}`),
-            Math.abs(a.morale || 0) >= 1 ? h('span', null, `Morale ${XC.texts.moraleLabel(a.morale).toLowerCase()}`) : null)),
-        h('div', { class: 'plan-row__fatigue' },
-          ui.fatigueMeter(f),
-          h('p', { class: 'plan-row__meta' }, `Fatigue ${Math.round(f)}, ${T.fatigueLabel(f).toLowerCase()}. Workout day: ${Math.round(T.dayFatigue(state, a))}`)),
+            sees('condition') ? h('span', null, `Form ${U.signed(form, 1)}`) : null,
+            sees('condition') && Math.abs(a.morale || 0) >= 1 ? h('span', null, `Morale ${XC.texts.moraleLabel(a.morale).toLowerCase()}`) : null)),
+        sees('condition')
+          ? h('div', { class: 'plan-row__fatigue' },
+            ui.fatigueMeter(f),
+            h('p', { class: 'plan-row__meta' }, `Fatigue ${Math.round(f)}, ${T.fatigueLabel(f).toLowerCase()}. Workout day: ${Math.round(T.dayFatigue(state, a))}`))
+          : h('div', { class: 'plan-row__fatigue' }, h('p', { class: 'plan-row__meta' }, 'How they feel: check their texts.')),
         control,
         proj,
         res.mode === 'custom' && !promise ? h('div', { class: 'plan-row__custom' }, this.editor(res.workout, `r-${a.id}`)) : null);
@@ -317,22 +331,27 @@
         const p = T.preview(state, sq, a, res);
         U.clear(el);
         if (!res.workout) {
-          el.appendChild(h('p', null, zoneBadge(null), ` Race-day fatigue ${Math.round(p.race)}`));
-          if (p.risk > 0.0005) el.appendChild(h('p', { class: 'plan-row__meta' }, `Injury risk ${riskText(p.risk)}`));
+          el.appendChild(h('p', null, zoneBadge(null), sees('condition') ? ` Race-day fatigue ${Math.round(p.race)}` : ' Recovery run'));
+          if (sees('condition') && p.risk > 0.0005) el.appendChild(h('p', { class: 'plan-row__meta' }, `Injury risk ${riskText(p.risk)}`));
           return;
         }
         el.classList.toggle('plan-row__proj--warn', p.dnf || p.zone.key === 'over' || p.zone.key === 'danger');
+        const dose = sees('dosePct');
         el.appendChild(p.dnf
-          ? h('p', null, dnfBadge('Won’t finish'), ` Dose ${pct(p.x)} before they stop`)
-          : h('p', null, zoneBadge(p.zone), ` Dose ${pct(p.x)}`));
-        el.appendChild(h('p', { class: 'plan-row__meta' },
-          `Fatigue after ${Math.round(p.after)}, race day ${Math.round(p.race)}. Injury risk ${riskText(p.risk)}`));
+          ? h('p', null, dnfBadge('Won’t finish'), dose ? ` Dose ${pct(p.x)} before they stop` : ' They\u2019d stop partway')
+          : h('p', null, zoneBadge(p.zone), dose ? ` Dose ${pct(p.x)}` : ''));
+        if (sees('condition')) {
+          el.appendChild(h('p', { class: 'plan-row__meta' },
+            `Fatigue after ${Math.round(p.after)}, race day ${Math.round(p.race)}. Injury risk ${riskText(p.risk)}`));
+        }
         if (p.dnf) {
-          el.appendChild(h('p', { class: 'workout-group__warn' },
-            `Asks for ${pct(p.strain)} of the time they can hold this pace. Likely drops out during ${T.stopPoint(res.workout, p.done)}. More rest, fewer reps or an easier pace.`));
+          el.appendChild(h('p', { class: 'workout-group__warn' }, dose
+            ? `Asks for ${pct(p.strain)} of the time they can hold this pace. Likely drops out during ${T.stopPoint(res.workout, p.done)}. More rest, fewer reps or an easier pace.`
+            : `Longer than they can hold this pace. Likely drops out during ${T.stopPoint(res.workout, p.done)}. More rest, fewer reps or an easier pace.`));
         } else if (p.close || p.strain > 1) {
-          el.appendChild(h('p', { class: 'workout-group__warn' },
-            `${pct(p.strain)} of the time they can hold this pace, even counting rest. They might not finish.`));
+          el.appendChild(h('p', { class: 'workout-group__warn' }, dose
+            ? `${pct(p.strain)} of the time they can hold this pace, even counting rest. They might not finish.`
+            : 'Close to the most they can hold at this pace, even counting rest. They might not finish.'));
         }
       });
       this.groupNotes.forEach(({ note, group }) => {
@@ -349,7 +368,7 @@
         const over = members.filter((a, i) => !previews[i].dnf && doses[i] > T.ZONES[2].max);
         const names = (list) => list.map((a) => A.shortName(a)).join(', ');
         note.appendChild(h('span', null, `${names(members)}. `));
-        note.appendChild(h('span', null, `Doses ${pct(Math.min(...doses))} to ${pct(Math.max(...doses))}.`));
+        note.appendChild(h('span', null, sees('dosePct') ? `Doses ${pct(Math.min(...doses))} to ${pct(Math.max(...doses))}.` : `${zoneSummary(previews)}.`));
         if (dnf.length) {
           note.appendChild(h('span', { class: 'workout-group__warn' },
             dnf.length === members.length ? ' Nobody in this group can finish it.' : ` Won’t finish: ${names(dnf)}.`));
@@ -373,7 +392,7 @@
 
     autoPlan(staff = false) {
       const state = XC.state;
-      if (state.training.done) return;
+      if (state.training.done || !sees('autoPlan')) return;
       if (staff && !XC.staff.has(state)) return;
       state.training.plans[XC.activeSquad] = T.autoPlan(state, XC.activeSquad, Math.random, { staff });
       XC.audio.select();
@@ -417,7 +436,7 @@
 
     suggestGroup(g, staff = false) {
       const members = this.membersOf(g);
-      if (!members.length) return;
+      if (!members.length || (!staff && !sees('autoPlan'))) return;
       g.workout = T.recommend(XC.state, XC.activeSquad, members, { staff });
       XC.audio.select();
       this.save();
@@ -425,7 +444,7 @@
     },
 
     suggestRunner(a, staff = false) {
-      if (T.promiseOf(XC.state, a)) return;
+      if (T.promiseOf(XC.state, a) || (!staff && !sees('autoPlan'))) return;
       const plan = this.plan();
       plan.assign[a.id] = { mode: 'custom', workout: T.recommend(XC.state, XC.activeSquad, [a], { staff }) };
       XC.audio.select();
@@ -495,15 +514,15 @@
 
       const table = h('div', { class: 'table-wrap' }, h('table', { class: 'grid' },
         h('caption', { class: 'visually-hidden' }, 'Workout report'),
-        h('thead', null, h('tr', null, ['Runner', 'Session', 'Miles/wk', 'Dose', 'Fatigue', 'Form', 'Gains', 'Notes']
-          .map((c, i) => h('th', { scope: 'col', class: i <= 1 || i === 7 ? 'cell-left' : '' }, c)))),
+        h('thead', null, h('tr', null, ['Runner', 'Session', 'Miles/wk', 'Dose', sees('condition') ? 'Fatigue' : null, sees('condition') ? 'Form' : null, 'Gains', 'Notes']
+          .map((c, i) => (c ? h('th', { scope: 'col', class: i <= 1 || i === 7 ? 'cell-left' : '' }, c) : null)))),
         h('tbody', null, rows.map((r) => h('tr', { class: r.injury ? 'is-reserve' : '' },
           h('td', { class: 'cell-left' }, r.name),
           h('td', { class: 'cell-left' }, r.group ? `${r.group}: ${r.desc}` : r.desc),
           h('td', null, typeof r.miles === 'number' && r.mode !== 'injured' ? String(r.miles) : '—'),
-          h('td', null, r.dnf ? dnfBadge('Dropped out') : r.zone ? zoneBadge(T.ZONES.find((z) => z.key === r.zone)) : '—', r.zone ? ` ${pct(r.x)}` : ''),
-          h('td', null, `${Math.round(r.before)} → ${Math.round(r.after)}`),
-          h('td', null, ui.delta(r.form)),
+          h('td', null, r.dnf ? dnfBadge('Dropped out') : r.zone ? zoneBadge(T.ZONES.find((z) => z.key === r.zone)) : '—', r.zone && sees('dosePct') ? ` ${pct(r.x)}` : ''),
+          sees('condition') ? h('td', null, `${Math.round(r.before)} → ${Math.round(r.after)}`) : null,
+          sees('condition') ? h('td', null, ui.delta(r.form)) : null,
           h('td', null, gainsOf(r).length ? h('span', { class: 'badge badge--good' }, `+${gainsOf(r).join(' +')}`) : '—'),
           h('td', { class: 'cell-left' }, r.injury
             ? h('span', { class: 'workout-group__warn' }, `${r.injury.what}, out ${ui.weeksText(r.injury.out)}. `)
@@ -535,9 +554,9 @@
       const items = done
         ? [{ key: 'Enter', label: 'Meet preview', action: () => XC.go('meet') }]
         : [
-          { key: 'Enter', label: 'Run workouts', action: () => this.runDay() },
-          { key: 'A', label: 'Auto plan', action: () => this.autoPlan() }
+          { key: 'Enter', label: 'Run workouts', action: () => this.runDay() }
         ];
+      if (!done && sees('autoPlan')) items.push({ key: 'A', label: 'Auto plan', action: () => this.autoPlan() });
       if (XC.state && XC.state.programs.length > 1) items.push({ key: 'Q E', label: 'Squad', keyboardOnly: true, action: () => XC.setSquad(XC.activeSquad === 'M' ? 'W' : 'M') });
       items.push({ key: 'Esc', label: 'Hub', action: () => XC.go('hub') });
       return items;
@@ -552,7 +571,7 @@
         else this.runDay();
         return true;
       }
-      if (!done && e.key.toLowerCase() === 'a') {
+      if (!done && sees('autoPlan') && e.key.toLowerCase() === 'a') {
         this.autoPlan();
         return true;
       }

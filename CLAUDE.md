@@ -19,13 +19,13 @@ D3 Dynasty is a Division III cross country coaching game in plain HTML, CSS and 
 
 ## Hard constraints
 `main` is no longer bound by the Website #2 rubric. Libraries and APIs are allowed if a feature needs them, but keep this framework:
-- No build step and no ES modules. Scripts are classic `defer` scripts that hang off one `window.XC` namespace, so the page works from `file://`. Load order in `index.html` matters: engine files first (`util`, `storage`, `audio`, data, `athletes`, `looks`, `race`, `course`, `training`, `staff`, `texts`, `facilities`, `api`, `season`), then UI, then `main.js`.
+- No build step and no ES modules. Scripts are classic `defer` scripts that hang off one `window.XC` namespace, so the page works from `file://`. Load order in `index.html` matters: engine files first (`util`, `storage`, `audio`, data, `athletes`, `looks`, `race`, `course`, `training`, `staff`, `texts`, `facilities`, `difficulty`, `scouting`, `api`, `season`), then UI, then `main.js`.
 - No inline styles. Setting CSS custom properties from JS is fine. No `onclick` attributes, no `innerHTML`; build DOM with `XC.util.h()` and `XC.util.svg()`.
 - The console must stay error-free, including on hosted pages. Hosted pages request a favicon (`favicon.svg` is linked in `index.html`), and `file://` never shows that error.
 - APIs need graceful failure handling, and browser APIs need handling for denied permissions.
 
 ## Architecture
-- **Engine** (pure, testable in node with `global.window = global`): `util.js`, `data/schools.js`, `data/logos.js`, `data/names.js`, `data/places.js`, `data/courses.js`, `athletes.js`, `looks.js`, `race.js`, `course.js`, `training.js`, `staff.js`, `texts.js`, `facilities.js`, `api.js`, `season.js`.
+- **Engine** (pure, testable in node with `global.window = global`): `util.js`, `data/schools.js`, `data/logos.js`, `data/names.js`, `data/places.js`, `data/courses.js`, `athletes.js`, `looks.js`, `race.js`, `course.js`, `training.js`, `staff.js`, `texts.js`, `facilities.js`, `difficulty.js`, `scouting.js`, `api.js`, `season.js`.
 - **UI:** `ui/common.js` holds the theme, crest, portraits, chrome, toasts and confirm dialog. `ui/avatar.js` draws runner looks (loaded right after `common.js`).
   - `ui.setTheme(primary, accent, school)` also sets `--team-logo` to the school's logo (absolute URL), or `none`. `body::before` draws it at 10% opacity over the background stripes. Schools without a logo and custom schools show nothing. Pass the school wherever a real school's theme is applied.
   - `ui.crest(school)` draws the school's athletics logo on a white shield edged in its primary color when `XC.logos.pathFor(school)` has one, and the generated monogram otherwise. Custom schools (id `custom`) and any logo that fails to load get the monogram.
@@ -35,12 +35,12 @@ D3 Dynasty is a Division III cross country coaching game in plain HTML, CSS and 
 - **Screen hooks:** each screen registers on `XC.screens[name]` with any of:
   - `title`, `render(root, params)`, `legend()`, `onKey(e)`, `back()`, `onSquadChange()`, `cleanup()`, `squadTabs`, `context`
   - `canChangeSquad()`: return false to block squad switching. The wheel uses it while spinning.
-- **Screens:** `title`, `setup`, `hub`, `schedule`, `trophies`, `settings`, `staff`, `facilities`, `texts`, `look`, `roster`, `wheel`, `training`, `meet`, `race`, `results`, then the offseason screens.
+- **Screens:** `title`, `setup`, `hub`, `schedule`, `trophies`, `settings`, `staff`, `facilities`, `texts`, `look`, `recruit`, `roster`, `wheel`, `training`, `meet`, `race`, `results`, then the offseason screens.
 - **Router:** `main.js` (`XC.go(name, params)`, `XC.refresh()`, `XC.setSquad()`). The global keys are Q/E for squad, Esc for back, M for mute and arrows to move focus between elements marked `[data-nav]`.
 - **Legend items:** `{ key, label, action, keyboardOnly? }`. Set `keyboardOnly: true` on items that repeat an on-screen control (squad tabs, the sound toggle, "Enter: select focused"), so touch screens hide them.
 - **Guard actions in the function itself:** keyboard shortcuts and legend buttons call screen methods directly and skip the disabled buttons, so every action must check its own preconditions. The wheel freeze came from this.
 - **State:** `XC.state` is saved to localStorage key `d3dynasty.save.v1` (version 1; the pre-rename key `harriers27.dynasty.v1` is still read as a fallback). `XC.live` holds values that aren't saved, such as the latest race sims used for the animation.
-  - `S.migrate(state)` runs on every load and fills in fields older saves lack: `homeCourse`, `training`, `staff` (via `XC.staff.ensure`), `facilities` and `funds` (via `XC.facilities.ensure`), `inbox`, `squad.plans` (also pruned of runners who left), athlete `fatigue`/`form`/`morale`, and `look` for generated runners, prospects and graduates.
+  - `S.migrate(state)` runs on every load and fills in fields older saves lack: `homeCourse`, `training`, `staff` (via `XC.staff.ensure`), `facilities` and `funds` (via `XC.facilities.ensure`), `inbox`, `squad.plans` (also pruned of runners who left), athlete `fatigue`/`form`/`morale`, `look` for generated runners, prospects and graduates, and `difficulty`/`recruitMode` (old saves become Easy with the wheel).
   - New saved fields must be added there.
 - **Phases:** `preseason` (recruiting wheel) → `season` (`meetIndex` 0–5, each meet preceded by a workout day in `state.training`) → `recap` → `graduation` → `progression` → `cut` → `S.startNewSeason` → `preseason`. `S.runMeet` saves results before the race animation plays, so reloading can't reroll a race.
 
@@ -224,6 +224,31 @@ D3 Dynasty is a Division III cross country coaching game in plain HTML, CSS and 
     - Re-run this after changing mileage numbers.
 - **Plan state:** `state.training = { meetIndex, done, plans: { [sq]: { groups, assign } }, report }`. `assign[id]` is `{ mode: 'group', group }`, `{ mode: 'custom', workout }` or `{ mode: 'rest' }`.
 - **Facility hooks:** `state.facilities.trainingRoom` and `state.facilities.track` add bonuses (`T.recoveryPerWeek`, `T.sessionBonus`). `ROADMAP.md` covers real home courses and the 3D view.
+
+## Difficulty (`difficulty.js`) and scouting recruiting (`scouting.js`, `ui/recruit.js`)
+- **Choosing:** the setup screen has a Difficulty picker (Easy, Medium, Hard) with a short description, and on Medium a Recruiting choice (Wheel or Scouting). `S.newGame({ ..., difficulty, recruitMode })` saves `state.difficulty` and `state.recruitMode`. It's fixed for the dynasty and shown in Settings. Old saves are Easy, which is how the game played before.
+- **What each level shows** (`D.shows(state, key)`; UI code checks these, never the level name):
+  - `dosePct`: Easy only. Medium and Hard keep the zone labels ("On target") but no percentages: projections, group notes ("3 on target, 1 overreach"), the report, and the texts' workout hint.
+  - `condition` (fatigue, form, morale, injury risk): Easy and Medium. Hard hides the fatigue meters and numbers, the FTG column, the meet preview's Form/Fatigue columns and worn-out notice, the runner-plan fatigue, the texts' fatigue and team-morale panel, and the roster card's fatigue/form/morale. Instead, on Hard every block up to two runners at 32+ fatigue text "my legs are dead" on top of the usual texts.
+  - `autoPlan`: Easy and Medium. Hard has no Auto plan, Staff plan or head-coach Suggest (the functions and the A key check it too); "Staff suggestion" stays when an assistant is signed. `T.ensurePlans` uses `T.manualPlan` on Hard: one "Group A" on a standard threshold session and everyone on a recovery run.
+  - `ovrInEmails`: Easy and Medium. Hard's recruit emails carry PRs only.
+- **Recruit quality** (`D.range`, `D.ovrAt`): Easy keeps `S.repWindow` (a 20-point window that slides up with rep). Medium draws from 50 to `62 + 0.37 × rep` (cap 99), Hard from 48 to `60 + 0.37 × rep`, so reputation only raises the ceiling. Quantiles are skewed low (`q^1.6` Medium, `q^1.75` Hard). On the wheel each segment covers a band of quantiles (`D.wheelOvr`: blue chip 0.65–1, walk-on 0–0.35…).
+  - Medium wheel at rep 100: average 66, 9% of recruits 85+ (about a coin flip for one elite recruit a year).
+- **Hard's other costs:** offseason growth ×0.85 (`A.progress(a, rng, mult)`) and positive rep gains ×0.85.
+- **Scouting** (Medium by choice, Hard always; `D.recruitMode`). The hub's preseason tile opens the Recruiting inbox (`XC.screens.recruit`); the wheel redirects there.
+  - `SC.ensure(state, sq)` fills the inbox once per preseason: Medium 8 and Hard 6 emails, plus up to 4 more with a better scout (`SC.power` = 0.25 + 0.75 × best assistant's rating).
+    - Quality: `D.ovrAt(state, q, SC.EXTRA_SKEW = 0.8)`, with q tilted up by scouting (`1 − (1 − U)^(1 + 0.3 × power)`). The pool is thinner at the top than the wheel's because the coach picks who to visit from the whole inbox.
+    - 15% are transfers (year 2–3). Prospects use `A.create` and get a look, like wheel recruits, and live in `rec.prospects` with `p.scout = { interest, prs, school, major, variant, report, decision, otherSchool }`.
+  - **PRs** (`SC.prsFor`): from `R.baseTime(ovr)` by Riegel-style conversions: 5K XC, 3200 and 1600 for high schoolers; 8K/6K XC, 5000 and 1500 for transfers. Speed shifts the 1600, endurance the 5K, with ±0.8% noise. An 80-OVR man runs about 4:29 / 9:32 / 15:49; a 51 about 4:57 / 10:38 / 17:55.
+  - **Emails** are built in `ui/recruit.js` from the saved facts (subject by interest, three body variants, a transfer variant). Most A-potential recruits add a line about only running seriously for two years.
+  - **Scouting reports** (`SC.scoutReport`; 2 plus 2 per signed assistant): potential, best and weakest rating, interest, and on Hard an OVR range `8 − 6.5 × scout quality` wide.
+  - **Visits** (`SC.visit`; Medium 6, Hard 5 per squad; need an open roster spot): commit chance = interest + 0.08 × best assistant's rating, clamped 0.05–0.95. Interest = `0.62 + (rep/100 − (ovr − 50)/40) × 0.9` + facilities + noise (Hard −0.08). An 80-OVR recruit commits about 25% of visits at rep 30, 53% at rep 60 and 82% at rep 90. A no names the rival school they chose.
+  - `S.finishRecruiting` adds committed recruits (dropping `p.scout`) as with the wheel.
+- **Balance** (`diffsim`, 12 eight-season dynasties each, auto plans on every level standing in for good planning; average finish, team OVR after 8 years, rep):
+  - Easy wheel 0.083, 95, 95.
+  - Medium wheel 0.16, 83, 89; Medium scouting 0.15, 84, 91.
+  - Hard scouting 0.33, 71.5, 59.
+  - Re-run after changing recruit ranges, skews, visit odds or Hard's multipliers.
 
 ## Facilities and the fund (`facilities.js`, `ui/facilities.js`)
 - **State:** `state.funds` (thousands of dollars; new games and migrated saves start at `F.START_FUNDS`, 60), `state.facilities = { trainingRoom, track, spectators, championship }`, and `state.lastPayout = { year, total, lines }`.

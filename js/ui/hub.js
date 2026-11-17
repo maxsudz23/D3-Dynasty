@@ -35,14 +35,26 @@
   function nextUp(state) {
     const year = S.yearOf(state.season);
     switch (state.phase) {
-      case 'preseason':
+      case 'preseason': {
+        const range = XC.difficulty.range(state);
+        const rangeFact = XC.difficulty.key(state) === 'easy' ? `Recruits up to ${range.max} OVR` : `Recruits ${range.min}\u2013${range.max} OVR, most toward the low end`;
+        if (XC.difficulty.recruitMode(state) === 'scout') {
+          return {
+            kicker: `${year} preseason`,
+            headline: 'Recruiting inbox',
+            facts: ['Recruits email you their PRs', `${XC.scouting.VISITS[XC.difficulty.key(state)] || 6} official visits per squad`, staffFact(state)],
+            action: 'Open recruiting',
+            go: () => XC.go('recruit')
+          };
+        }
         return {
           kicker: `${year} preseason`,
           headline: 'Recruiting wheel',
-          facts: [`${S.SPINS} spins per squad`, `Recruits up to ${S.repWindow(state.rep).max} OVR`, staffFact(state)],
+          facts: [`${S.SPINS} spins per squad`, rangeFact, staffFact(state)],
           action: 'Spin the wheel',
           go: () => XC.go('wheel')
         };
+      }
       case 'season': {
         const meet = state.schedule[state.meetIndex];
         if (XC.training.pending(state)) {
@@ -106,7 +118,7 @@
           h('p', { class: 'muted' }, `${roster.length} runners`),
           top ? h('p', null, `Top runner: ${A.fullName(top)} (${top.ovr})`) : null);
       }));
-      const win = S.repWindow(state.rep);
+      const win = XC.difficulty.range(state);
       const rep = h('div', null,
         ui.meter(state.rep / 100, `Reputation ${Math.round(state.rep)} of 100`),
         h('p', { class: 'meter-label' },
@@ -286,6 +298,7 @@
           ? row('Race announcer', 'Spoken calls at each checkpoint and the finish.',
             ui.button(settings.announcer ? 'Turn off' : 'Turn on', () => { XC.settings.toggleAnnouncer(); XC.refresh(); }, { variant: 'ghost', size: 'small', attrs: { 'data-nav': '' } }))
           : row('Race announcer', 'This browser doesn’t support spoken audio.', h('span', { class: 'muted' }, 'Unavailable')),
+        XC.state ? row('Difficulty', XC.difficulty.of(XC.state).blurb, h('span', { class: 'badge' }, XC.difficulty.of(XC.state).label)) : null,
         row('Dark mode', 'Dark panels and backgrounds.',
           ui.button(settings.dark ? 'Turn off' : 'Turn on', () => { XC.settings.toggleDark(); XC.refresh(); }, { variant: 'ghost', size: 'small', attrs: { 'data-nav': '' } })),
         row('Autosave', XC.storage.available ? 'Progress saves after every action.' : 'Saving is off in this browser, so progress lasts until you close the tab.',

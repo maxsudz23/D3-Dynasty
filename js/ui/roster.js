@@ -9,7 +9,9 @@
   const A = XC.athletes;
   XC.screens = XC.screens || {};
 
-  const HI_COLS = ['yr', 'ovr', 'spd', 'end', 'hil', 'kck', 'iq', 'dur', 'mnt', 'pot', 'pr', 'ftg'];
+  const ALL_COLS = ['yr', 'ovr', 'spd', 'end', 'hil', 'kck', 'iq', 'dur', 'mnt', 'pot', 'pr', 'ftg'];
+  // Hard difficulty hides fatigue, so the FTG column goes too.
+  const cols = () => (XC.difficulty.shows(XC.state, 'condition') ? ALL_COLS : ALL_COLS.filter((c) => c !== 'ftg'));
   const MIN_ROSTER = 5;
 
   const view = { sel: 0, col: 'ovr', grabbed: false, dragFrom: null };
@@ -58,6 +60,7 @@
       // Table
       const ready = (a) => S.raceReady(state, a);
       const lineupIds = new Set(A.lineup(roster, 7, ready).map((a) => a.id));
+      const HI_COLS = cols();
       const columns = ['#', 'Name', ...HI_COLS, 'Status'];
       const head = h('tr', null, columns.map((c) => {
         const key = HI_COLS.includes(c) ? c : null;
@@ -85,7 +88,7 @@
           A.STATS.map((k) => cell(k, String(a.stats[k]))),
           cell('pot', a.pot),
           cell('pr', a.pr ? U.formatTime(a.pr) : '—'),
-          cell('ftg', String(Math.round(a.fatigue || 0))),
+          HI_COLS.includes('ftg') ? cell('ftg', String(Math.round(a.fatigue || 0))) : null,
           h('td', null, !ready(a) ? h('span', { class: 'badge badge--warn', title: ui.injuryText(state, a) }, `${a.illness ? 'Sick' : 'Out'} ${ui.weeksText(a.injury)}`) : racing ? 'Racing' : 'Reserve'));
         tr.addEventListener('click', () => this.select(i));
         tr.addEventListener('dragstart', (e) => {
@@ -152,6 +155,7 @@
 
     card(a) {
       const state = XC.state;
+      const condition = XC.difficulty.shows(state, 'condition');
       const lineup = A.lineup(this.roster(), 7, (x) => S.raceReady(state, x));
       const racing = lineup.some((x) => x.id === a.id);
       const badges = [
@@ -159,7 +163,7 @@
         h('span', { class: 'badge badge--line' }, A.ARCHETYPE_LABEL[a.archetype] || 'All-rounder'),
         a.transfer ? h('span', { class: 'badge badge--line' }, 'Transfer') : null,
         a.injury > 0 ? h('span', { class: 'badge badge--warn' }, ui.injuryText(state, a)) : null,
-        (a.fatigue || 0) >= 40 ? h('span', { class: 'badge badge--warn' }, XC.training.fatigueLabel(a.fatigue)) : null
+        condition && (a.fatigue || 0) >= 40 ? h('span', { class: 'badge badge--warn' }, XC.training.fatigueLabel(a.fatigue)) : null
       ];
       return h('section', { class: 'player-card', 'aria-label': `Selected runner ${A.fullName(a)}` },
         h('div', { class: 'player-card__art' }, ui.crest(state.school), ui.portrait(a)),
@@ -172,9 +176,9 @@
             h('span', null, 'PR ', h('b', null, a.pr ? U.formatTime(a.pr) : 'None yet')),
             h('span', null, 'Potential ', h('b', null, a.pot)),
             h('span', null, 'Races ', h('b', null, String(a.career.races))),
-            h('span', null, 'Fatigue ', h('b', null, `${Math.round(a.fatigue || 0)} (${XC.training.fatigueLabel(a.fatigue || 0).toLowerCase()})`)),
-            h('span', null, 'Form ', h('b', null, U.signed(a.form || 0, 1))),
-            h('span', null, 'Morale ', h('b', null, XC.texts.moraleLabel(a.morale || 0)))),
+            condition ? h('span', null, 'Fatigue ', h('b', null, `${Math.round(a.fatigue || 0)} (${XC.training.fatigueLabel(a.fatigue || 0).toLowerCase()})`)) : null,
+            condition ? h('span', null, 'Form ', h('b', null, U.signed(a.form || 0, 1))) : null,
+            condition ? h('span', null, 'Morale ', h('b', null, XC.texts.moraleLabel(a.morale || 0))) : null),
           h('div', { class: 'player-card__badges' }, badges,
             // Generated runners' looks can be changed; real athletes keep their photos.
             a.real ? null : ui.button('Edit look', () => XC.go('look', { id: a.id, back: this.params }), { variant: 'ghost', size: 'small', attrs: { 'data-nav': '' } }))),
@@ -294,6 +298,7 @@
         return true;
       }
       if (key === 'ArrowLeft' || key === 'ArrowRight') {
+        const HI_COLS = cols();
         const idx = HI_COLS.indexOf(view.col);
         view.col = HI_COLS[(idx + (key === 'ArrowRight' ? 1 : -1) + HI_COLS.length) % HI_COLS.length];
         XC.audio.nav();
@@ -328,6 +333,7 @@
       const from = params && params.from;
       if (from === 'meet') XC.go('meet');
       else if (from === 'wheel') XC.go('wheel');
+      else if (from === 'recruit') XC.go('recruit');
       else XC.go('hub');
     }
   };

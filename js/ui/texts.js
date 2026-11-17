@@ -61,7 +61,7 @@
             h('li', null, 'Replies can change a runner’s morale, fatigue, form or time out, and can promise their plan for this block.'),
             h('li', null, 'Morale nudges race-day rating and steadiness. It fades a little every block.'),
             h('li', null, meet ? `Unanswered texts expire when the ${meet.name} runs, and the runner feels ignored.` : 'Unanswered texts expire when the next meet runs.'))),
-          ui.panel('Team morale', moodList, { aside: S.squadLabel(sq) }),
+          XC.difficulty.shows(state, 'condition') ? ui.panel('Team morale', moodList, { aside: S.squadLabel(sq) }) : null,
           h('div', { class: 'actions' },
             state.phase === 'season' && T.pending(state)
               ? ui.button('Plan workouts', () => XC.go('training'), { variant: 'primary', attrs: { 'data-nav': '' } })
@@ -83,15 +83,18 @@
           h('span', { class: 'thread__who' },
             h('span', { class: 'thread__name' }, A.fullName(a)),
             h('span', { class: 'thread__meta' },
-              `${A.yearShort(a.year)} · ${a.ovr} OVR · Fatigue ${Math.round(a.fatigue || 0)} · ${X.moraleLabel(m)}`))),
+              XC.difficulty.shows(state, 'condition')
+                ? `${A.yearShort(a.year)} · ${a.ovr} OVR · Fatigue ${Math.round(a.fatigue || 0)} · ${X.moraleLabel(m)}`
+                : `${A.yearShort(a.year)} · ${a.ovr} OVR`))),
         h('p', { class: 'bubble bubble--in' }, X.messageOf(it))
       ];
       // What the asked-for workout would mean for them, like the workout screen shows.
       if (it.workout && it.replied === null && !it.expired && state.training && !state.training.done && a.injury <= 0) {
         const p = T.preview(state, it.squad, a, { mode: 'custom', workout: it.workout });
+        const dose = XC.difficulty.shows(state, 'dosePct');
         kids.push(h('p', { class: 'thread__hint' }, p.dnf
-          ? `For ${a.first}: dose ${pct(p.x)}, and they likely wouldn’t finish it.`
-          : `For ${a.first}: dose ${pct(p.x)} (${p.zone.label.toLowerCase()}).`));
+          ? `For ${a.first}: ${dose ? `dose ${pct(p.x)}, and ` : ''}they likely wouldn’t finish it.`
+          : `For ${a.first}: ${dose ? `dose ${pct(p.x)} (${p.zone.label.toLowerCase()})` : p.zone.label.toLowerCase()}.`));
       }
       if (it.replied !== null) {
         kids.push(h('p', { class: 'bubble bubble--out' }, X.replyText(it, it.replied)));

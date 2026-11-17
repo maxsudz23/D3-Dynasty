@@ -3174,6 +3174,147 @@ body.is-title .ticker {
   border-left: 5px solid var(--team-hi);
 }
 
+/* ---------- Recruiting inbox (scouting) ---------- */
+
+.mail-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 420px), 1fr));
+  gap: 14px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.mail {
+  display: grid;
+  align-content: start;
+  gap: 8px;
+  padding: 14px;
+  background: rgb(var(--paper) / 0.85);
+  border-left: 5px solid var(--team-primary);
+  box-shadow: 0 1px 0 rgb(var(--ink-rgb) / 0.08);
+}
+
+.mail--done {
+  opacity: 0.72;
+  border-left-color: var(--text-faint);
+}
+
+.mail__head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.mail__avatar .portrait {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+}
+
+.mail__who {
+  flex: 1;
+  min-width: 0;
+}
+
+.mail__from {
+  font-weight: 800;
+  color: var(--text-strong);
+  line-height: 1.15;
+}
+
+.mail__meta {
+  font-size: var(--step--1);
+  font-weight: 600;
+  color: var(--text-muted);
+}
+
+.mail__ovr {
+  display: grid;
+  justify-items: center;
+}
+
+.mail__ovr strong {
+  font-size: var(--step-2);
+  font-weight: 800;
+  line-height: 1;
+  color: var(--text-strong);
+}
+
+.mail__ovr span {
+  font-size: var(--step--1);
+  font-weight: 700;
+  color: var(--text-muted);
+}
+
+.mail__subject {
+  font-weight: 800;
+  color: var(--text-strong);
+}
+
+.mail__body,
+.mail__sign {
+  color: var(--text-body);
+  line-height: 1.35;
+}
+
+.mail__prs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 10px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.mail__prs li {
+  display: grid;
+  padding: 4px 10px;
+  background: rgb(var(--ink-rgb) / 0.07);
+}
+
+.mail__prs span {
+  font-size: var(--step--1);
+  font-weight: 700;
+  color: var(--text-muted);
+}
+
+.mail__prs b {
+  font-size: var(--step-1);
+  color: var(--text-strong);
+}
+
+.mail__report {
+  padding: 8px 12px;
+  border-left: 4px solid var(--team-hi);
+  background: rgb(var(--ink-rgb) / 0.05);
+  color: var(--text-body);
+}
+
+.mail__report-head {
+  font-weight: 800;
+  color: var(--text-strong);
+}
+
+.mail__result {
+  font-weight: 800;
+  color: var(--text-muted);
+}
+
+.mail__result--good {
+  color: var(--good-text);
+}
+
+.mail__result--bad {
+  color: var(--bad-text);
+}
+
+.mail__why {
+  font-size: var(--step--1);
+  font-weight: 700;
+  color: var(--bad-text);
+}
+
 /* ---------- Look editor ---------- */
 
 .look-editor {

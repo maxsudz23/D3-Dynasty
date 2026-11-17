@@ -15,6 +15,10 @@
   // sentences) and keep the list to six.
   const CHANGELOG = [
     {
+      date: 'Nov 17, 2026',
+      text: 'New dynasties now pick a difficulty. Medium and Hard hide more numbers and make great recruits harder to land, and add scouting: recruits email you their PRs, your staff scouts them, and you host official visits.'
+    },
+    {
       date: 'Nov 16, 2026',
       text: 'Injuries now heal in weeks, not meets. Shin splints take one to three weeks, so a runner can be back by race day, and a stress reaction still costs a month or more.'
     },
@@ -33,10 +37,6 @@
     {
       date: 'Nov 16, 2026',
       text: 'Your runners now text you between meets: tired legs, the flu, a workout they want to try, a PR, midterms. How you answer moves their morale, and some replies change their plan for the week.'
-    },
-    {
-      date: 'Nov 16, 2026',
-      text: 'The WashU women now have their real roster headshots in the game, too.'
     }
   ];
 
@@ -127,7 +127,9 @@
     custom: null,
     geo: null,
     query: '',
-    region: ''
+    region: '',
+    difficulty: 'easy',
+    recruitMode: 'wheel'
   };
 
   function regionCenter(region) {
@@ -193,6 +195,8 @@
             return h('label', { class: 'segmented__option' }, input, h('span', null, label));
           })));
 
+      const difficulty = this.difficultyPicker();
+
       const search = h('input', {
         class: 'input', type: 'search', placeholder: 'Search by school, mascot or conference',
         value: form.query, 'aria-label': 'Search schools'
@@ -228,7 +232,8 @@
             h('div', { class: 'field' },
               h('label', { class: 'field__label', for: 'coach-name' }, 'Coach name'),
               nameInput),
-            program)),
+            program,
+            difficulty)),
           ui.panel('Choose your program', h('div', { class: 'stack' },
             h('div', { class: 'finder-tools' }, search, region, nearMe),
             this.geoStatus,
@@ -239,6 +244,40 @@
 
       this.renderList();
       this.updatePreview();
+    },
+
+    // Difficulty, and (on medium) how recruiting works. Rebuilt in place
+    // when the choice changes.
+    difficultyPicker() {
+      const D = XC.difficulty;
+      const wrap = h('div', { class: 'stack difficulty-picker' });
+      const draw = () => {
+        U.clear(wrap);
+        const level = D.LEVELS[form.difficulty];
+        const modes = level.modes;
+        if (!modes.includes(form.recruitMode)) form.recruitMode = modes[0];
+        const seg = (name, legend, options, current, onPick) => h('fieldset', { class: 'segmented' },
+          h('legend', null, legend),
+          h('div', { class: 'segmented__options' }, options.map(([value, label]) => {
+            const input = h('input', { type: 'radio', name, value, checked: current === value });
+            input.addEventListener('change', () => { onPick(value); XC.audio.nav(); draw(); this.updatePreview(); });
+            return h('label', { class: 'segmented__option' }, input, h('span', null, label));
+          })));
+        wrap.appendChild(seg('difficulty', 'Difficulty', D.KEYS.map((k) => [k, D.LEVELS[k].label]), form.difficulty, (v) => { form.difficulty = v; }));
+        wrap.appendChild(h('p', { class: 'field__hint' }, level.blurb));
+        if (modes.length > 1) {
+          wrap.appendChild(seg('recruit-mode', 'Recruiting', [['wheel', 'Wheel'], ['scout', 'Scouting']], form.recruitMode, (v) => { form.recruitMode = v; }));
+          wrap.appendChild(h('p', { class: 'field__hint' }, form.recruitMode === 'scout'
+            ? 'Recruits email you their PRs. Your assistant coaches scout them, and you host official visits. A visit doesn\u2019t guarantee a commitment.'
+            : 'Spin the recruiting wheel for each squad, then sign or pass on who lands.'));
+        } else {
+          wrap.appendChild(h('p', { class: 'field__hint' }, modes[0] === 'scout'
+            ? 'Recruiting is by scouting: emails, PRs, scouting reports and official visits.'
+            : 'Recruiting is by the wheel.'));
+        }
+      };
+      draw();
+      return wrap;
     },
 
     customForm() {
@@ -401,6 +440,7 @@
           h('dt', null, 'Conference'), h('dd', null, shown.conf),
           h('dt', null, 'Region'), h('dd', null, shown.region),
           h('dt', null, 'Coaching'), h('dd', null, label),
+          h('dt', null, 'Difficulty'), h('dd', null, `${XC.difficulty.LEVELS[form.difficulty].label}${XC.difficulty.LEVELS[form.difficulty].modes.includes('scout') && (form.recruitMode === 'scout' || form.difficulty === 'hard') ? ', scouting' : ', wheel'}`),
           h('dt', null, 'Roster'), h('dd', null, '12 returning runners')) : h('p', { class: 'muted' }, 'Choose a school from the list or build your own. The whole game takes on its colors.'),
         this.error,
         h('div', { class: 'actions' }, ui.button('Start dynasty', () => this.start(), { variant: 'primary', size: 'big', key: 'Enter' }))));
@@ -429,7 +469,10 @@
         : XC.api.fetchPeople(12, sq, school))));
       const people = {};
       programs.forEach((sq, i) => { people[sq] = results[i].people; });
-      XC.state = XC.season.newGame({ coachName: name, school: Object.assign({}, school), programs, people });
+      XC.state = XC.season.newGame({
+        coachName: name, school: Object.assign({}, school), programs, people,
+        difficulty: form.difficulty, recruitMode: XC.difficulty.LEVELS[form.difficulty].modes.includes(form.recruitMode) ? form.recruitMode : XC.difficulty.LEVELS[form.difficulty].modes[0]
+      });
       XC.activeSquad = programs[0];
       XC.save();
       if (results.some((r) => !r.live)) {
