@@ -21,6 +21,19 @@
 
   // school (optional) puts its athletics logo faintly over the background
   // stripes; schools without one, and custom schools, get none.
+  // Dark mode: a data-theme attribute on <html> switches the CSS tokens.
+  ui.setDark = function (on) {
+    if (on) document.documentElement.dataset.theme = 'dark';
+    else delete document.documentElement.dataset.theme;
+  };
+  // Apply the saved setting as soon as this script runs, before the first
+  // screen draws, so a dark-mode player doesn't see a light flash.
+  try {
+    if (XC.storage && XC.storage.loadSettings().dark) ui.setDark(true);
+  } catch (e) {
+    // Settings unreadable (storage blocked): stay light.
+  }
+
   ui.setTheme = function (primary = '#2E4A6B', accent = '#E0A526', school = null) {
     const root = document.documentElement.style;
     const logo = school && XC.logos ? XC.logos.pathFor(school) : null;

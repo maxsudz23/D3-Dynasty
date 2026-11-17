@@ -274,6 +274,16 @@ D3 Dynasty is a Division III cross country coaching game in plain HTML, CSS and 
 - The bot ID is a secret. It lives in `~/.config/d3dynasty/groupme_bot_id` (mode 600) or the `GROUPME_BOT_ID` environment variable, never in the repo. `scripts/` is in `.assetsignore`, so the script isn't served.
 - After deploying a user-facing change, show the user the dry-run message and post only once they approve it, unless they've said to post automatically. Notes-only commits get no announcement.
 
+## Dark mode
+- **Toggle:** the header's "Dark mode on/off" chip (next to Sound and Announcer) and a Settings row. `settings.dark` is saved with the other settings (`XC.storage.loadSettings`), `XC.settings.toggleDark` flips it, and `ui.setDark(on)` sets or removes `data-theme="dark"` on `<html>`. `ui/common.js` applies the saved setting as soon as it loads, so there's no light flash.
+- **How the CSS works:** `:root[data-theme='dark']` redefines tokens. Default is light; there's no "match system" mode.
+  - `--ink`, `--ink-2` and `--ink-3` stay surface colors (header bars, dark cards). Text uses `--text-strong`, `--text-body`, `--text-muted` and `--text-faint`; never use `--ink` as a `color` in new CSS.
+  - Light surfaces are `rgb(var(--paper) / alpha)` and `var(--paper-2)`; separators and dark-ink tints are `rgb(var(--ink-rgb) / alpha)`. Both flip in dark mode. Use these instead of literal `#FFFFFF` or `rgba(255, 255, 255, x)` for anything that should go dark.
+  - Status text uses `--good-text` and `--bad-text` (lighter in dark mode); `--good` and `--bad` stay the badge backgrounds.
+  - Team colors are set inline by `ui.setTheme`, which CSS can't override, so team-colored text goes through `--team-text` (`--team-ink` in light, `--team-hi-on-dark` in dark).
+  - The course map, avatars' team tops and crests keep their own colors. A short "Dark mode touch-ups" block covers spots the tokens alone didn't fix (text bubbles, reply chips, color swatches).
+- **Check:** screenshot every screen in both modes at 1440×900 and 390×844 after styling changes.
+
 ## Mobile
 - At 600px wide or less, and on touch screens, the legend bar becomes a row of real buttons. It holds the only Back control on several screens, so it must never be hidden.
 - Touch screens (`hover: none` and `pointer: coarse`) hide keycap hints, `keyboardOnly` legend items and "Press Enter". The squad bumpers show ‹ › instead of Q/E.

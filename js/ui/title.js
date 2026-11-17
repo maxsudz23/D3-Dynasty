@@ -16,6 +16,10 @@
   const CHANGELOG = [
     {
       date: 'Nov 16, 2026',
+      text: 'Dark mode is here. Turn it on with the Dark mode button in the header or in Settings.'
+    },
+    {
+      date: 'Nov 16, 2026',
       text: 'Generated runners and recruits now have their own cartoon looks: hair, skin, faces, glasses and more. Tap Edit look on the depth chart to change how any of your non-real runners look.'
     },
     {

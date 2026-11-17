@@ -57,7 +57,7 @@
     }
   };
 
-  S.loadSettings = () => Object.assign({ muted: false, announcer: false }, read(SETTINGS_KEY) || read(LEGACY_SETTINGS_KEY) || {});
+  S.loadSettings = () => Object.assign({ muted: false, announcer: false, dark: false }, read(SETTINGS_KEY) || read(LEGACY_SETTINGS_KEY) || {});
   S.saveSettings = (settings) => write(SETTINGS_KEY, settings);
 
   XC.storage = S;

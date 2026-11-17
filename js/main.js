@@ -126,6 +126,21 @@
     announcer.hidden = !XC.audio.speechSupported;
     announcer.setAttribute('aria-pressed', String(settings.announcer));
     announcer.textContent = settings.announcer ? 'Announcer on' : 'Announcer off';
+    const dark = document.getElementById('toggle-dark');
+    dark.setAttribute('aria-pressed', String(!!settings.dark));
+    dark.textContent = settings.dark ? 'Dark mode on' : 'Dark mode off';
+  }
+
+  function applyDark() {
+    XC.ui.setDark(!!settings.dark);
+  }
+
+  function toggleDark() {
+    settings.dark = !settings.dark;
+    XC.storage.saveSettings(settings);
+    applyDark();
+    syncToggles();
+    XC.audio.select();
   }
 
   function toggleSound() {
@@ -147,7 +162,8 @@
   XC.settings = {
     get: () => Object.assign({}, settings),
     toggleSound,
-    toggleAnnouncer
+    toggleAnnouncer,
+    toggleDark
   };
 
   /* ---------- Boot ---------- */
@@ -155,9 +171,11 @@
   function boot() {
     XC.audio.setMuted(settings.muted);
     XC.audio.setAnnouncer(settings.announcer);
+    applyDark();
     syncToggles();
     document.getElementById('toggle-sound').addEventListener('click', toggleSound);
     document.getElementById('toggle-announcer').addEventListener('click', toggleAnnouncer);
+    document.getElementById('toggle-dark').addEventListener('click', toggleDark);
     document.getElementById('squad-prev').addEventListener('click', () => cycleSquad(-1));
     document.getElementById('squad-next').addEventListener('click', () => cycleSquad(1));
     document.addEventListener('keydown', onKeyDown);

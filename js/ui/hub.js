@@ -286,6 +286,8 @@
           ? row('Race announcer', 'Spoken calls at each checkpoint and the finish.',
             ui.button(settings.announcer ? 'Turn off' : 'Turn on', () => { XC.settings.toggleAnnouncer(); XC.refresh(); }, { variant: 'ghost', size: 'small', attrs: { 'data-nav': '' } }))
           : row('Race announcer', 'This browser doesn’t support spoken audio.', h('span', { class: 'muted' }, 'Unavailable')),
+        row('Dark mode', 'Dark panels and backgrounds.',
+          ui.button(settings.dark ? 'Turn off' : 'Turn on', () => { XC.settings.toggleDark(); XC.refresh(); }, { variant: 'ghost', size: 'small', attrs: { 'data-nav': '' } })),
         row('Autosave', XC.storage.available ? 'Progress saves after every action.' : 'Saving is off in this browser, so progress lasts until you close the tab.',
           h('span', { class: 'badge' }, XC.storage.available ? 'On' : 'Off')),
         row('Title screen', 'Leave the hub. Your dynasty stays saved.',
