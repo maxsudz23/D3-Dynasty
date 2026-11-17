@@ -66,6 +66,7 @@
     const root = document.getElementById('screen');
     U.clear(root);
     document.body.classList.toggle('is-title', name === 'title');
+    document.body.dataset.screen = name;
     const title = typeof screen.title === 'function' ? screen.title(params) : screen.title;
     XC.ui.setTitle(title || 'D3 Dynasty');
     document.title = name === 'title' ? 'D3 Dynasty | Division III Cross Country Coaching' : `${title} | D3 Dynasty`;

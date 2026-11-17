@@ -91,6 +91,87 @@
 
   /* ======================= Hub ======================= */
 
+  // Arrow keys on the hub move to the nearest tile in that direction, by
+  // the tiles' on-screen boxes (the grid's tiles come in different sizes).
+  function spatialMove(root, key) {
+    const items = Array.from(root.querySelectorAll('.hub-grid [data-nav]')).filter((el) => !el.disabled && el.checkVisibility());
+    const cur = document.activeElement;
+    if (!items.includes(cur)) {
+      if (!items.length) return false;
+      items[0].focus();
+      return true;
+    }
+    const a = cur.getBoundingClientRect();
+    const tol = 2;
+    const horiz = key === 'ArrowLeft' || key === 'ArrowRight';
+    const ahead = (b) => (key === 'ArrowRight' ? b.left >= a.right - tol
+      : key === 'ArrowLeft' ? b.right <= a.left + tol
+        : key === 'ArrowDown' ? b.top >= a.bottom - tol : b.bottom <= a.top + tol);
+    const gap = (b) => (key === 'ArrowRight' ? b.left - a.right : key === 'ArrowLeft' ? a.left - b.right
+      : key === 'ArrowDown' ? b.top - a.bottom : a.top - b.bottom);
+    const overlap = (b) => (horiz ? Math.min(a.bottom, b.bottom) - Math.max(a.top, b.top) : Math.min(a.right, b.right) - Math.max(a.left, b.left)) > tol;
+    const offset = (b) => (horiz ? Math.abs((b.top + b.bottom) / 2 - (a.top + a.bottom) / 2) : Math.abs((b.left + b.right) / 2 - (a.left + a.right) / 2));
+    const cands = items.filter((el) => el !== cur).map((el) => ({ el, b: el.getBoundingClientRect() })).filter((c) => ahead(c.b));
+    if (!cands.length) return false;
+    const aligned = cands.filter((c) => overlap(c.b));
+    const pick = aligned.length
+      ? aligned.sort((x, y) => gap(x.b) - gap(y.b) || offset(x.b) - offset(y.b))[0]
+      : cands.sort((x, y) => (gap(x.b) + 2 * offset(x.b)) - (gap(y.b) + 2 * offset(y.b)))[0];
+    pick.el.focus({ preventScroll: true });
+    pick.el.scrollIntoView({ block: 'nearest', inline: 'nearest' });
+    return true;
+  }
+
+  // Starts a tile's art when it's hovered or keyboard focused, and stops it
+  // once it's neither.
+  function wireArt(btn, pic) {
+    let active = false;
+    const enter = () => {
+      if (active) return;
+      active = true;
+      if (pic.enter) pic.enter();
+    };
+    const leave = () => {
+      if (!active || btn.matches(':hover') || btn.matches(':focus-visible')) return;
+      active = false;
+      if (pic.leave) pic.leave();
+    };
+    btn.addEventListener('pointerenter', enter);
+    btn.addEventListener('focus', () => { if (btn.matches(':focus-visible')) enter(); });
+    btn.addEventListener('pointerleave', () => setTimeout(leave));
+    btn.addEventListener('blur', () => setTimeout(leave));
+  }
+
+  // Fading edges show there's more menu to scroll to. CSS draws them with a
+  // scroll-driven animation; browsers without one get classes from an
+  // IntersectionObserver on a 1px marker at each end of the track.
+  function edgeHints(track) {
+    const start = h('span', { class: 'hub-track__edge', 'aria-hidden': 'true' });
+    const end = h('span', { class: 'hub-track__edge', 'aria-hidden': 'true' });
+    track.prepend(start);
+    track.append(end);
+    if ((window.CSS && CSS.supports('animation-timeline', 'scroll()')) || typeof IntersectionObserver !== 'function') return;
+    const io = new IntersectionObserver((entries) => {
+      entries.forEach(({ target, isIntersecting }) => {
+        track.classList.toggle(target === start ? 'more-start' : 'more-end', !isIntersecting);
+      });
+    }, { root: track });
+    io.observe(start);
+    io.observe(end);
+  }
+
+  // A menu tile: art on the right, the title top left, a note bottom left.
+  function menuTile(key, title, note, pic, go) {
+    const noteEl = note ? h('span', { class: 'hub-tile__note' }, note) : null;
+    const btn = h('button', {
+      type: 'button', class: `hub-tile hub-tile--${key}`, 'data-nav': '',
+      on: { click: () => { XC.audio.select(); go(); } }
+    }, pic ? pic.el : null, h('span', { class: 'hub-tile__title' }, title), noteEl);
+    if (pic) wireArt(btn, pic);
+    btn.noteEl = noteEl;
+    return btn;
+  }
+
   XC.screens.hub = {
     title: 'Franchise',
     squadTabs: false,
@@ -99,65 +180,82 @@
       if (!state) return XC.go('title');
       const next = nextUp(state);
       this.next = next;
+      this.root = root;
+      const art = XC.hubArt;
 
-      const nextTile = h('section', { class: 'tile tile--next on-dark', 'aria-label': 'Next up' },
+      const nextTile = h('section', { class: 'hub-tile hub-tile--next', 'aria-label': 'Next up' },
         ui.crest(state.school),
-        h('p', { class: 'tile__kicker' }, next.kicker),
-        h('h2', { class: 'tile__headline' }, next.headline),
-        h('p', { class: 'tile__facts' }, next.facts.map((f) => h('span', null, f))),
+        h('p', { class: 'hub-next__kicker' }, next.kicker),
+        h('h2', { class: 'hub-next__headline' }, next.headline),
+        h('p', { class: 'hub-next__facts' }, next.facts.filter(Boolean).map((f) => h('span', null, f))),
         h('div', { class: 'actions' },
           ui.button(next.action, () => { XC.audio.select(); next.go(); }, { variant: 'primary', size: 'big', key: 'Enter', attrs: { 'data-nav': '', 'data-autofocus': '' } })));
 
-      // Program snapshot
+      // Program snapshot: team OVRs, reputation, the latest results.
       const squads = h('div', { class: 'snapshot__squads' }, state.programs.map((sq) => {
         const roster = state.squads[sq].roster;
-        const top = roster.toSorted((a, b) => b.ovr - a.ovr)[0];
         return h('div', { class: 'snapshot__squad' },
-          h('p', { class: 'snapshot__label' }, `${S.squadLabel(sq)} team`),
+          h('p', { class: 'snapshot__label' }, `${S.squadLabel(sq)}`),
           h('p', { class: 'bignum' }, String(A.teamOvr(roster)), h('small', null, 'OVR')),
-          h('p', { class: 'muted' }, `${roster.length} runners`),
-          top ? h('p', null, `Top runner: ${A.fullName(top)} (${top.ovr})`) : null);
+          h('p', { class: 'snapshot__sub' }, `${roster.length} runners`));
       }));
       const win = XC.difficulty.range(state);
-      const rep = h('div', null,
+      const rep = h('div', { class: 'snapshot__rep' },
         ui.meter(state.rep / 100, `Reputation ${Math.round(state.rep)} of 100`),
         h('p', { class: 'meter-label' },
           h('span', null, `Reputation ${Math.round(state.rep)} / 100`),
           h('span', null, `Recruits ${win.min}–${win.max} OVR`)));
-
-      const done = state.schedule.filter((m) => m.done);
+      const done = state.schedule.filter((m) => m.done).slice(-3);
       const record = done.length
         ? h('ul', { class: 'record-list' }, done.map((m) => h('li', null,
           h('span', null, m.name),
           h('span', null, state.programs.map((sq) => `${state.programs.length > 1 ? `${sq} ` : ''}${placeText(m.results[sq])}`).join(', ')))))
-        : h('p', { class: 'muted' }, state.phase === 'preseason' ? 'Season opens after recruiting.' : 'No meets run yet this season.');
+        : h('p', { class: 'snapshot__sub' }, state.phase === 'preseason' ? 'Season opens after recruiting.' : 'No meets run yet this season.');
+      const snapshot = h('section', { class: 'hub-tile hub-tile--snap', 'aria-label': `${state.school.short} snapshot` },
+        h('header', { class: 'snapshot__head' },
+          h('h2', { class: 'hub-tile__title' }, `${state.school.short} snapshot`),
+          h('p', { class: 'snapshot__sub' }, `Coach ${state.coach.name}`)),
+        squads, rep, record);
 
-      const snapshot = ui.panel(`${state.school.short} snapshot`, h('div', { class: 'snapshot' }, squads, rep, record),
-        { aside: `Coach ${state.coach.name}` });
+      const unread = XC.texts.unread(state).length;
+      const upcoming = state.phase === 'season' ? state.schedule[state.meetIndex] : null;
+      const signed = state.staff.coaches.filter((c) => !c.expiring).length;
+      const depth = menuTile('roster', 'Depth chart', 'Set your top seven', null, () => XC.go('roster'));
+      const rosterArt = art.roster(state, (a) => { depth.noteEl.textContent = `${A.fullName(a)}, ${a.ovr} OVR`; });
+      depth.prepend(rosterArt.el);
+      wireArt(depth, rosterArt);
 
       const tiles = [
-        ['Depth chart', 'Set your top seven and study ratings', () => XC.go('roster')],
-        ['Schedule', 'Six meets from opener to nationals', () => XC.go('schedule')],
-        ['Staff', 'Assistant coaches and hiring', () => XC.go('staff')],
-        ['Facilities', `Fund $${Math.round(state.funds || 0)}k for upgrades and your course`, () => XC.go('facilities')],
-        ['Texts', (() => {
-          const n = XC.texts.unread(state).length;
-          return n ? `${n} unread from your runners` : 'Messages from your runners';
-        })(), () => XC.go('texts')],
-        ['Trophy case', 'Banners, finishes and All-Americans', () => XC.go('trophies')],
-        ['Settings', 'Sound, announcer and your save', () => XC.go('settings')]
-      ].map(([title, text, fn]) => h('button', {
-        type: 'button', class: 'tile', 'data-nav': '', on: { click: () => { XC.audio.select(); fn(); } }
-      }, h('span', { class: 'tile__title' }, title), h('span', { class: 'tile__text' }, text)));
+        depth,
+        menuTile('schedule', 'Schedule', upcoming ? `Next: ${upcoming.name}, ${upcoming.date}` : 'Six meets, opener to nationals', art.schedule(state), () => XC.go('schedule')),
+        menuTile('texts', 'Texts', unread ? `${unread} unread from your runners` : 'Messages from your runners', art.texts(state), () => XC.go('texts')),
+        menuTile('facilities', 'Facilities', `Fund $${Math.round(state.funds || 0)}k`, art.facilities(state), () => XC.go('facilities')),
+        menuTile('trophies', 'Trophy case', 'Banners and All-Americans', art.trophies(state), () => XC.go('trophies')),
+        menuTile('staff', 'Staff', signed ? `${signed} assistant${signed === 1 ? '' : 's'}` : 'No assistants yet', art.staff(state), () => XC.go('staff')),
+        menuTile('settings', 'Settings', null, art.settings(state), () => XC.go('settings'))
+      ];
 
-      root.appendChild(h('div', { class: 'hub' },
-        nextTile,
-        snapshot,
-        h('nav', { class: 'menu-tiles', 'aria-label': 'Franchise menu' }, tiles)));
+      const grid = h('div', { class: 'hub-grid' }, nextTile, snapshot,
+        h('nav', { class: 'hub-menu', 'aria-label': 'Franchise menu' }, tiles));
+      const track = h('div', { class: 'hub-track' }, grid);
+      // A vertical wheel scrolls the menu sideways, until it reaches an end.
+      track.addEventListener('wheel', (e) => {
+        if (e.ctrlKey || Math.abs(e.deltaY) <= Math.abs(e.deltaX)) return;
+        const max = track.scrollWidth - track.clientWidth;
+        if (max <= 0) return;
+        const dy = e.deltaY * (e.deltaMode === 1 ? 32 : e.deltaMode === 2 ? track.clientWidth : 1);
+        if ((dy < 0 && track.scrollLeft <= 0) || (dy > 0 && track.scrollLeft >= max - 1)) return;
+        e.preventDefault();
+        track.scrollLeft += dy;
+      }, { passive: false });
+      this.track = track;
+      root.appendChild(h('div', { class: 'hub' }, track));
+      edgeHints(track);
     },
     legend() {
       return [
         { key: 'Enter', label: 'Select', keyboardOnly: true, action: () => document.activeElement && document.activeElement.click() },
+        { key: '← →', label: 'Browse', keyboardOnly: true, action: () => spatialMove(this.root, 'ArrowRight') },
         { key: 'D', label: 'Depth chart', action: () => XC.go('roster') },
         { key: 'S', label: 'Schedule', action: () => XC.go('schedule') },
         { key: 'M', label: 'Mute', keyboardOnly: true, action: () => XC.settings.toggleSound() }
@@ -167,6 +265,11 @@
       const k = e.key.toLowerCase();
       if (k === 'd') { XC.go('roster'); return true; }
       if (k === 's') { XC.go('schedule'); return true; }
+      if (['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown'].includes(e.key)) {
+        // No tile that way: still swallow the key, so focus doesn't wrap around.
+        if (spatialMove(this.root, e.key)) XC.audio.nav();
+        return true;
+      }
       if (e.key === 'Enter' && !(e.target instanceof HTMLButtonElement)) {
         this.next.go();
         return true;

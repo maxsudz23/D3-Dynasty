@@ -1622,54 +1622,700 @@ body.is-title .ticker {
 
 /* ---------- Hub ---------- */
 
-.hub {
-  display: grid;
-  grid-template-columns: minmax(0, 1.5fr) minmax(0, 1fr);
-  gap: 20px;
+/* The hub is a block menu that scrolls sideways (the Madden menu layout):
+   it fills the space between the header and the legend, and the track
+   scrolls on the inline axis. Columns are sized against the track's width
+   (cqi), so the Next up tile and the snapshot sit in the first view. */
+
+body[data-screen='hub'] {
+  height: 100vh;
+  height: 100dvh;
 }
 
-.tile {
-  position: relative;
+body[data-screen='hub'] .screen {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  padding-bottom: 14px;
+}
+
+.hub {
+  display: flex;
+  flex: 1;
+  min-height: 0;
+}
+
+@property --fade-start {
+  syntax: '<length>';
+  inherits: false;
+  initial-value: 0px;
+}
+
+@property --fade-end {
+  syntax: '<length>';
+  inherits: false;
+  initial-value: 0px;
+}
+
+.hub-track {
+  --fade-size: 48px;
+  display: flex;
+  flex: 1;
+  min-width: 0;
+  container-type: inline-size;
+  overflow-x: auto;
+  overflow-y: hidden;
+  overscroll-behavior-x: contain;
+  scroll-padding-inline: var(--fade-size);
+  padding-bottom: 10px;
+  scrollbar-width: thin;
+  scrollbar-color: rgb(var(--ink-rgb) / 0.4) transparent;
+  touch-action: pan-x pan-y;
+  /* Fading edges where there's more to scroll to. */
+  mask:
+    linear-gradient(#000000, #000000) no-clip subtract,
+    linear-gradient(to right, #000000, transparent) 0 0 / var(--fade-start) 100% no-repeat no-clip,
+    linear-gradient(to right, transparent, #000000) 100% 0 / var(--fade-end) 100% no-repeat no-clip;
+  animation: hub-fade-start linear both, hub-fade-end linear both;
+  animation-timeline: scroll(self inline);
+  animation-range: 0 var(--fade-size), calc(100% - var(--fade-size)) 100%;
+  transition: --fade-start 0.2s, --fade-end 0.2s;
+}
+
+/* Without scroll-driven animations, hub.js sets these classes. */
+.hub-track.more-start {
+  --fade-start: var(--fade-size);
+}
+
+.hub-track.more-end {
+  --fade-end: var(--fade-size);
+}
+
+@keyframes hub-fade-start {
+  to {
+    --fade-start: var(--fade-size);
+  }
+}
+
+@keyframes hub-fade-end {
+  from {
+    --fade-end: var(--fade-size);
+  }
+}
+
+.hub-track__edge {
+  flex: 0 0 1px;
+}
+
+.hub-grid {
+  flex: none;
   display: grid;
-  align-content: start;
+  min-height: 430px;
+  gap: 10px;
+  grid-template-columns: 40cqi 33cqi 30cqi 26cqi;
+  grid-template-rows: repeat(4, minmax(0, 1fr));
+  grid-template-areas:
+    'next snap texts trophies'
+    'next snap texts trophies'
+    'roster schedule facilities staff'
+    'roster schedule facilities settings';
+}
+
+.hub-menu {
+  display: contents;
+}
+
+.hub-tile--next { grid-area: next; }
+.hub-tile--snap { grid-area: snap; }
+.hub-tile--roster { grid-area: roster; }
+.hub-tile--schedule { grid-area: schedule; }
+.hub-tile--texts { grid-area: texts; }
+.hub-tile--facilities { grid-area: facilities; }
+.hub-tile--trophies { grid-area: trophies; }
+.hub-tile--staff { grid-area: staff; }
+.hub-tile--settings { grid-area: settings; }
+
+/* ----- One block ----- */
+
+.hub-tile {
+  position: relative;
+  isolation: isolate;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  align-items: flex-start;
   gap: 8px;
-  min-height: 120px;
-  padding: 18px 20px;
+  min-width: 0;
+  min-height: 0;
+  margin: 0;
+  padding: 16px 18px;
+  overflow: hidden;
   border: 0;
-  border-left: 6px solid transparent;
   background: var(--ink);
   color: var(--on-dark);
+  font: inherit;
   text-align: left;
-  cursor: pointer;
-  overflow: hidden;
 }
 
-.tile:hover,
-.tile:focus-visible {
-  border-left-color: var(--team-hi);
-}
-
-.tile__title {
-  font-size: var(--step-2);
-  font-weight: 700;
-  line-height: 1.1;
-}
-
-.tile__text {
-  color: var(--on-dark-dim);
-  font-size: var(--step-0);
-}
-
-.tile--next {
-  min-height: 300px;
-  padding: 26px 28px;
-  border-left-width: 0;
-  cursor: default;
-}
-
-.tile--next::before {
+/* A wash of the team color over the dark block, like a duotone photo. */
+.hub-tile::before {
   content: '';
   position: absolute;
+  inset: 0;
+  z-index: -1;
+  background: linear-gradient(150deg, color-mix(in srgb, var(--team-ink) 55%, transparent) 0%, transparent 75%);
+}
+
+/* The hovered or focused block fills with the team color. */
+button.hub-tile {
+  cursor: pointer;
+}
+
+button.hub-tile::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background: var(--team-ink);
+  opacity: 0;
+  transition: opacity 180ms ease-out;
+}
+
+button.hub-tile:is(:hover, :focus-visible)::after {
+  opacity: 1;
+}
+
+button.hub-tile:focus-visible {
+  outline: 3px solid var(--team-hi-on-dark);
+  outline-offset: -3px;
+}
+
+.hub-tile__title {
+  position: relative;
+  z-index: 1;
+  max-width: 62%;
+  font-size: clamp(1.35rem, 0.9rem + 1.5cqi, 2.4rem);
+  font-weight: 800;
+  line-height: 0.95;
+  color: #FFFFFF;
+  text-shadow: 0 2px 10px rgba(0, 0, 0, 0.35);
+}
+
+.hub-tile__note {
+  position: relative;
+  z-index: 1;
+  max-width: 70%;
+  color: var(--on-dark-dim);
+  font-size: var(--step--1);
+  font-weight: 700;
+  line-height: 1.2;
+  text-shadow: 0 1px 6px rgba(0, 0, 0, 0.5);
+}
+
+button.hub-tile:is(:hover, :focus-visible) .hub-tile__note {
+  color: var(--on-dark);
+}
+
+.hub-tile--staff .hub-tile__title,
+.hub-tile--settings .hub-tile__title {
+  font-size: clamp(1.15rem, 0.8rem + 1cqi, 1.8rem);
+}
+
+/* ----- Art inside a block ----- */
+
+.art {
+  position: absolute;
+  inset: 0 0 0 auto;
+  z-index: 0;
+  width: 64%;
+  pointer-events: none;
+  mask-image: linear-gradient(to right, transparent 0%, #000000 32%);
+  opacity: 0.5;
+  filter: saturate(0.3);
+  transition: opacity 220ms ease-out, filter 220ms ease-out;
+}
+
+button.hub-tile:is(:hover, :focus-visible) .art {
+  opacity: 1;
+  filter: none;
+}
+
+/* Calendar and phone sit whole on the right; no fade. */
+.art--schedule,
+.art--texts {
+  mask-image: none;
+}
+
+/* The trophy case sits between the title and the note. */
+.art--trophies {
+  inset: 22% 0 16% 0;
+  width: auto;
+  mask-image: none;
+}
+
+.hub-tile--staff .art,
+.hub-tile--settings .art {
+  width: 46%;
+  mask-image: linear-gradient(to right, transparent 0%, #000000 22%);
+}
+
+/* Depth chart: one runner's headshot or look. */
+.art__shot {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  justify-content: flex-end;
+  align-items: flex-end;
+  transition: opacity 400ms ease-out;
+}
+
+.art__shot.is-leaving {
+  opacity: 0;
+}
+
+.art__shot .portrait {
+  width: auto;
+  height: 100%;
+  background: none;
+}
+
+.art__shot img.portrait {
+  width: 100%;
+  object-fit: cover;
+  object-position: 50% 12%;
+}
+
+.art__shot svg.portrait {
+  aspect-ratio: 1;
+}
+
+.art--staff .art__shot {
+  opacity: 0;
+}
+
+.art--staff .art__shot.is-on {
+  opacity: 1;
+}
+
+/* Schedule: a tear-off calendar. */
+.art--schedule {
+  display: grid;
+  place-items: center;
+  perspective: 700px;
+}
+
+.cal {
+  position: relative;
+  height: 72%;
+  aspect-ratio: 1 / 1.05;
+  max-width: 82%;
+}
+
+.cal__page {
+  position: absolute;
+  inset: 9% 0 0 0;
+  display: grid;
+  grid-template-rows: 24% 1fr;
+  overflow: hidden;
+  border-radius: 4px;
+  background: #FFFFFF;
+  box-shadow: 0 10px 22px rgba(0, 0, 0, 0.35);
+  transform-origin: 50% 0;
+  backface-visibility: hidden;
+}
+
+.cal__page--under {
+  z-index: 1;
+}
+
+.cal__page--top {
+  z-index: 2;
+}
+
+.cal__month {
+  display: grid;
+  place-items: center;
+  background: color-mix(in srgb, var(--team-primary) 62%, #000000);
+  color: #FFFFFF;
+  font-size: clamp(0.7rem, 0.4rem + 0.8cqi, 1.1rem);
+  font-weight: 800;
+}
+
+.cal__day {
+  display: grid;
+  place-items: center;
+  color: #1D232B;
+  font-size: clamp(2rem, 1rem + 4cqi, 4.6rem);
+  font-weight: 800;
+  line-height: 1;
+}
+
+.cal__rings {
+  position: absolute;
+  inset: 3% 18% auto;
+  z-index: 3;
+  display: flex;
+  justify-content: space-between;
+}
+
+.cal__rings span {
+  width: 9%;
+  aspect-ratio: 1 / 2;
+  border-radius: 3px;
+  background: #2B333D;
+}
+
+/* Facilities: the weight room. */
+.gym {
+  display: block;
+  width: 100%;
+  height: 100%;
+  transform-origin: 70% 75%;
+}
+
+.gym__wall { fill: #D9DEE4; }
+.gym__ceiling { fill: #EEF1F4; }
+.gym__light { fill: #FFFFFF; }
+.gym__floor { fill: #A8AEB5; }
+.gym__turf { fill: #3E8E41; }
+.gym__yard { stroke: #FFFFFF; stroke-width: 1.4; }
+.gym__upright { fill: var(--team-primary); }
+.gym__banner { fill: color-mix(in srgb, var(--team-primary) 78%, #000000); }
+.gym__banner-stripe { fill: #FFFFFF; opacity: 0.75; }
+.gym__bar { fill: #23272D; }
+.gym__barbell { fill: #B7BDC4; }
+.gym__plate { fill: #1B1E22; }
+.gym__plate-rim { fill: #3A4048; }
+
+/* Texts: a phone with messages coming off it. */
+.art--texts {
+  display: grid;
+  place-items: center;
+}
+
+.art--texts .handset__float {
+  z-index: 1;
+}
+
+.handset {
+  position: relative;
+  height: 74%;
+  aspect-ratio: 9 / 17;
+  padding: 7% 6%;
+  border: 3px solid #3A4350;
+  border-radius: 16% / 8.5%;
+  background: #11161C;
+  box-shadow: 0 12px 24px rgba(0, 0, 0, 0.4);
+}
+
+.handset__screen {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 9%;
+  height: 100%;
+  padding: 18% 12% 0;
+  border-radius: 10% / 5%;
+  background: #222C37;
+  transition: background-color 200ms ease-out, box-shadow 200ms ease-out;
+}
+
+.handset__notch {
+  align-self: center;
+  width: 34%;
+  height: 4px;
+  border-radius: 2px;
+  background: rgba(255, 255, 255, 0.25);
+}
+
+.handset__line {
+  width: 100%;
+  height: 7px;
+  border-radius: 4px;
+  background: rgba(255, 255, 255, 0.16);
+}
+
+.handset__line--short {
+  width: 62%;
+  align-self: flex-end;
+}
+
+.handset__badge {
+  position: absolute;
+  top: -8px;
+  right: -9px;
+  display: grid;
+  place-items: center;
+  min-width: 22px;
+  height: 22px;
+  padding: 0 5px;
+  border-radius: 11px;
+  background: #E5484D;
+  color: #FFFFFF;
+  font-size: 0.8rem;
+  font-weight: 800;
+}
+
+/* The screen lights up while the block is hovered or focused. */
+button.hub-tile:is(:hover, :focus-visible) .handset__screen {
+  background: #F2F6FA;
+  box-shadow: 0 0 26px 6px rgba(255, 255, 255, 0.35);
+}
+
+button.hub-tile:is(:hover, :focus-visible) .handset__line {
+  background: color-mix(in srgb, var(--team-primary) 55%, #FFFFFF);
+}
+
+.handset__float {
+  position: absolute;
+  inset: 0;
+}
+
+.handset__bubble,
+.handset__emoji {
+  position: absolute;
+  opacity: 0;
+}
+
+.handset__bubble {
+  top: 34%;
+  right: 34%;
+  padding: 5px 11px;
+  border-radius: 12px 12px 12px 3px;
+  background: #FFFFFF;
+  color: #1D232B;
+  font-size: 0.85rem;
+  font-weight: 700;
+  white-space: nowrap;
+  box-shadow: 0 6px 14px rgba(0, 0, 0, 0.3);
+}
+
+.handset__emoji {
+  top: 56%;
+  right: calc(8% + var(--i) * 15%);
+  font-size: 1.3rem;
+}
+
+/* Trophy case. */
+.case {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+.case__frame { fill: #5A3E2B; }
+.case__back { fill: #1C232C; }
+.case__shelf { fill: #7A5638; }
+.case__gold { fill: #E8B53C; }
+.case__gold-dark { fill: #B98A22; }
+.case__handle { fill: none; stroke: #E8B53C; stroke-width: 2.6; }
+.case__base { fill: #3B2A1E; }
+.case__glint { fill: none; stroke: rgba(255, 255, 255, 0.7); stroke-width: 1.6; stroke-linecap: round; }
+.case__ribbon { fill: none; stroke: var(--team-primary); stroke-width: 4; stroke-linejoin: round; }
+.case__disc--gold { fill: #E8B53C; }
+.case__disc--silver { fill: #C9CED6; }
+.case__disc--bronze { fill: #C27C46; }
+.case__disc-in { fill: rgba(255, 255, 255, 0.25); }
+.case__plaque { fill: #8B6A45; }
+.case__plaque-line { fill: #E8D3A4; }
+.case__glass { fill: rgba(255, 255, 255, 0.05); }
+.case__shine { fill: rgba(255, 255, 255, 0.22); opacity: 0; }
+
+/* The trophies glow while the block is hovered or focused. */
+button.hub-tile:is(:hover, :focus-visible) :is(.case__cup, .case__medal) {
+  filter: drop-shadow(0 0 4px #FFD66B);
+}
+
+/* Settings: gears. */
+.gears {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+.gears path {
+  fill-rule: evenodd;
+  transform-box: fill-box;
+  transform-origin: center;
+}
+
+.gears__big { fill: rgba(255, 255, 255, 0.6); }
+.gears__small { fill: rgba(255, 255, 255, 0.42); }
+
+/* ----- Motion: plays while hovered or focused, from the start each time ----- */
+
+@media (prefers-reduced-motion: no-preference) {
+  .art__shot {
+    animation: hub-shot-in 400ms ease-out both;
+  }
+
+  button.hub-tile:is(:hover, :focus-visible) .art__shot:last-child .portrait {
+    animation: hub-zoom 4s ease-out both;
+  }
+
+  button.hub-tile:is(:hover, :focus-visible) .cal__page--top {
+    animation: hub-tear 1.15s ease-in infinite;
+  }
+
+  button.hub-tile:is(:hover, :focus-visible) .gym {
+    animation: hub-pulse 1.6s ease-in-out infinite;
+  }
+
+  button.hub-tile:is(:hover, :focus-visible) .handset {
+    animation: hub-buzz 1.6s ease-in-out infinite;
+  }
+
+  button.hub-tile:is(:hover, :focus-visible) .handset__bubble {
+    animation: hub-bubble 2.4s ease-out infinite;
+    animation-delay: calc(var(--i) * 0.8s);
+  }
+
+  button.hub-tile:is(:hover, :focus-visible) .handset__emoji {
+    animation: hub-emoji 2.4s ease-out infinite;
+    animation-delay: calc(var(--i) * 0.8s + 0.35s);
+  }
+
+  button.hub-tile:is(:hover, :focus-visible) :is(.case__cup, .case__medal) {
+    animation: hub-glow 1.8s ease-in-out infinite;
+  }
+
+  button.hub-tile:is(:hover, :focus-visible) .case__shine {
+    animation: hub-shine 1.8s ease-in-out infinite;
+  }
+
+  button.hub-tile:is(:hover, :focus-visible) .gears__big {
+    animation: hub-spin 6s linear infinite;
+  }
+
+  button.hub-tile:is(:hover, :focus-visible) .gears__small {
+    animation: hub-spin 4.2s linear infinite reverse;
+  }
+}
+
+@keyframes hub-shot-in {
+  from {
+    opacity: 0;
+    translate: 18px 0;
+  }
+}
+
+@keyframes hub-zoom {
+  to {
+    scale: 1.07;
+  }
+}
+
+@keyframes hub-tear {
+  0%, 25% {
+    transform: none;
+    opacity: 1;
+  }
+  80% {
+    transform: translate(-16%, -38%) rotateX(-78deg) rotate(-14deg);
+    opacity: 0.95;
+  }
+  100% {
+    transform: translate(-22%, -58%) rotateX(-95deg) rotate(-18deg);
+    opacity: 0;
+  }
+}
+
+@keyframes hub-pulse {
+  50% {
+    scale: 1.06;
+  }
+}
+
+@keyframes hub-buzz {
+  0%, 30%, 100% {
+    rotate: 0deg;
+    translate: 0 0;
+  }
+  5%, 15%, 25% {
+    rotate: -6deg;
+    translate: -2px 0;
+  }
+  10%, 20% {
+    rotate: 6deg;
+    translate: 2px 0;
+  }
+}
+
+@keyframes hub-bubble {
+  0% {
+    opacity: 0;
+    translate: 0 16px;
+    scale: 0.6;
+  }
+  15% {
+    opacity: 1;
+    translate: 0 0;
+    scale: 1;
+  }
+  75% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+    translate: -14px -70px;
+  }
+}
+
+@keyframes hub-emoji {
+  0% {
+    opacity: 0;
+    translate: 0 10px;
+    scale: 0.4;
+  }
+  20% {
+    opacity: 1;
+    scale: 1.15;
+  }
+  100% {
+    opacity: 0;
+    translate: 10px -80px;
+    scale: 1;
+  }
+}
+
+@keyframes hub-glow {
+  50% {
+    filter: drop-shadow(0 0 9px #FFD66B);
+  }
+}
+
+@keyframes hub-shine {
+  0% {
+    opacity: 0;
+    translate: 20px 0;
+  }
+  20% {
+    opacity: 1;
+  }
+  80% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+    translate: 220px 0;
+  }
+}
+
+@keyframes hub-spin {
+  to {
+    rotate: 1turn;
+  }
+}
+
+/* ----- Next up and the snapshot ----- */
+
+.hub-tile--next {
+  justify-content: flex-start;
+  padding: 24px 26px;
+}
+
+/* Team stripes behind the crest, over the team wash. */
+.hub-tile--next::before {
   inset: 0 0 0 auto;
   width: 42%;
   background:
@@ -1678,83 +2324,209 @@ body.is-title .ticker {
   opacity: 0.95;
 }
 
-.tile--next > * {
-  position: relative;
-}
-
-.tile--next .crest {
+.hub-tile--next .crest {
   position: absolute;
   right: 6%;
   top: 50%;
-  width: 150px;
-  height: 170px;
+  width: clamp(90px, 8cqi + 40px, 150px);
+  height: auto;
+  aspect-ratio: 150 / 170;
   transform: translateY(-50%);
   filter: drop-shadow(0 12px 20px rgba(0, 0, 0, 0.4));
 }
 
-.tile__kicker {
-  font-size: var(--step-0);
+.hub-next__kicker {
   font-weight: 700;
   color: var(--team-hi-on-dark);
 }
 
-.tile__headline {
+.hub-next__headline {
   max-width: 58%;
-  font-size: var(--step-4);
+  font-size: clamp(1.8rem, 1rem + 3cqi, 3.4rem);
   font-weight: 800;
   font-style: italic;
   line-height: 0.98;
   color: #FFFFFF;
 }
 
-.tile__facts {
+.hub-next__facts {
   display: flex;
   flex-wrap: wrap;
-  gap: 4px 22px;
+  gap: 2px 18px;
   max-width: 58%;
   color: var(--on-dark-dim);
   font-weight: 600;
 }
 
-.tile__facts strong {
-  color: var(--on-dark);
-}
-
-.tile--next .actions {
+.hub-tile--next .actions {
   margin-top: auto;
-  padding-top: 16px;
 }
 
-.menu-tiles {
-  display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 14px;
-  grid-column: 1 / -1;
+.hub-tile--snap {
+  justify-content: flex-start;
+  gap: 12px;
 }
 
-.snapshot {
-  display: grid;
-  gap: 14px;
-  align-content: start;
+.snapshot__head {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 12px;
+  width: 100%;
+}
+
+.hub-tile--snap .hub-tile__title {
+  max-width: none;
+  font-size: clamp(1.2rem, 0.8rem + 1cqi, 1.8rem);
+}
+
+.snapshot__sub {
+  color: var(--on-dark-dim);
+  font-size: var(--step--1);
+  font-weight: 600;
 }
 
 .snapshot__squads {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-  gap: 12px;
+  grid-template-columns: repeat(auto-fit, minmax(110px, 1fr));
+  gap: 10px;
+  width: 100%;
 }
 
 .snapshot__squad {
-  display: grid;
-  gap: 2px;
-  padding: 12px 14px;
-  background: rgb(var(--paper) / 0.55);
-  border-top: 4px solid var(--team-primary);
+  padding: 8px 12px 10px;
+  border-top: 3px solid var(--team-hi-on-dark);
+  background: rgba(255, 255, 255, 0.06);
 }
 
 .snapshot__label {
+  color: var(--on-dark-dim);
   font-weight: 700;
-  color: var(--text-muted);
+}
+
+.hub-tile--snap .bignum {
+  font-size: clamp(2.2rem, 1.2rem + 2.6cqi, 3.6rem);
+  color: #FFFFFF;
+}
+
+.hub-tile--snap .bignum small {
+  color: var(--on-dark-dim);
+}
+
+.snapshot__rep {
+  width: 100%;
+}
+
+.hub-tile--snap .meter {
+  background: rgba(255, 255, 255, 0.14);
+}
+
+.hub-tile--snap .meter-label {
+  color: var(--on-dark-dim);
+}
+
+.hub-tile--snap .record-list {
+  width: 100%;
+}
+
+.hub-tile--snap .record-list li {
+  padding: 5px 0;
+  border-bottom-color: rgba(255, 255, 255, 0.12);
+  color: var(--on-dark);
+  font-size: var(--step--1);
+}
+
+/* Phones held upright: one column a view, snapping on swipes. */
+@media (max-width: 600px) {
+  .hub-track {
+    --fade-size: 24px;
+  }
+
+  .hub-grid {
+    grid-template-columns: repeat(4, 84cqi);
+    grid-template-rows: 1.35fr 1.35fr 1fr 1fr;
+    min-height: 470px;
+  }
+
+  .hub-tile--next {
+    padding: 18px 18px 16px;
+    gap: 4px;
+  }
+
+  .hub-tile--next::before {
+    width: 30%;
+  }
+
+  .hub-tile--next .crest {
+    top: 16px;
+    right: 12px;
+    width: 76px;
+    transform: none;
+  }
+
+  .hub-next__headline,
+  .hub-next__facts {
+    max-width: 74%;
+  }
+
+  .hub-next__facts {
+    font-size: var(--step--1);
+  }
+}
+
+/* Short screens (phones held sideways): two rows. */
+@media (max-height: 560px) {
+  .hub-grid {
+    min-height: 230px;
+    grid-template-columns: 50cqi 32cqi 40cqi 32cqi 30cqi 26cqi;
+    grid-template-rows: repeat(2, minmax(0, 1fr));
+    grid-template-areas:
+      'next roster snap texts trophies staff'
+      'next schedule snap facilities trophies settings';
+  }
+
+  .hub-tile {
+    padding: 10px 14px;
+  }
+
+  .hub-tile--next {
+    padding: 14px 18px;
+    gap: 4px;
+  }
+
+  .hub-next__facts span:nth-child(n + 3) {
+    display: none;
+  }
+
+  .hub-next__headline {
+    font-size: 1.7rem;
+  }
+
+  .hub-tile--next .btn--big {
+    min-height: 42px;
+    padding-block: 6px;
+    font-size: var(--step-1);
+  }
+
+  .hub-tile--snap {
+    gap: 6px;
+  }
+
+  .hub-tile--snap .record-list {
+    display: none;
+  }
+}
+
+/* Touch: swipes settle on a column. */
+@media (pointer: coarse) {
+  .hub-track {
+    scroll-snap-type: x mandatory;
+  }
+
+  .hub-grid > *,
+  .hub-menu > * {
+    scroll-snap-align: start;
+  }
 }
 
 .bignum {
@@ -3743,10 +4515,6 @@ body.is-title .ticker {
     max-width: 520px;
   }
 
-  .menu-tiles {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-
   .race__stage {
     grid-template-columns: 1fr;
   }
@@ -3772,7 +4540,6 @@ body.is-title .ticker {
   }
 
   .setup,
-  .hub,
   .meet,
   .results-grid,
   .wheel-screen {
@@ -3799,16 +4566,6 @@ body.is-title .ticker {
 
   .player-card__name {
     font-size: var(--step-3);
-  }
-
-  .tile__headline,
-  .tile__facts {
-    max-width: 100%;
-  }
-
-  .tile--next::before,
-  .tile--next .crest {
-    display: none;
   }
 
   .legend-bar {
@@ -3842,10 +4599,6 @@ body.is-title .ticker {
 
   body:not(.no-squads) .context-bar__team-name {
     display: none;
-  }
-
-  .menu-tiles {
-    grid-template-columns: 1fr;
   }
 
   .finder-tools,

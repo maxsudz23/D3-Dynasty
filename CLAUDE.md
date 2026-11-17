@@ -32,7 +32,7 @@ Project skills in `.claude/skills/` load automatically in this repo:
 
 ## Architecture
 - **Engine** (pure, testable in node with `global.window = global`): `util.js`, `data/schools.js`, `data/logos.js`, `data/names.js`, `data/places.js`, `data/courses.js`, `athletes.js`, `looks.js`, `race.js`, `course.js`, `training.js`, `staff.js`, `texts.js`, `facilities.js`, `difficulty.js`, `scouting.js`, `api.js`, `season.js`.
-- **UI:** `ui/common.js` holds the theme, crest, portraits, chrome, toasts and confirm dialog. `ui/avatar.js` draws runner looks (loaded right after `common.js`).
+- **UI:** `ui/common.js` holds the theme, crest, portraits, chrome, toasts and confirm dialog. `ui/avatar.js` draws runner looks (loaded right after `common.js`), and `ui/hub-art.js` draws the hub menu art (after `avatar.js`).
   - `ui.setTheme(primary, accent, school)` also sets `--team-logo` to the school's logo (absolute URL), or `none`. `body::before` draws it at 10% opacity over the background stripes. Schools without a logo and custom schools show nothing. Pass the school wherever a real school's theme is applied.
   - `ui.crest(school)` draws the school's athletics logo on a white shield edged in its primary color when `XC.logos.pathFor(school)` has one, and the generated monogram otherwise. Custom schools (id `custom`) and any logo that fails to load get the monogram.
   - `ui.teamMark(team)` is the small mark beside a team name in the meet preview field, the live race panel, and both results tables. Teams with a logo get a 22×25 logo shield, and the rest get the two-color chip. Both take 28px, so names line up. `team.id` is the school id, or `'user'` for the player's school.
@@ -315,6 +315,25 @@ Project skills in `.claude/skills/` load automatically in this repo:
 - `node scripts/announce.js` prints the newest `CHANGELOG` entry as a GroupMe message (a dry run). Add `--send` to post it through the team's GroupMe bot.
 - The bot ID is a secret. It lives in `~/.config/d3dynasty/groupme_bot_id` (mode 600) or the `GROUPME_BOT_ID` environment variable, never in the repo. `scripts/` is in `.assetsignore`, so the script isn't served.
 - After deploying a user-facing change, show the user the dry-run message and post only once they approve it, unless they've said to post automatically. Notes-only commits get no announcement.
+
+## Hub menu (`ui/hub.js`, `ui/hub-art.js`)
+- **Layout:** a wall of blocks modeled on the Madden 16 main menu, in the game's own colors. `.hub-track` scrolls sideways and holds `.hub-grid`, a CSS grid laid out with `grid-template-areas`:
+  - **Desktop:** 4 rows. Next up and the snapshot are tall blocks in the first two columns, so both sit in the first view; the depth chart and schedule are under them. Texts and facilities come next, then the trophy case over two small blocks (staff and settings).
+  - **Phones (≤600px):** the same areas, one 84cqi column per view, with taller top rows so Next up's button fits.
+  - **Short screens (≤560px tall):** 2 rows and 6 columns, showing only two Next up facts.
+  - Columns are sized in `cqi` against the track (`container-type: inline-size`). The track fills the height between the header and the legend (`body[data-screen='hub']` is 100dvh, and `main.js` sets `data-screen` on `<body>` for every screen). The menu nav is `display: contents`, so its buttons are grid items.
+- **Scrolling:** a vertical mouse wheel over the track scrolls it sideways until it reaches an end. Touch screens (`pointer: coarse`) snap to columns; desktop doesn't, because snapping fights the wheel. `overscroll-behavior-x: contain`. The edges fade where there's more to see: a mask driven by a scroll-driven animation, or `more-start`/`more-end` classes from an IntersectionObserver on 1px edge markers where `animation-timeline` isn't supported.
+- **Keys:** arrow keys move to the nearest block in that direction from the blocks' on-screen boxes (`spatialMove`, following the `spatial-navigation` guide), then scroll it into view. At an edge the key does nothing instead of wrapping. D and S still open the depth chart and schedule; Enter starts Next up.
+- **Blocks:** each menu block is a button with art on the right (`.art`, faded in from the left by a mask), its title top left and a note bottom left. At rest the art is dimmed and desaturated over a team-color wash; on hover or keyboard focus the block fills with `--team-ink` and the art goes full color.
+- **Art (`XC.hubArt`):** each builder returns `{ el, enter?, leave? }`. `wireArt` calls `enter` on pointerenter or keyboard focus and `leave` once the block is neither hovered nor focused. Animations are CSS on `button.hub-tile:is(:hover, :focus-visible)`, inside `@media (prefers-reduced-motion: no-preference)`, so they restart each time and stay still with reduced motion.
+  - Depth chart: a random rostered runner (photo or look), a different one on every hover, named in the note; the photo slowly zooms.
+  - Schedule: a tear-off calendar showing the next meet's date. Each `animationiteration` of the top page advances a day; it resets on leave.
+  - Texts: a phone with the unread count that lights up and buzzes, with bubbles and emoji floating off it. The bubbles come from the inbox's text types (`SNIPPETS`).
+  - Facilities: a cartoon weight room (squat racks with team banners and loaded barbells, turf with yard lines) that pulses.
+  - Trophy case: cups, medals on team ribbons and a plaque that glow, with a shine across the glass.
+  - Staff: signed coaches, then the hiring pool, cycling every 1.1 s while hovered. Coaches get a seeded look (`coach|id`) in a quarter zip.
+  - Settings: two meshing gears that turn.
+- **Testing:** Puppeteer's clipped screenshots (with the default `captureBeyondViewport`) resize the page and leave hit-testing stale, so later mouse moves land on the wrong block. Pass `captureBeyondViewport: false`.
 
 ## Dark mode
 - **Setting:** `settings.theme` is `'system'` (the default: follow the device), `'light'` or `'dark'`, saved with the other settings. `XC.storage.loadSettings` turns the old `dark` flag into a theme (on → `'dark'`, off → `'system'`).

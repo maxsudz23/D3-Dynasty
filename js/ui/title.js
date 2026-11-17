@@ -16,6 +16,10 @@
   const CHANGELOG = [
     {
       date: 'Nov 17, 2026',
+      text: 'The franchise menu is now a wall of blocks that scrolls sideways. Hover a block to bring it to life: a new runner on the depth chart, a calendar tearing off pages, a buzzing phone, a glowing trophy case and more.'
+    },
+    {
+      date: 'Nov 17, 2026',
       text: 'Dark mode now follows your device unless you pick Light or Dark under Theme in Settings. Screens fade into each other, and clicking outside a confirm box cancels it.'
     },
     {
@@ -33,10 +37,6 @@
     {
       date: 'Nov 16, 2026',
       text: 'Generated runners and recruits now have their own cartoon looks: hair, skin, faces, glasses and more. Tap Edit look on the depth chart to change how any of your non-real runners look.'
-    },
-    {
-      date: 'Nov 16, 2026',
-      text: 'The athletic department now pays into a facilities fund after each season. Upgrade your training room and track, add stands, make your course championship grade, or redesign your home course.'
     }
   ];
 
