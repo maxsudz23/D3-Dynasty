@@ -40,17 +40,20 @@
   // "Injured, 2 wk, misses the next meet" (or "Sick (flu), ...").
   ui.injuryText = (state, a) => `${a.illness ? `Sick (${a.illness})` : 'Injured'}, ${ui.weeksText(a.injury)}, ${ui.meetsOutText(state, a)}`;
 
-  // Dark mode: a data-theme attribute on <html> switches the CSS tokens.
-  ui.setDark = function (on) {
-    if (on) document.documentElement.dataset.theme = 'dark';
-    else delete document.documentElement.dataset.theme;
+  // Dark mode: data-theme="dark" on <html> switches the CSS tokens. The
+  // theme setting is 'system' (follow the device), 'light' or 'dark'.
+  ui.darkQuery = typeof window.matchMedia === 'function' ? window.matchMedia('(prefers-color-scheme: dark)') : null;
+  ui.systemDark = () => !!(ui.darkQuery && ui.darkQuery.matches);
+  ui.isDark = (theme) => theme === 'dark' || (theme === 'system' && ui.systemDark());
+  ui.applyTheme = function (theme) {
+    document.documentElement.dataset.theme = ui.isDark(theme) ? 'dark' : 'light';
   };
   // Apply the saved setting as soon as this script runs, before the first
   // screen draws, so a dark-mode player doesn't see a light flash.
   try {
-    if (XC.storage && XC.storage.loadSettings().dark) ui.setDark(true);
+    ui.applyTheme(XC.storage ? XC.storage.loadSettings().theme : 'system');
   } catch (e) {
-    // Settings unreadable (storage blocked): stay light.
+    ui.applyTheme('system');
   }
 
   ui.setTheme = function (primary = '#2E4A6B', accent = '#E0A526', school = null) {
@@ -329,6 +332,21 @@
 
   /* ---------- Confirm dialog ---------- */
 
+  // closedby="any" (in index.html) lets a click on the backdrop cancel. This
+  // does the same in browsers without closedby (Safari): a click whose target
+  // is the dialog itself and lands outside its box hit the backdrop.
+  let backdropFallback = false;
+  function addBackdropFallback(dialog) {
+    if (backdropFallback || 'closedBy' in HTMLDialogElement.prototype) return;
+    backdropFallback = true;
+    dialog.addEventListener('click', (e) => {
+      if (e.target !== dialog) return;
+      const r = dialog.getBoundingClientRect();
+      const inside = r.top <= e.clientY && e.clientY <= r.bottom && r.left <= e.clientX && e.clientX <= r.right;
+      if (!inside) dialog.close();
+    });
+  }
+
   ui.confirm = function (message, okLabel = 'Confirm') {
     const dialog = document.getElementById('confirm-dialog');
     document.getElementById('confirm-message').textContent = message;
@@ -336,6 +354,7 @@
     if (typeof dialog.showModal !== 'function') {
       return Promise.resolve(window.confirm(message));
     }
+    addBackdropFallback(dialog);
     return new Promise((resolve) => {
       const done = () => {
         dialog.removeEventListener('close', done);

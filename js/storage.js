@@ -57,7 +57,17 @@
     }
   };
 
-  S.loadSettings = () => Object.assign({ muted: false, announcer: false, dark: false }, read(SETTINGS_KEY) || read(LEGACY_SETTINGS_KEY) || {});
+  S.SETTINGS_KEY = SETTINGS_KEY;
+  S.THEMES = ['system', 'light', 'dark'];
+  // theme: 'system' follows the device; 'light' or 'dark' pins it. Settings
+  // from before the system option kept a dark flag: on stays dark, off
+  // follows the system.
+  S.loadSettings = () => {
+    const s = Object.assign({ muted: false, announcer: false }, read(SETTINGS_KEY) || read(LEGACY_SETTINGS_KEY) || {});
+    if (!S.THEMES.includes(s.theme)) s.theme = s.dark ? 'dark' : 'system';
+    delete s.dark;
+    return s;
+  };
   S.saveSettings = (settings) => write(SETTINGS_KEY, settings);
 
   XC.storage = S;

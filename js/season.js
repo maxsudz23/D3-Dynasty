@@ -826,7 +826,7 @@
       const byType = (t) => results.find((r) => r.type === t) || {};
       const nat = state.schedule[5].results[sq];
       const roster = state.squads[sq].roster;
-      const mvp = roster.slice().sort((a, b) => (a.pr || 9999) - (b.pr || 9999))[0];
+      const mvp = roster.toSorted((a, b) => (a.pr || 9999) - (b.pr || 9999))[0];
       entry.squads[sq] = {
         results,
         conf: byType('conference').place,
@@ -963,7 +963,7 @@
         state.squads[sq].roster.push(p);
       });
       if (signed.length) {
-        const best = signed.slice().sort((a, b) => b.ovr - a.ovr)[0];
+        const best = signed.toSorted((a, b) => b.ovr - a.ovr)[0];
         S.addNews(state, `${A.fullName(best)} (${best.ovr} OVR) headlines the ${state.school.short} ${S.squadLabel(sq).toLowerCase()} recruiting class.`);
       }
     });

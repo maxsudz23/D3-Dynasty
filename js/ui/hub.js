@@ -111,7 +111,7 @@
       // Program snapshot
       const squads = h('div', { class: 'snapshot__squads' }, state.programs.map((sq) => {
         const roster = state.squads[sq].roster;
-        const top = roster.slice().sort((a, b) => b.ovr - a.ovr)[0];
+        const top = roster.toSorted((a, b) => b.ovr - a.ovr)[0];
         return h('div', { class: 'snapshot__squad' },
           h('p', { class: 'snapshot__label' }, `${S.squadLabel(sq)} team`),
           h('p', { class: 'bignum' }, String(A.teamOvr(roster)), h('small', null, 'OVR')),
@@ -251,7 +251,7 @@
         const fmt = (p) => (p ? U.ordinal(p) : '—');
         table = h('div', { class: 'table-wrap' }, h('table', { class: 'grid' },
           h('thead', null, h('tr', null, cols.map((c) => h('th', { scope: 'col' }, c)))),
-          h('tbody', null, hist.slice().reverse().map((season) => h('tr', null,
+          h('tbody', null, hist.toReversed().map((season) => h('tr', null,
             h('td', null, String(season.year)),
             h('td', null, `${Math.round(season.repStart)} → ${Math.round(season.repEnd)}`),
             state.programs.map((sq) => {
@@ -299,8 +299,14 @@
             ui.button(settings.announcer ? 'Turn off' : 'Turn on', () => { XC.settings.toggleAnnouncer(); XC.refresh(); }, { variant: 'ghost', size: 'small', attrs: { 'data-nav': '' } }))
           : row('Race announcer', 'This browser doesn’t support spoken audio.', h('span', { class: 'muted' }, 'Unavailable')),
         XC.state ? row('Difficulty', XC.difficulty.of(XC.state).blurb, h('span', { class: 'badge' }, XC.difficulty.of(XC.state).label)) : null,
-        row('Dark mode', 'Dark panels and backgrounds.',
-          ui.button(settings.dark ? 'Turn off' : 'Turn on', () => { XC.settings.toggleDark(); XC.refresh(); }, { variant: 'ghost', size: 'small', attrs: { 'data-nav': '' } })),
+        row('Theme', 'System matches your device’s light or dark setting.',
+          h('div', { class: 'setting__choices', role: 'group', 'aria-label': 'Color scheme' },
+            [['system', `System (${ui.systemDark() ? 'dark' : 'light'})`], ['light', 'Light'], ['dark', 'Dark']].map(([theme, label]) =>
+              ui.button(label, () => { XC.settings.setTheme(theme); XC.refresh(); }, {
+                variant: settings.theme === theme ? 'primary' : 'ghost',
+                size: 'small',
+                attrs: { id: `theme-${theme}`, 'aria-pressed': String(settings.theme === theme), 'data-nav': '' }
+              })))),
         row('Autosave', XC.storage.available ? 'Progress saves after every action.' : 'Saving is off in this browser, so progress lasts until you close the tab.',
           h('span', { class: 'badge' }, XC.storage.available ? 'On' : 'Off')),
         row('Title screen', 'Leave the hub. Your dynasty stays saved.',

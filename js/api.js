@@ -11,15 +11,10 @@
   const API = {};
 
   async function fetchJson(url, timeoutMs = 7000) {
-    const controller = new AbortController();
-    const timer = setTimeout(() => controller.abort(), timeoutMs);
-    try {
-      const res = await fetch(url, { signal: controller.signal });
-      if (!res.ok) throw new Error(`Request failed with status ${res.status}`);
-      return await res.json();
-    } finally {
-      clearTimeout(timer);
-    }
+    // Rejects with a TimeoutError after timeoutMs; callers fall back to local data.
+    const res = await fetch(url, { signal: AbortSignal.timeout(timeoutMs) });
+    if (!res.ok) throw new Error(`Request failed with status ${res.status}`);
+    return res.json();
   }
 
   /* ---------- People (randomuser.me) ---------- */

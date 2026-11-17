@@ -542,7 +542,7 @@
 
   const median = (arr) => {
     if (!arr.length) return 0;
-    const s = arr.slice().sort((a, b) => a - b);
+    const s = arr.toSorted((a, b) => a - b);
     return s[Math.floor(s.length / 2)];
   };
 

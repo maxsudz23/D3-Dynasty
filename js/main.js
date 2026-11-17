@@ -22,9 +22,43 @@
     }
   };
 
+  // Moving to a different screen cross-fades it with a view transition. The
+  // swap then runs a frame later, so XC.go skips the animation for redraws of
+  // the same screen, for redirects from inside a screen's render, with reduced
+  // motion, and where the API is missing. Keys wait while a swap is pending.
+  let goSeq = 0;
+  let rendering = false;
+  let navigating = false;
+
   XC.go = function (name, params = {}) {
     const screen = XC.screens[name];
     if (!screen) return;
+    const seq = ++goSeq;
+    const animate = currentName && name !== currentName && !rendering &&
+      typeof document.startViewTransition === 'function' && !U.prefersReducedMotion();
+    if (!animate) {
+      navigating = false;
+      show(name, screen, params);
+      return;
+    }
+    navigating = true;
+    const transition = document.startViewTransition(() => {
+      // A later XC.go replaced this one before it ran.
+      if (seq !== goSeq) return;
+      navigating = false;
+      try {
+        show(name, screen, params);
+      } catch (err) {
+        // Report it like an ordinary error instead of a rejected promise.
+        setTimeout(() => { throw err; });
+      }
+    });
+    // A skipped transition rejects these; the swap itself still happened.
+    transition.ready.catch(() => {});
+    transition.finished.catch(() => {});
+  };
+
+  function show(name, screen, params) {
     if (current && typeof current.cleanup === 'function') current.cleanup();
     current = screen;
     currentName = name;
@@ -38,7 +72,14 @@
     XC.ui.renderContext(screen);
     XC.ui.renderStatus();
     XC.ui.renderTicker();
-    screen.render(root, params);
+    rendering = true;
+    try {
+      screen.render(root, params);
+    } finally {
+      rendering = false;
+    }
+    // render() redirected to another screen, which has drawn itself.
+    if (current !== screen) return;
     XC.ui.renderLegend(screen.legend ? screen.legend(params) : []);
     window.scrollTo(0, 0);
     const focusTarget = root.querySelector('[data-autofocus]');
@@ -86,6 +127,7 @@
   function onKeyDown(e) {
     if (e.defaultPrevented || e.metaKey || e.ctrlKey || e.altKey) return;
     if (document.querySelector('dialog[open]')) return;
+    if (navigating) return;
     const tag = e.target && e.target.tagName;
     const typing = tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT';
     if (typing) {
@@ -127,20 +169,48 @@
     announcer.setAttribute('aria-pressed', String(settings.announcer));
     announcer.textContent = settings.announcer ? 'Announcer on' : 'Announcer off';
     const dark = document.getElementById('toggle-dark');
-    dark.setAttribute('aria-pressed', String(!!settings.dark));
-    dark.textContent = settings.dark ? 'Dark mode on' : 'Dark mode off';
+    const on = XC.ui.isDark(settings.theme);
+    dark.setAttribute('aria-pressed', String(on));
+    dark.textContent = on ? 'Dark mode on' : 'Dark mode off';
   }
 
-  function applyDark() {
-    XC.ui.setDark(!!settings.dark);
-  }
-
-  function toggleDark() {
-    settings.dark = !settings.dark;
-    XC.storage.saveSettings(settings);
-    applyDark();
+  function applyTheme() {
+    XC.ui.applyTheme(settings.theme);
     syncToggles();
+  }
+
+  function setTheme(theme) {
+    if (!XC.storage.THEMES.includes(theme)) return;
+    settings.theme = theme;
+    XC.storage.saveSettings(settings);
+    applyTheme();
     XC.audio.select();
+  }
+
+  // The header chip flips what's on screen. Flipping back to what the device
+  // uses returns to following the device instead of pinning it.
+  function toggleDark() {
+    const target = XC.ui.isDark(settings.theme) ? 'light' : 'dark';
+    const device = XC.ui.systemDark() ? 'dark' : 'light';
+    setTheme(target === device ? 'system' : target);
+  }
+
+  // Follow the device's scheme when it changes, and a theme picked in another tab.
+  function watchTheme() {
+    const changed = () => {
+      applyTheme();
+      if (XC.currentScreen() === 'settings') XC.refresh();
+    };
+    if (XC.ui.darkQuery && typeof XC.ui.darkQuery.addEventListener === 'function') {
+      XC.ui.darkQuery.addEventListener('change', () => { if (settings.theme === 'system') changed(); });
+    }
+    window.addEventListener('storage', (e) => {
+      if (e.key !== XC.storage.SETTINGS_KEY) return;
+      const theme = XC.storage.loadSettings().theme;
+      if (theme === settings.theme) return;
+      settings.theme = theme;
+      changed();
+    });
   }
 
   function toggleSound() {
@@ -163,7 +233,8 @@
     get: () => Object.assign({}, settings),
     toggleSound,
     toggleAnnouncer,
-    toggleDark
+    toggleDark,
+    setTheme
   };
 
   /* ---------- Boot ---------- */
@@ -171,8 +242,8 @@
   function boot() {
     XC.audio.setMuted(settings.muted);
     XC.audio.setAnnouncer(settings.announcer);
-    applyDark();
-    syncToggles();
+    applyTheme();
+    watchTheme();
     document.getElementById('toggle-sound').addEventListener('click', toggleSound);
     document.getElementById('toggle-announcer').addEventListener('click', toggleAnnouncer);
     document.getElementById('toggle-dark').addEventListener('click', toggleDark);

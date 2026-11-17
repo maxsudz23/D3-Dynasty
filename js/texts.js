@@ -61,7 +61,7 @@
     if (varsity) {
       const byId = new Map(state.squads[sq].roster.map((a) => [a.id, a]));
       const ran = varsity.individuals.filter((r) => r.isUser && byId.has(r.athleteId));
-      const byOvr = ran.slice().sort((x, y) => byId.get(y.athleteId).ovr - byId.get(x.athleteId).ovr);
+      const byOvr = ran.toSorted((x, y) => byId.get(y.athleteId).ovr - byId.get(x.athleteId).ovr);
       ran.forEach((r, i) => {
         const expected = byOvr.indexOf(r);
         if (i - expected >= 2) facts[r.athleteId] = Object.assign(facts[r.athleteId] || {}, { bad: true, place: r.place });

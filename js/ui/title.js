@@ -16,6 +16,10 @@
   const CHANGELOG = [
     {
       date: 'Nov 17, 2026',
+      text: 'Dark mode now follows your device unless you pick Light or Dark under Theme in Settings. Screens fade into each other, and clicking outside a confirm box cancels it.'
+    },
+    {
+      date: 'Nov 17, 2026',
       text: 'New dynasties now pick a difficulty. Medium and Hard hide more numbers and make great recruits harder to land, and add scouting: recruits email you their PRs, your staff scouts them, and you host official visits.'
     },
     {
@@ -33,10 +37,6 @@
     {
       date: 'Nov 16, 2026',
       text: 'The athletic department now pays into a facilities fund after each season. Upgrade your training room and track, add stands, make your course championship grade, or redesign your home course.'
-    },
-    {
-      date: 'Nov 16, 2026',
-      text: 'Your runners now text you between meets: tired legs, the flu, a workout they want to try, a PR, midterms. How you answer moves their morale, and some replies change their plan for the week.'
     }
   ];
 
@@ -170,7 +170,7 @@
         this.updatePreview();
       });
       nameInput.addEventListener('keydown', (e) => {
-        if (e.key === 'Enter') {
+        if (e.key === 'Enter' && !e.isComposing) {
           e.preventDefault();
           this.start();
         }
@@ -355,7 +355,7 @@
           .map((s) => Object.assign({}, s, { dist: U.haversineKm(form.geo.lat, form.geo.lon, s.lat, s.lon) }))
           .sort((a, b) => a.dist - b.dist);
       } else {
-        rows = rows.slice().sort((a, b) => a.short.localeCompare(b.short));
+        rows = rows.toSorted((a, b) => a.short.localeCompare(b.short));
       }
 
       U.clear(this.list);

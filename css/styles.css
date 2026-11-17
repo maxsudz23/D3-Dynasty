@@ -423,6 +423,20 @@ body.no-context .context-bar {
   padding: 22px var(--gutter) 32px;
 }
 
+/* Screen changes (XC.go) cross-fade the page; unchanged parts look still. */
+::view-transition-old(root),
+::view-transition-new(root) {
+  animation-duration: 160ms;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  ::view-transition-group(*),
+  ::view-transition-old(*),
+  ::view-transition-new(*) {
+    animation: none !important;
+  }
+}
+
 .screen:focus {
   outline: none;
 }
@@ -2814,6 +2828,13 @@ body.is-title .ticker {
   gap: 16px;
   padding: 14px 16px;
   background: rgb(var(--paper) / 0.6);
+}
+
+.setting__choices {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 8px;
 }
 
 .setting__text {

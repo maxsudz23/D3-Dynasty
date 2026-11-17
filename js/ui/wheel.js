@@ -288,7 +288,7 @@
       }
 
       const list = h('ul', { class: 'board__list' });
-      rec.prospects.slice().reverse().forEach((p) => list.appendChild(this.prospectCard(p, open, p.id === newId)));
+      rec.prospects.toReversed().forEach((p) => list.appendChild(this.prospectCard(p, open, p.id === newId)));
       board.appendChild(list);
     },
 

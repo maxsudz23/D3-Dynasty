@@ -240,7 +240,7 @@
   };
 
   U.clear = function (el) {
-    while (el.firstChild) el.removeChild(el.firstChild);
+    el.replaceChildren();
     return el;
   };
 

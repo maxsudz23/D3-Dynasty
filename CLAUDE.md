@@ -37,6 +37,10 @@ D3 Dynasty is a Division III cross country coaching game in plain HTML, CSS and 
   - `canChangeSquad()`: return false to block squad switching. The wheel uses it while spinning.
 - **Screens:** `title`, `setup`, `hub`, `schedule`, `trophies`, `settings`, `staff`, `facilities`, `texts`, `look`, `recruit`, `roster`, `wheel`, `training`, `meet`, `race`, `results`, then the offseason screens.
 - **Router:** `main.js` (`XC.go(name, params)`, `XC.refresh()`, `XC.setSquad()`). The global keys are Q/E for squad, Esc for back, M for mute and arrows to move focus between elements marked `[data-nav]`.
+  - **View transitions:** moving to a different screen runs inside `document.startViewTransition` (a 160 ms cross-fade of the page), so the new screen draws one frame after `XC.go` returns. It's instant for same-screen redraws (`XC.refresh`, squad changes), redirects from inside a `render`, reduced motion, and browsers without the API. Keys are ignored while a swap is pending, and a later `XC.go` cancels an earlier pending one.
+  - Don't read the new screen's DOM right after `XC.go`. Browser test scripts should emulate `prefers-reduced-motion: reduce` (instant swaps) or wait about 300 ms.
+  - When a screen's `render` redirects (`return XC.go('wheel')`), the outer `XC.go` stops there, so the redirect's legend and focus stay.
+- **Modern web platform:** `U.clear` is `replaceChildren()`, API fetches time out with `AbortSignal.timeout`, and arrays are copied with `toSorted`/`toReversed`. The confirm dialog has `closedby="any"` (backdrop click cancels) plus a click fallback for Safari in `ui.confirm`. Checked with Chrome's `modern-web-guidance` (`npx -y modern-web-guidance@latest legacy-scan .`); its 2 remaining findings are intentional: the loading dots' `:nth-child` delays and `proto/`.
 - **Legend items:** `{ key, label, action, keyboardOnly? }`. Set `keyboardOnly: true` on items that repeat an on-screen control (squad tabs, the sound toggle, "Enter: select focused"), so touch screens hide them.
 - **Guard actions in the function itself:** keyboard shortcuts and legend buttons call screen methods directly and skip the disabled buttons, so every action must check its own preconditions. The wheel freeze came from this.
 - **State:** `XC.state` is saved to localStorage key `d3dynasty.save.v1` (version 1; the pre-rename key `harriers27.dynasty.v1` is still read as a fallback). `XC.live` holds values that aren't saved, such as the latest race sims used for the animation.
@@ -307,8 +311,12 @@ D3 Dynasty is a Division III cross country coaching game in plain HTML, CSS and 
 - After deploying a user-facing change, show the user the dry-run message and post only once they approve it, unless they've said to post automatically. Notes-only commits get no announcement.
 
 ## Dark mode
-- **Toggle:** the header's "Dark mode on/off" chip (next to Sound and Announcer) and a Settings row. `settings.dark` is saved with the other settings (`XC.storage.loadSettings`), `XC.settings.toggleDark` flips it, and `ui.setDark(on)` sets or removes `data-theme="dark"` on `<html>`. `ui/common.js` applies the saved setting as soon as it loads, so there's no light flash.
-- **How the CSS works:** `:root[data-theme='dark']` redefines tokens. Default is light; there's no "match system" mode.
+- **Setting:** `settings.theme` is `'system'` (the default: follow the device), `'light'` or `'dark'`, saved with the other settings. `XC.storage.loadSettings` turns the old `dark` flag into a theme (on → `'dark'`, off → `'system'`).
+  - `ui.applyTheme(theme)` sets `data-theme` on `<html>` to `light` or `dark`, resolving `'system'` with `ui.darkQuery` (`prefers-color-scheme: dark`). `ui/common.js` applies the saved theme as soon as it loads, so there's no flash. `main.js` (`watchTheme`) follows device changes while on `'system'` and theme changes saved in another tab (`storage` event).
+  - **Header chip** ("Dark mode on/off", next to Sound and Announcer, `XC.settings.toggleDark`): flips what's on screen. Flipping to what the device already uses stores `'system'` instead of pinning it (the modern-web-guidance `dark-mode-toggle` rule), so a pinned theme only comes from a deliberate choice.
+  - **Settings, Theme row:** System (shows the device's current scheme), Light, Dark (`XC.settings.setTheme`).
+  - `index.html` has `<meta name="color-scheme" content="light dark">`.
+- **How the CSS works:** `:root[data-theme='dark']` redefines tokens (`light-dark()` can't be used: `--paper` and `--ink-rgb` are RGB triplets).
   - `--ink`, `--ink-2` and `--ink-3` stay surface colors (header bars, dark cards). Text uses `--text-strong`, `--text-body`, `--text-muted` and `--text-faint`; never use `--ink` as a `color` in new CSS.
   - Light surfaces are `rgb(var(--paper) / alpha)` and `var(--paper-2)`; separators and dark-ink tints are `rgb(var(--ink-rgb) / alpha)`. Both flip in dark mode. Use these instead of literal `#FFFFFF` or `rgba(255, 255, 255, x)` for anything that should go dark.
   - Status text uses `--good-text` and `--bad-text` (lighter in dark mode); `--good` and `--bad` stay the badge backgrounds.
