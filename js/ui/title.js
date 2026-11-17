@@ -16,10 +16,6 @@
   const CHANGELOG = [
     {
       date: 'Nov 16, 2026',
-      text: 'Runner looks were redrawn from a study of 100 real D3 team headshots: real proportions and skin tones, the hairstyles runners actually wear, big smiles, necklaces, and singlets or quarter zips. Edited looks are kept.'
-    },
-    {
-      date: 'Nov 16, 2026',
       text: 'Generated runners and recruits now have their own cartoon looks: hair, skin, faces, glasses and more. Tap Edit look on the depth chart to change how any of your non-real runners look.'
     },
     {
