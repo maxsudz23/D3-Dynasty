@@ -180,11 +180,45 @@
       a.real = true;
       if (tf) S.shapeFromTrack(a, squad, tf, ovr);
       applyRatings(a, school.id, squad);
-      a.injury = XC.rosters.injuryFor(school.id, squad, first, last);
+      // Starting injuries are listed in meets missed; turn them into weeks.
+      a.injury = S.weeksForMeets(XC.rosters.injuryFor(school.id, squad, first, last), 0, XC.training.GAP_WEEKS[0]);
       return a;
     });
     return roster.sort((a, b) => b.ovr - a.ovr);
   }
+
+  /* ---------- Injury time (weeks) ---------- */
+
+  // Can this runner race the current meet? Injuries are in weeks, so a
+  // runner hurt now may still be healed by race day.
+  S.raceReady = (state, a) => !(a.injury > 0) || a.injury <= XC.training.weeksUntilMeet(state) + 1e-9;
+
+  // How many meets in a row, starting with the current one, a runner will
+  // miss at the injury's current length.
+  S.meetsOut = function (state, a) {
+    if (!(a.injury > 0)) return 0;
+    const G = XC.training.GAP_WEEKS;
+    let t = XC.training.weeksUntilMeet(state);
+    const from = state.phase === 'season' ? state.meetIndex : 0;
+    let n = 0;
+    for (let m = from; m < G.length; m++) {
+      if (m > from) t += G[m];
+      if (a.injury > t + 1e-9) n++;
+      else break;
+    }
+    return n;
+  };
+
+  // Weeks of injury that miss exactly k meets, counting from meet `from`
+  // with `until` weeks to go before it. Used for starting injuries and
+  // for saves from before injuries were in weeks.
+  S.weeksForMeets = function (k, from = 0, until = XC.training.GAP_WEEKS[0]) {
+    if (!(k > 0)) return 0;
+    const G = XC.training.GAP_WEEKS;
+    let t = until;
+    for (let m = from + 1; m < from + k && m < G.length; m++) t += G[m];
+    return U.round(t + 0.5, 2);
+  };
 
   // Roster limit for a squad. A real team keeps room for its whole roster
   // plus a recruiting class; everyone else gets the standard limit.
@@ -210,6 +244,7 @@
       offseason: null,
       training: null,
       inbox: [],
+      injuryUnits: 'weeks',
       homeCourse: S.newHomeCourse(Math.random, school)
     };
     programs.forEach((sq) => {
@@ -429,8 +464,9 @@
   // Your JV: healthy runners outside the racing seven.
   S.jvRunners = function (state, sq) {
     const roster = state.squads[sq].roster;
-    const lineup = A.lineup(roster);
-    return roster.filter((a) => a.injury <= 0 && !lineup.includes(a));
+    const ready = (a) => S.raceReady(state, a);
+    const lineup = A.lineup(roster, 7, ready);
+    return roster.filter((a) => ready(a) && !lineup.includes(a));
   };
 
   // A rival's JV: seven runners about nine points under its varsity,
@@ -519,12 +555,12 @@
     if (meet.type === 'national') {
       const qual = squad.natQual;
       if (!qual || !qual.team) {
-        const indiv = qual ? squad.roster.filter((a) => qual.individuals.includes(a.id) && a.injury <= 0) : [];
+        const indiv = qual ? squad.roster.filter((a) => qual.individuals.includes(a.id) && S.raceReady(state, a)) : [];
         if (!indiv.length) return null;
         return Object.assign(base, { scored: false, runners: indiv });
       }
     }
-    return Object.assign(base, { scored: true, runners: A.lineup(squad.roster) });
+    return Object.assign(base, { scored: true, runners: A.lineup(squad.roster, 7, (a) => S.raceReady(state, a)) });
   };
 
   S.buildTeams = function (state, meet, sq) {
@@ -629,13 +665,11 @@
       }
     }));
 
-    // Runners who sat out heal one meet; racers roll for new injuries.
+    // Injured runners who sat out count a missed meet (healing happens with
+    // the calendar, in XC.training.heal); racers roll for new injuries.
     squad.roster.forEach((a) => {
-      if (!raced.has(a.id) && a.injury > 0) {
-        a.injury -= 1;
-        a.career.missed = (a.career.missed || 0) + 1;
-      }
-      if (a.injury <= 0) delete a.illness;
+      if (!raced.has(a.id) && a.injury > 0) a.career.missed = (a.career.missed || 0) + 1;
+      if (!(a.injury > 0)) delete a.illness;
     });
     squad.roster.forEach((a) => {
       if (!raced.has(a.id)) return;
@@ -645,9 +679,10 @@
       const risk = XC.training.raceInjuryRisk(a) * cost.injury;
       XC.training.afterRace(a, cost.fatigue);
       if (meet.type !== 'national' && Math.random() < risk) {
-        a.injury = U.randInt(1, 3);
-        a.injuryWhat = U.pick(XC.training.INJURY_NAMES);
-        summaryOf[a.id].injuries.push({ name: A.fullName(a), out: a.injury });
+        const { what, weeks } = XC.training.rollInjury(Math.random);
+        a.injury = weeks;
+        a.injuryWhat = what;
+        summaryOf[a.id].injuries.push({ name: A.fullName(a), out: weeks, what, weeks: true });
       }
     });
   }
@@ -655,8 +690,9 @@
   S.runMeet = function (state) {
     const meet = state.schedule[state.meetIndex];
     if (!meet.weather) meet.weather = XC.api.simulatedWeather(meet.month, meet.id);
-    // Texts nobody answered expire now.
+    // Texts nobody answered expire now, and the calendar reaches race day.
     XC.texts.expire(state);
+    XC.training.heal(state, 'meet');
     // Skipped the workout day: the team rested through the block.
     if (!state.training || state.training.meetIndex !== state.meetIndex || !state.training.done) {
       if (!state.training || state.training.meetIndex !== state.meetIndex) XC.training.openBlock(state);
@@ -718,7 +754,7 @@
     if (meet.type === 'national') closeSeason(state);
     else {
       state.meetIndex += 1;
-      XC.training.openBlock(state);
+      XC.training.openBlock(state, { heal: true });
     }
 
     return races;
@@ -995,6 +1031,17 @@
     XC.facilities.ensure(state);
     // Runner texts (saved since the texts update).
     if (!Array.isArray(state.inbox)) state.inbox = [];
+    // Injuries were counted in meets before; convert each to the weeks that
+    // miss the same meets, and place the save on the block's calendar.
+    if (state.injuryUnits !== 'weeks') {
+      if (state.training && !state.training.healedTo) state.training.healedTo = state.training.done ? 'meet' : 'workout';
+      const until = XC.training.weeksUntilMeet(state);
+      const from = state.phase === 'season' ? state.meetIndex : 0;
+      state.programs.forEach((sq) => state.squads[sq].roster.forEach((a) => {
+        if (a.injury > 0) a.injury = S.weeksForMeets(a.injury, from, until);
+      }));
+      state.injuryUnits = 'weeks';
+    }
     if (state.phase === 'season' && (!state.training || state.training.meetIndex !== state.meetIndex)) XC.training.openBlock(state);
     if (state.phase !== 'season' && state.training === undefined) state.training = null;
     return state;

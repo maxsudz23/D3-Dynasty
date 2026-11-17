@@ -16,6 +16,10 @@
   const CHANGELOG = [
     {
       date: 'Nov 16, 2026',
+      text: 'Injuries now heal in weeks, not meets. Shin splints take one to three weeks, so a runner can be back by race day, and a stress reaction still costs a month or more.'
+    },
+    {
+      date: 'Nov 16, 2026',
       text: 'Dark mode is here. Turn it on with the Dark mode button in the header or in Settings.'
     },
     {
@@ -33,10 +37,6 @@
     {
       date: 'Nov 16, 2026',
       text: 'The WashU women now have their real roster headshots in the game, too.'
-    },
-    {
-      date: 'Nov 16, 2026',
-      text: 'Augustana, Illinois Wesleyan and Elmhurst now race on their real home courses: Saukie Golf Course, Maxwell Park and Eldridge Park. North Park\u2019s home meet is at Schiller Woods.'
     }
   ];
 

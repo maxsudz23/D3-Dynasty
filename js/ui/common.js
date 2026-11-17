@@ -21,6 +21,25 @@
 
   // school (optional) puts its athletics logo faintly over the background
   // stripes; schools without one, and custom schools, get none.
+  /* ---------- Injury time ---------- */
+
+  // Weeks to the nearest half: "2 wk", "1.5 wk".
+  ui.weeksText = (w) => {
+    const r = Math.max(0.5, Math.round(w * 2) / 2);
+    return `${Number.isInteger(r) ? r : r.toFixed(1)} wk`;
+  };
+  // What an injury means for the schedule: "back by race day", "misses the
+  // next meet", "misses 2 meets", "out for the season".
+  ui.meetsOutText = (state, a) => {
+    const n = XC.season.meetsOut(state, a);
+    if (!n) return 'back by race day';
+    const left = state.phase === 'season' ? XC.training.GAP_WEEKS.length - state.meetIndex : XC.training.GAP_WEEKS.length;
+    if (n >= left) return 'out for the season';
+    return n === 1 ? 'misses the next meet' : `misses ${n} meets`;
+  };
+  // "Injured, 2 wk, misses the next meet" (or "Sick (flu), ...").
+  ui.injuryText = (state, a) => `${a.illness ? `Sick (${a.illness})` : 'Injured'}, ${ui.weeksText(a.injury)}, ${ui.meetsOutText(state, a)}`;
+
   // Dark mode: a data-theme attribute on <html> switches the CSS tokens.
   ui.setDark = function (on) {
     if (on) document.documentElement.dataset.theme = 'dark';

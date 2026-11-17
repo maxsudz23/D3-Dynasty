@@ -230,7 +230,7 @@
       let control;
       const promise = T.promiseOf(state, a);
       if (a.injury > 0) {
-        control = h('span', { class: 'badge badge--warn' }, a.illness ? `Sick (${a.illness}), out ${a.injury}: resting` : `Injured, out ${a.injury}: rehab only`);
+        control = h('span', { class: 'badge badge--warn' }, `${ui.injuryText(state, a)}: ${a.illness ? 'resting' : 'rehab only'}`);
       } else if (promise) {
         control = h('div', { class: 'plan-row__controls' },
           h('p', { class: 'plan-row__promise' },
@@ -506,7 +506,7 @@
           h('td', null, ui.delta(r.form)),
           h('td', null, gainsOf(r).length ? h('span', { class: 'badge badge--good' }, `+${gainsOf(r).join(' +')}`) : '—'),
           h('td', { class: 'cell-left' }, r.injury
-            ? h('span', { class: 'workout-group__warn' }, `${r.injury.what}, out ${r.injury.out} meet${r.injury.out > 1 ? 's' : ''}. `)
+            ? h('span', { class: 'workout-group__warn' }, `${r.injury.what}, out ${ui.weeksText(r.injury.out)}. `)
             : null, r.note))))));
 
       this.root.appendChild(h('div', { class: 'stack' },

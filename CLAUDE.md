@@ -54,7 +54,7 @@ D3 Dynasty is a Division III cross country coaching game in plain HTML, CSS and 
   - The individual ratings around the OVR, and potential, are seeded by name, so every save gets the same team.
   - `realRoster` still supports rows with no mark (a seeded rating a little below the class average, 58/62/66/69, SD 4), but the current top-20 rows all have marks.
   - Real PRs aren't copied into `a.pr`, because the game's race times run on their own scale.
-  - **Starting injuries:** `XC.rosters.washu.injuries` sets meets out at the start of a new save (a season is 6 meets). Rishi Shadaksharappa and Jackson Proffitt start out 6, miss year one, and are back for season two.
+  - **Starting injuries:** `XC.rosters.washu.injuries` lists meets out at the start of a new save (a season is 6 meets); `realRoster` turns them into weeks with `S.weeksForMeets`. Rishi Shadaksharappa and Jackson Proffitt start out 6 meets (14.5 weeks), miss year one, and are back for season two.
     - Rishi's mark is his freshman (2025) 8K PR from TFRRS, 25:23.7 (81 OVR), not his 2026 time.
     - Jackson has no college mark. His high school 5K (15:28.4) is converted to an 8K by Riegel's formula (`t8 = t5 × 1.6^1.06`), 25:27.9, which is 80 OVR.
     - A season out also slows their first offseason growth (`A.progress` × 0.6 after 3+ missed meets).
@@ -90,6 +90,13 @@ D3 Dynasty is a Division III cross country coaching game in plain HTML, CSS and 
   - **Names:** `S.raceNames` builds them from the host's colors via `U.colorName` (Red, Maroon, Navy, Gold…), e.g. "Red Race" (varsity) and "Green Race" (JV). If both colors give the same name (NYU, Illinois Wesleyan, Dickinson, Kenyon), they fall back to "Varsity Race" and "JV Race".
   - **Screens:** the meet preview shows both names and how many will run JV. The results screen toggles between the two races, and JV shows no rep.
 - **Race injury risk:** `(0.008 + (100 − DUR)/100 × 0.035) × (0.7 + (fatigue/40)²)`. Each race adds `12 + (100 − DUR) × 0.06` fatigue.
+- **Injuries are in weeks** (`a.injury` = weeks until healthy; changed 2026-11-16 so short injuries don't cost two meets):
+  - **Calendar:** a block's weeks pass in two halves: to workout day, then to race day. `T.openBlock(state, { heal: true })` (after a meet and at the season opener) heals the first half; `T.runDay`, `T.restBlock` and `S.runMeet` heal the rest (`T.heal(state, 'workout' | 'meet')`, tracked in `state.training.healedTo`). So during a block "now" is workout day until the workout runs, then race day. `T.weeksUntilMeet(state)` gives the weeks left.
+  - **Who races:** `S.raceReady(state, a)` (healed by race day). Lineups, JV and individual qualifiers use it through `A.lineup(roster, 7, ready)`. Workout day uses `a.injury > 0` (hurt on that day means rehab). `S.meetsOut(state, a)` counts the meets an injury will miss.
+  - **Lengths** (`T.rollInjury`): hamstring 1–2, Achilles 1–3, calf strain 2–3, IT band 1–3, shin splints 1–3, rolled ankle 1–2, hip flexor 2–3, stress reaction in the foot 4–7 weeks. Mileage overuse: stress reaction 4–6, shin splints 1–3, Achilles 1–2, plantar fasciitis 2–4. The flu is 1–2 weeks.
+  - **Display:** `ui.weeksText`, `ui.meetsOutText` and `ui.injuryText` ("Injured, 3 wk, misses the next meet", "back by race day", "out for the season").
+  - **Old saves:** `S.migrate` converts meet-count injuries to the weeks that miss the same meets (`state.injuryUnits = 'weeks'`) and places the save on the block calendar.
+  - **Effect** (100 seasons of auto play): injuries average 2.6 weeks and miss 0.82 meets each (they used to miss 1–3); the flu misses 0.51 meets (it used to always miss one). Injured runners still count `career.missed` for each meet they sit out.
 - **Race plans (`race.js`, meet preview):** the team plan (`squad.strategy`: hard, even or neg) applies to everyone. Any of the starting seven can get their own plan in `squad.plans[athleteId]`. A missing entry or `'team'` means they follow the team plan. Opponents only use team plans.
   - **Plans** (`R.PLANS`, effects in `R.planEffect`):
     - hard: `(END−75)×0.18`, with luck ×1.45.
@@ -237,7 +244,7 @@ D3 Dynasty is a Division III cross country coaching game in plain HTML, CSS and 
 - **When:** `T.openBlock` calls `XC.texts.roll`, so texts arrive as each workout block opens (season start and after every meet). `S.runMeet` calls `XC.texts.expire` first: unanswered texts expire and cost that runner 0.5 morale. `S.startNewSeason` clears the inbox.
 - **State:** `state.inbox = [{ id, athleteId, squad, templateId, variant, vars, workout?, replied, note, expired? }]`. Each roll replaces the inbox, so it only holds the current block.
 - **Rolling** (per squad, per block):
-  - A 30% chance one healthy runner gets the flu (`a.illness = 'flu'`, `injury` ≥ 1) and texts about it. Illness is an injury with a label: `A.outWord(a)` gives "Sick" or "Injured", and `illness` clears when `injury` reaches 0 (in `applyToRoster`, a reply, or the offseason).
+  - A 30% chance one healthy runner gets the flu (`a.illness = 'flu'`, 1–2 weeks) and texts about it. Illness is an injury with a label: `A.outWord(a)` gives "Sick" or "Injured", and `illness` clears when `injury` reaches 0 (in `applyToRoster`, a reply, or the offseason).
   - Then 1–3 texts in all (at most `X.MAX_PER_SQUAD`), one per runner, drawn by per-runner weights from `X.TEMPLATES`: tired (fatigue after the meet ≥ 25), request (their favorite workout type at 1.3× target dose, via `T.recommend(..., { type, push })`), PR, bad race (finished ≥ 2 places below their OVR rank on the team, or DNF), injured (uses `a.injuryWhat`, set when an injury happens), homesick (first-years, first three meets), midterms (meets 3–4).
   - About 12 texts per squad per season.
 - **Replies:** 2–3 per template, each with `effects` (morale, fatigue, form, injury ±, cure, news, plan) and a `note`. `odds` roll outcomes; `miss` adds effects when no odds hit. `X.blocker` refuses replies that change a plan or cure once the workout day has run.

@@ -56,7 +56,8 @@
       wrap.appendChild(selected ? this.card(selected) : h('p', { class: 'empty' }, 'No runners on this roster.'));
 
       // Table
-      const lineupIds = new Set(A.lineup(roster).map((a) => a.id));
+      const ready = (a) => S.raceReady(state, a);
+      const lineupIds = new Set(A.lineup(roster, 7, ready).map((a) => a.id));
       const columns = ['#', 'Name', ...HI_COLS, 'Status'];
       const head = h('tr', null, columns.map((c) => {
         const key = HI_COLS.includes(c) ? c : null;
@@ -85,7 +86,7 @@
           cell('pot', a.pot),
           cell('pr', a.pr ? U.formatTime(a.pr) : '—'),
           cell('ftg', String(Math.round(a.fatigue || 0))),
-          h('td', null, a.injury > 0 ? h('span', { class: 'badge badge--warn' }, a.illness ? `Sick, out ${a.injury}` : `Out ${a.injury}`) : racing ? 'Racing' : 'Reserve'));
+          h('td', null, !ready(a) ? h('span', { class: 'badge badge--warn', title: ui.injuryText(state, a) }, `${a.illness ? 'Sick' : 'Out'} ${ui.weeksText(a.injury)}`) : racing ? 'Racing' : 'Reserve'));
         tr.addEventListener('click', () => this.select(i));
         tr.addEventListener('dragstart', (e) => {
           view.dragFrom = i;
@@ -131,7 +132,7 @@
         actions.appendChild(ui.button(`Start ${S.yearOf(state.season + 1)} season`, () => this.finishCuts(), { variant: 'primary', key: 'Enter' }));
       }
 
-      const injuredInTop = roster.slice(0, 7).filter((a) => a.injury > 0).length;
+      const injuredInTop = roster.slice(0, 7).filter((a) => !S.raceReady(state, a)).length;
       wrap.appendChild(h('div', { class: 'depth__footer' },
         h('div', null,
           ui.meter(Math.min(1, count / S.rosterCap(state, XC.activeSquad)), `Roster spots used: ${count} of ${S.rosterCap(state, XC.activeSquad)}`),
@@ -151,13 +152,13 @@
 
     card(a) {
       const state = XC.state;
-      const lineup = A.lineup(this.roster());
+      const lineup = A.lineup(this.roster(), 7, (x) => S.raceReady(state, x));
       const racing = lineup.some((x) => x.id === a.id);
       const badges = [
         h('span', { class: 'badge badge--hi' }, racing ? `Racing, slot ${lineup.findIndex((x) => x.id === a.id) + 1}` : 'Reserve'),
         h('span', { class: 'badge badge--line' }, A.ARCHETYPE_LABEL[a.archetype] || 'All-rounder'),
         a.transfer ? h('span', { class: 'badge badge--line' }, 'Transfer') : null,
-        a.injury > 0 ? h('span', { class: 'badge badge--warn' }, `${a.illness ? `Sick (${a.illness})` : 'Injured'}, out ${a.injury} meet${a.injury > 1 ? 's' : ''}`) : null,
+        a.injury > 0 ? h('span', { class: 'badge badge--warn' }, ui.injuryText(state, a)) : null,
         (a.fatigue || 0) >= 40 ? h('span', { class: 'badge badge--warn' }, XC.training.fatigueLabel(a.fatigue)) : null
       ];
       return h('section', { class: 'player-card', 'aria-label': `Selected runner ${A.fullName(a)}` },
@@ -215,7 +216,8 @@
 
     autoReorder() {
       const roster = this.roster();
-      roster.sort((a, b) => (a.injury > 0) - (b.injury > 0) || b.ovr - a.ovr);
+      const out = (a) => !S.raceReady(XC.state, a);
+      roster.sort((a, b) => out(a) - out(b) || b.ovr - a.ovr);
       view.sel = 0;
       XC.audio.select();
       XC.save();

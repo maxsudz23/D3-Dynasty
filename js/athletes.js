@@ -157,7 +157,9 @@
   };
 
   // Lineup = depth chart order, skipping injured runners.
-  A.lineup = (roster, size = 7) => roster.filter((a) => a.injury <= 0).slice(0, size);
+  // ready: who can race (defaults to healthy now; the season code passes
+  // S.raceReady, which counts runners who heal by race day).
+  A.lineup = (roster, size = 7, ready = (a) => !(a.injury > 0)) => roster.filter(ready).slice(0, size);
 
   A.teamOvr = function (roster) {
     const top = roster.filter((a) => a.injury <= 0).map((a) => a.ovr).sort((x, y) => y - x).slice(0, 7);

@@ -179,7 +179,7 @@
             h('td', null, ui.delta(a.form || 0)),
             h('td', { class: (a.fatigue || 0) >= 40 ? 'cell-warn' : '' }, String(Math.round(a.fatigue || 0))),
             h('td', null, a.pr ? U.formatTime(a.pr) : '—'))))));
-        const injured = squad.roster.filter((a) => a.injury > 0);
+        const injured = squad.roster.filter((a) => !S.raceReady(state, a));
         const worn = runners.filter((a) => (a.fatigue || 0) >= 40);
         const pending = XC.training.pending(state);
         lineupBody = h('div', { class: 'stack' },
@@ -191,7 +191,7 @@
           runners.length < 5 && entry.scored ? h('p', { class: 'notice notice--warn' }, 'Fewer than five healthy runners. The team can’t post a score.') : null,
           list,
           S.hasJV(meet) && entry.scored ? jvNote(state, meet, sq) : null,
-          injured.length ? h('p', { class: 'muted' }, `Out: ${injured.map((a) => `${A.fullName(a)} (${A.outWord(a).toLowerCase()}, out ${a.injury})`).join(', ')}`) : null,
+          injured.length ? h('p', { class: 'muted' }, `Out: ${injured.map((a) => `${A.fullName(a)} (${A.outWord(a).toLowerCase()}, ${ui.weeksText(a.injury)})`).join(', ')}`) : null,
           this.strategyPicker(sq),
           this.runnerPlans(sq, runners));
       }
@@ -433,7 +433,9 @@
       const notes = [];
       res.individuals.filter((r) => r.pr).forEach((r) => notes.push(['good', `${r.name} ran a personal best: ${U.formatTime(r.time)}.`]));
       res.aa.forEach((n) => notes.push(['good', `${n} earns All-American honors.`]));
-      res.injuries.forEach((inj) => notes.push(['bad', `${inj.name} picked up an injury and will miss ${inj.out} meet${inj.out > 1 ? 's' : ''}.`]));
+      res.injuries.forEach((inj) => notes.push(['bad', inj.weeks
+        ? `${inj.name} picked up ${inj.what ? `a ${inj.what}` : 'an injury'} and will be out about ${ui.weeksText(inj.out).replace(' wk', ' weeks').replace(/^1 weeks/, '1 week')}.`
+        : `${inj.name} picked up an injury and will miss ${inj.out} meet${inj.out > 1 ? 's' : ''}.`]));
       res.dnfs.forEach((n) => notes.push(['bad', `${n} did not finish.`]));
       if (!isJV && meet.type === 'regional' && state.squads[sq].natQual) notes.push([state.squads[sq].natQual.team ? 'good' : 'bad', state.squads[sq].natQual.reason]);
       if (!notes.length) notes.push(['', 'No injuries, no surprises. On to the next one.']);

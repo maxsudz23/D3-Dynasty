@@ -463,17 +463,18 @@
     if (out.gains.length) A.refresh(a);
     const blockRisk = 1 - (1 - T.mileageRisk(a, out.miles, fatigue)) ** weeks;
     if (rng() < blockRisk) {
-      const [what, outFor] = U.pick(OVERUSE, rng);
-      a.injury = Math.max(a.injury, outFor);
+      const { what, weeks } = T.rollInjury(rng, OVERUSE);
+      a.injury = Math.max(a.injury, weeks);
       a.injuryWhat = what;
-      out.injury = { what, out: outFor };
+      out.injury = { what, out: weeks };
     }
     // Conditioning updates after the risk is judged against the old level.
     a.base = nextBase;
     out.base = nextBase;
     return out;
   }
-  const OVERUSE = [['stress reaction from the mileage', 2], ['overuse shin splints', 2], ['achy Achilles from the volume', 1], ['plantar fasciitis', 1]];
+  // Overuse injuries from too many miles: [name, fewest weeks, most weeks].
+  const OVERUSE = [['stress reaction from the mileage', 4, 6], ['overuse shin splints', 1, 3], ['achy Achilles from the volume', 1, 2], ['plantar fasciitis', 2, 4]];
 
   function stimulus(x, fatigue) {
     const raw = x <= 1 ? x : 1 + 0.3 * (1 - Math.exp(-2.5 * (x - 1)));
@@ -726,9 +727,13 @@
 
   T.pending = (state) => state.phase === 'season' && state.training && state.training.meetIndex === state.meetIndex && !state.training.done;
 
-  T.openBlock = function (state) {
-    state.training = { meetIndex: state.meetIndex, done: false, plans: null, report: null, promises: {} };
-    // Runners text the coach at the start of each block.
+  // heal: true when the calendar really moves into a new block (after a
+  // meet, or the season opening): half the block passes before workout
+  // day. Otherwise (a save repaired mid-block) "now" is already workout day.
+  T.openBlock = function (state, { heal = false } = {}) {
+    state.training = { meetIndex: state.meetIndex, done: false, plans: null, report: null, promises: {}, healedTo: heal ? null : 'workout' };
+    if (heal) T.heal(state, 'workout');
+    // Runners text the coach at the start of each block, as of workout day.
     if (XC.texts) XC.texts.roll(state);
   };
 
@@ -753,14 +758,56 @@
         a.base = U.round(usual + (T.baseOf(a) - usual) * 0.6, 1);
       });
     });
-    T.openBlock(state);
+    T.openBlock(state, { heal: true });
   };
 
+  /* ---------- Injuries, in weeks ----------
+     a.injury is weeks until a runner is healthy. Time passes with the
+     calendar: half a block's weeks by workout day, the rest by race day
+     (T.heal), so a short injury can heal inside one block and a runner
+     only misses a meet if they're still hurt on race day. */
+
+  // Workout and race injuries: [name, fewest weeks, most weeks].
   const INJURIES = [
-    ['tight hamstring', 1], ['sore Achilles', 1], ['calf strain', 2], ['IT band flare-up', 1],
-    ['shin splints', 2], ['rolled ankle', 1], ['hip flexor strain', 2], ['stress reaction in the foot', 3]
+    ['tight hamstring', 1, 2], ['sore Achilles', 1, 3], ['calf strain', 2, 3], ['IT band flare-up', 1, 3],
+    ['shin splints', 1, 3], ['rolled ankle', 1, 2], ['hip flexor strain', 2, 3], ['stress reaction in the foot', 4, 7]
   ];
   T.INJURY_NAMES = INJURIES.map(([what]) => what);
+  T.rollInjury = function (rng = Math.random, list = INJURIES) {
+    const [what, lo, hi] = U.pick(list, rng);
+    return { what, weeks: U.randInt(lo, hi, rng) };
+  };
+
+  // Weeks from now until the current meet. During a block, "now" is
+  // workout day until the workout runs, then race day.
+  T.weeksUntilMeet = function (state) {
+    const G = T.gapWeeks(state.meetIndex);
+    if (state.phase === 'preseason') return T.GAP_WEEKS[0];
+    if (state.phase !== 'season') return 0;
+    const tr = state.training;
+    if (!tr || tr.meetIndex !== state.meetIndex) return G;
+    return tr.healedTo === 'meet' ? 0 : tr.healedTo === 'workout' ? G / 2 : G;
+  };
+
+  // Advance the block's calendar to workout day or race day, healing
+  // injuries by the weeks that pass.
+  T.heal = function (state, to) {
+    const tr = state.training;
+    if (!tr) return;
+    const G = T.gapWeeks(state.meetIndex);
+    const done = tr.healedTo === 'meet' ? G : tr.healedTo === 'workout' ? G / 2 : 0;
+    const weeks = (to === 'meet' ? G : G / 2) - done;
+    if (weeks <= 0) return;
+    state.programs.forEach((sq) => state.squads[sq].roster.forEach((a) => {
+      if (!(a.injury > 0)) return;
+      a.injury = U.round(Math.max(0, a.injury - weeks), 2);
+      if (a.injury <= 0) {
+        a.injury = 0;
+        delete a.illness;
+      }
+    }));
+    tr.healedTo = to;
+  };
 
   function gainStats(a, w, stim) {
     const spec = T.TYPES[w.type];
@@ -834,10 +881,10 @@
           a.form = U.clamp(0.5 * T.formOf(a) + 1.4 * stim - 0.35 - (dnf ? dnf.form : 0), -3, 4.5);
           a.lastWorkout = w.type;
           if (rng() < workoutRisk(x, day, a) * staffRisk(state) * (dnf ? dnf.risk : 1)) {
-            const [what, out] = U.pick(INJURIES, rng);
-            a.injury = Math.max(a.injury, out);
+            const { what, weeks } = T.rollInjury(rng);
+            a.injury = Math.max(a.injury, weeks);
             a.injuryWhat = what;
-            row.injury = { what, out };
+            row.injury = { what, out: weeks };
           }
           day = Math.min(100, day + workoutFatigue(x) + (dnf ? dnf.fatigue : 0));
           if (w.source === 'staff' && (row.injury || dnf || zone.key === 'danger')) row.note += w.coach ? ` This was ${w.coach}’s suggestion.` : ' This was the staff’s suggestion.';
@@ -855,6 +902,8 @@
     });
     state.training.done = true;
     state.training.report = report;
+    // The rest of the block passes: injuries heal on toward race day.
+    T.heal(state, 'meet');
     return report;
   };
 
@@ -872,6 +921,7 @@
       state.training.done = true;
       state.training.skipped = true;
     }
+    T.heal(state, 'meet');
   };
 
   // mult scales the race's fatigue (an individual plan like holding back).

@@ -90,7 +90,7 @@
      when(ctx) -> weight (0 = not eligible). ctx: { state, sq, a, day, facts, rng }.
      texts: message variants with {name}, {workout}, {injury}, {home}, {time} slots.
      replies: [{ text, effects, note, miss? }]. effects: morale, fatigue,
-     form, plan ('rest' | 'asked' | 'asked-less'), injury (+/- meets), cure,
+     form, plan ('rest' | 'asked' | 'asked-less'), injury (+/- weeks), cure,
      news, odds: [{ p, ...effects, note }] rolled in order, first hit wins;
      miss: extra effects when no odds hit (the note is then the reply's). */
   X.TEMPLATES = {
@@ -116,11 +116,11 @@
         'Woke up with a fever. Pretty sure it’s the flu that’s going around the dorm.'
       ],
       replies: [
-        { text: 'Rest up and drink fluids. Don’t come in until you’re better.', effects: { morale: 1 }, note: '{name} is out for the next meet.' },
+        { text: 'Rest up and drink fluids. Don’t come in until you’re better.', effects: { morale: 1 }, note: '{name} rests until the flu passes.' },
         {
           text: 'See the trainer. If the fever breaks, you race.',
           effects: { odds: [{ p: 0.5, cure: true, fatigue: 15, note: 'The fever broke. Cleared to train and race, but worn down.' }] },
-          note: 'Still sick. Out for the next meet.'
+          note: 'Still sick. Resting until it passes.'
         },
         {
           text: 'Can you at least make the workout?',
@@ -129,7 +129,7 @@
             news: 'A sick {full} shows up to {school} practice.',
             odds: [{ p: 0.5, cure: true, fatigue: 22, note: 'Came in sick and got through it. Cleared to race, but dragging.' }]
           },
-          note: 'Came in sick and got worse. Out an extra meet.',
+          note: 'Came in sick and got worse. Out an extra week.',
           // The miss: the flu lingers.
           miss: { injury: 1 }
         }
@@ -145,7 +145,7 @@
         { text: 'Keep cross-training. Don’t rush it.', effects: { morale: 1 }, note: '{name} keeps rehabbing.' },
         {
           text: 'Try an easy run and see how it feels.',
-          effects: { odds: [{ p: 0.35, injury: -1, note: 'Felt good. Back a meet sooner.' }, { p: 0.25, injury: 1, morale: -1, note: 'It flared up. Out a meet longer.' }] },
+          effects: { odds: [{ p: 0.35, injury: -1, note: 'Felt good. Back a week sooner.' }, { p: 0.25, injury: 1, morale: -1, note: 'It flared up. Out a week longer.' }] },
           note: 'No change. Still rehabbing.'
         }
       ]
@@ -268,7 +268,8 @@
       const healthy = roster.filter((a) => a.injury <= 0);
       if (healthy.length && rng() < X.FLU_CHANCE) {
         const a = U.pick(healthy, rng);
-        a.injury = Math.max(a.injury, 1);
+        // The flu lasts one to two weeks from workout day.
+        a.injury = Math.max(a.injury, U.randInt(1, 2, rng));
         a.illness = 'flu';
         items.push(makeItem(state, sq, a, 'sick', rng));
       }
