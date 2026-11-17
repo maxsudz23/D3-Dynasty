@@ -1,6 +1,12 @@
 # D3 Dynasty: Project Notes
 
-D3 Dynasty is a Division III cross country coaching game in plain HTML, CSS and JS. It started as the **Website #2** class assignment. The rubric is at `../.claude/skills/custom-skills/Website2.md` and the design guidance at `../.claude/skills/custom-skills/SKILL.md`. `GRADING.md` points the grader to each rubric item. Its line numbers are only accurate on the `grading` branch.
+D3 Dynasty is a Division III cross country coaching game in plain HTML, CSS and JS. It started as the **Website #2** class assignment. The rubric file was deleted on 2026-11-17. `GRADING.md` points the grader to each rubric item.
+
+Project skills in `.claude/skills/` load automatically in this repo:
+- **`frontend-design`:** the design guidance, copied from `../.claude/skills/custom-skills/SKILL.md`.
+- **`modern-web-guidance`:** Chrome's guide catalog, used through `npx -y modern-web-guidance@latest search/retrieve` before HTML/CSS/client JS work, or `legacy-scan` for a modernization pass.
+
+`.claude/` is in `.assetsignore`, so neither these files nor `settings.local.json` are served. Its line numbers are only accurate on the `grading` branch.
 
 ## Branches and deployment
 - **`grading`:** a frozen snapshot for the grader, served by GitHub Pages at https://maxsudz23.github.io/D3-Dynasty/. Commit to it only when the user explicitly asks for a specific fix there. Apply that fix alone (for example, check out `grading` in a separate git worktree and apply a patch), keep it within the rubric, and update the `GRADING.md` line numbers it shifts.

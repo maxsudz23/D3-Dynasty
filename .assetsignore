@@ -9,3 +9,4 @@ wrangler.jsonc
 *.md
 scripts/
 proto/
+.claude/

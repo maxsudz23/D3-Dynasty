@@ -1,3 +1,4 @@
 .DS_Store
 .wrangler
 proto/tools/cache/
+.claude/settings.local.json
